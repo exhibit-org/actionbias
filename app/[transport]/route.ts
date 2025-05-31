@@ -28,6 +28,7 @@ const handler = createMcpHandler(
       async ({ type, title }) => {
         try {
           const newAction = await db.insert(actions).values({
+            id: crypto.randomUUID(),
             type,
             data: { title },
           }).returning();
@@ -35,7 +36,7 @@ const handler = createMcpHandler(
           return {
             content: [{ 
               type: "text", 
-              text: `Created action with ID: ${newAction[0].id}\nType: ${newAction[0].type || 'undefined'}\nTitle: ${newAction[0].data.title}` 
+              text: `Created action with ID: ${newAction[0].id}\nType: ${newAction[0].type || 'undefined'}\nTitle: ${newAction[0].data?.title || 'untitled'}` 
             }],
           };
         } catch (error) {

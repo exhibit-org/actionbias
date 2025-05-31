@@ -4,23 +4,25 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm db:migrate && next build",
+    "build": "pnpm db:migrate:safe && next build",
+    "db:migrate:safe": "if [ -n \"$DATABASE_URL\" ]; then pnpm db:migrate; else echo 'Skipping migration - no DATABASE_URL'; fi",
     "start": "next start",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "prepare": "husky"
   },
   "dependencies": {
     "@vercel/mcp-adapter": "0.4.1",
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.1",
     "next": "15.2.4",
-    "pg": "^8.16.0",
+    "postgres": "^3.4.7",
     "redis": "^4.7.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "@types/pg": "^8.15.2",
     "@types/react": "^19",
+    "husky": "^9.1.7",
     "typescript": "^5"
   },
   "packageManager": "pnpm@8.15.7+sha512.c85cd21b6da10332156b1ca2aa79c0a61ee7ad2eb0453b88ab299289e9e8ca93e6091232b25c07cbf61f6df77128d9c849e5c9ac6e44854dbd211c49f3a67adc"
