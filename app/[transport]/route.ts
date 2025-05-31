@@ -2,7 +2,7 @@ import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { nodes, nodeDataSchema } from '../../db/schema';
+import { actions, actionDataSchema } from '../../db/schema';
 
 const client = postgres(process.env.DATABASE_URL!);
 const db = drizzle(client);
@@ -19,15 +19,15 @@ const handler = createMcpHandler(
     );
 
     server.tool(
-      "create_node",
-      "Create a new node in the database",
+      "create_action",
+      "Create a new action in the database",
       {
-        type: z.string().optional().describe("The type of the node"),
-        title: z.string().min(1).describe("The title for the node"),
+        type: z.string().optional().describe("The type of the action"),
+        title: z.string().min(1).describe("The title for the action"),
       },
       async ({ type, title }) => {
         try {
-          const newNode = await db.insert(nodes).values({
+          const newAction = await db.insert(actions).values({
             type,
             data: { title },
           }).returning();
@@ -35,14 +35,14 @@ const handler = createMcpHandler(
           return {
             content: [{ 
               type: "text", 
-              text: `Created node with ID: ${newNode[0].id}\nType: ${newNode[0].type || 'undefined'}\nTitle: ${newNode[0].data.title}` 
+              text: `Created action with ID: ${newAction[0].id}\nType: ${newAction[0].type || 'undefined'}\nTitle: ${newAction[0].data.title}` 
             }],
           };
         } catch (error) {
           return {
             content: [{ 
               type: "text", 
-              text: `Error creating node: ${error instanceof Error ? error.message : 'Unknown error'}` 
+              text: `Error creating action: ${error instanceof Error ? error.message : 'Unknown error'}` 
             }],
           };
         }
@@ -55,8 +55,8 @@ const handler = createMcpHandler(
         echo: {
           description: "Echo a message",
         },
-        create_node: {
-          description: "Create a new node in the database",
+        create_action: {
+          description: "Create a new action in the database",
         },
       },
     },
