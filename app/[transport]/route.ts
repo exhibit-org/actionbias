@@ -10,15 +10,6 @@ const db = drizzle(client);
 const handler = createMcpHandler(
   (server) => {
     server.tool(
-      "echo",
-      "Echo a message",
-      { message: z.string() },
-      async ({ message }) => ({
-        content: [{ type: "text", text: `Tool echo: ${message}` }],
-      })
-    );
-
-    server.tool(
       "create_action",
       "Create a new action in the database",
       {
@@ -53,9 +44,6 @@ const handler = createMcpHandler(
   {
     capabilities: {
       tools: {
-        echo: {
-          description: "Echo a message",
-        },
         create_action: {
           description: "Create a new action in the database",
         },
