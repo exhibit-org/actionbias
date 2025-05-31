@@ -5,16 +5,21 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@vercel/mcp-adapter": "0.4.1",
+    "drizzle-kit": "^0.31.1",
+    "drizzle-orm": "^0.44.1",
     "next": "15.2.4",
+    "pg": "^8.16.0",
     "redis": "^4.7.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.15.2",
     "@types/react": "^19",
     "typescript": "^5"
   },
