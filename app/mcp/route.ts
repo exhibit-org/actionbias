@@ -70,4 +70,38 @@ const handler = createMcpHandler(
   },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+// Validate authentication
+function validateAuth(request: Request): boolean {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return false;
+  }
+  
+  const token = authHeader.substring(7);
+  // Accept any token that starts with 'access_' (from our OAuth flow)
+  return token.startsWith('access_');
+}
+
+async function authenticatedHandler(method: string, request: Request) {
+  console.log(`[MCP Auth] ${method} request received`);
+  
+  if (!validateAuth(request)) {
+    console.log('[MCP Auth] Authentication failed');
+    return new Response('Unauthorized', { status: 401 });
+  }
+  
+  console.log('[MCP Auth] Authentication successful');
+  return handler(request);
+}
+
+export async function GET(request: Request) {
+  return authenticatedHandler('GET', request);
+}
+
+export async function POST(request: Request) {
+  return authenticatedHandler('POST', request);
+}
+
+export async function DELETE(request: Request) {
+  return authenticatedHandler('DELETE', request);
+}
