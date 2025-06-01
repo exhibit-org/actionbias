@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[OAuth Register] POST /register received');
     const body = await request.json();
+    console.log('[OAuth Register] Request body:', body);
     
     const response = {
       client_id: "actionbias-mcp-client",
@@ -18,8 +20,10 @@ export async function POST(request: NextRequest) {
       scope: body.scope || "mcp"
     };
     
+    console.log('[OAuth Register] Sending response:', response);
     return NextResponse.json(response);
   } catch (error) {
+    console.log('[OAuth Register] Error:', error);
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 }
