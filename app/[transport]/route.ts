@@ -9,6 +9,10 @@ const db = drizzle(client);
 
 const handler = createMcpHandler(
   (server) => {
+    // Add logging for debugging
+    console.log('MCP server initialized with capabilities:', {
+      tools: ['create_action']
+    });
     server.tool(
       "create_action",
       "Create a new action in the database",
@@ -63,4 +67,27 @@ const handler = createMcpHandler(
   },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+// Wrap handlers with logging
+async function loggedHandler(method: string, request: Request) {
+  const url = new URL(request.url);
+  console.log(`[MCP] ${method} ${url.pathname}`, {
+    headers: Object.fromEntries(request.headers.entries()),
+    body: method === 'POST' ? await request.clone().text() : undefined
+  });
+  
+  const response = await handler(request);
+  console.log(`[MCP] Response ${response.status} for ${method} ${url.pathname}`);
+  return response;
+}
+
+export async function GET(request: Request) {
+  return loggedHandler('GET', request);
+}
+
+export async function POST(request: Request) {
+  return loggedHandler('POST', request);
+}
+
+export async function DELETE(request: Request) {
+  return loggedHandler('DELETE', request);
+}
