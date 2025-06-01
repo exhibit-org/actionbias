@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// OAuth token endpoint
+// OAuth token endpoint (alternative path)
 export async function POST(request: NextRequest) {
   try {
     // Handle both JSON and form-encoded requests
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       body = Object.fromEntries(formData);
     }
     
-    console.log('[OAuth] Token request:', body);
+    console.log('[OAuth] Token request at /auth/token:', body);
     
     const { grant_type, code, client_id, code_verifier } = body;
     
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error('[OAuth] Token error:', error);
+    console.error('[OAuth] Token error at /auth/token:', error);
     return NextResponse.json(
       { 
         error: 'invalid_request',

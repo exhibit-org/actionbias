@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const metadata = {
     issuer: baseUrl,
     authorization_endpoint: `${baseUrl}/oauth/authorize`,
-    token_endpoint: `${baseUrl}/oauth/token`,
+    token_endpoint: `${baseUrl}/auth/token`,
     registration_endpoint: `${baseUrl}/register`,
     scopes_supported: ['claudeai'],
     response_types_supported: ['code'],
