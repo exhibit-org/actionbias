@@ -9,12 +9,19 @@ export async function POST(request: NextRequest) {
     // Minimal response per RFC 7591
     const response = {
       client_id: "actionbias-mcp-client",
+      client_secret: "mcp-client-secret", // Add client_secret
       token_endpoint_auth_method: "none",
       redirect_uris: body.redirect_uris || ["http://localhost:3000/callback"]
     };
     
     console.log('[OAuth Register] Sending response:', response);
-    return NextResponse.json(response, { status: 201 });
+    return NextResponse.json(response, { 
+      status: 201,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
   } catch (error) {
     console.log('[OAuth Register] Error:', error);
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
