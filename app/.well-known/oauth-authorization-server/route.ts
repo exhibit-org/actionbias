@@ -23,3 +23,16 @@ export async function GET(request: NextRequest) {
     }
   });
 }
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  console.log('[OAuth Discovery] OPTIONS /.well-known/oauth-authorization-server received');
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
