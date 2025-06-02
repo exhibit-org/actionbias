@@ -91,30 +91,7 @@ async function authenticatedHandler(method: string, request: Request) {
   }
   
   console.log('[MCP Auth] Authentication successful');
-  
-  // Handle GET requests for MCP initialization/discovery
-  if (method === 'GET') {
-    console.log('[MCP Auth] Handling GET request for MCP initialization');
-    return new Response(JSON.stringify({
-      capabilities: {
-        tools: {
-          create_action: {
-            description: "Create a new action in the database"
-          }
-        }
-      },
-      serverInfo: {
-        name: "ActionBias MCP Server", 
-        version: "0.1.0"
-      }
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
-  }
+  console.log('[MCP Auth] Forwarding to MCP handler');
   
   return handler(request);
 }
