@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[OAuth Token] POST /auth/token received');
     let body;
     const contentType = request.headers.get('content-type') || '';
     
@@ -12,6 +13,7 @@ export async function POST(request: NextRequest) {
       body = Object.fromEntries(formData);
     }
     
+    console.log('[OAuth Token] Request body:', body);
     const { grant_type } = body;
     
     if (grant_type === 'authorization_code') {
@@ -22,17 +24,38 @@ export async function POST(request: NextRequest) {
         scope: 'mcp'
       };
       
+      console.log('[OAuth Token] Sending response:', response);
       return NextResponse.json(response, {
         headers: {
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          'Access-Control-Allow-Origin': '*'
         }
       });
     }
     
-    return NextResponse.json({ error: 'unsupported_grant_type' }, { status: 400 });
+    return NextResponse.json({ error: 'unsupported_grant_type' }, { 
+      status: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
+    console.log('[OAuth Token] Error:', error);
+    return NextResponse.json({ error: 'invalid_request' }, { 
+      status: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    });
   }
+}
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
