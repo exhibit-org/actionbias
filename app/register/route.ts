@@ -27,3 +27,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
   }
 }
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  console.log('[OAuth Register] OPTIONS /register received');
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
