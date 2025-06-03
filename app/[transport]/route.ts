@@ -83,7 +83,16 @@ function validateAuth(request: Request): boolean {
 }
 
 async function authenticatedHandler(method: string, request: Request) {
-  console.log(`[MCP Auth] ${method} request received`);
+  const url = new URL(request.url);
+  const transport = url.pathname.substring(1); // Remove leading slash
+  
+  console.log(`[MCP Auth] ${method} ${url.pathname} received`);
+  
+  // Only handle MCP transport paths
+  if (!['sse', 'mcp'].includes(transport)) {
+    console.log(`[MCP Auth] Not an MCP transport path: ${transport}`);
+    return new Response('Not Found', { status: 404 });
+  }
   
   if (!validateAuth(request)) {
     console.log('[MCP Auth] Authentication failed');
