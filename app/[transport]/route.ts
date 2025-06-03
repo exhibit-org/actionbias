@@ -590,17 +590,9 @@ async function authenticatedHandler(method: string, request: Request) {
   
   console.log(`[MCP Auth] ${method} ${url.pathname} received`);
   
-  // Redirect main MCP transport to /mcp
-  if (transport === 'mcp') {
-    console.log('[MCP Auth] Redirecting to /mcp endpoint');
-    const newUrl = new URL(request.url);
-    newUrl.pathname = '/mcp';
-    return Response.redirect(newUrl.toString(), 308);
-  }
-  
-  // Only handle legacy transport paths, exclude static files  
-  if (!['sse', 'message'].includes(transport) || transport.includes('.')) {
-    console.log(`[MCP Auth] Not a supported transport path: ${transport}`);
+  // Only handle MCP transport paths, exclude static files  
+  if (!['sse', 'mcp', 'message'].includes(transport) || transport.includes('.')) {
+    console.log(`[MCP Auth] Not an MCP transport path: ${transport}`);
     return new Response('Not Found', { status: 404 });
   }
   
