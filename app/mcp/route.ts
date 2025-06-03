@@ -38,7 +38,7 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
 
 const handler = createMcpHandler(
   (server) => {
-    console.log('MCP server initialized with dynamic transport');
+    console.log('MCP server initialized at /mcp');
     
     server.tool(
       "create_action",
@@ -566,7 +566,7 @@ const handler = createMcpHandler(
   },
   {
     redisUrl: process.env.REDIS_URL,
-    basePath: "", // Dynamic transport routing
+    basePath: "/mcp",
     verboseLogs: true,
     maxDuration: 60,
   },
@@ -585,50 +585,11 @@ function validateAuth(request: Request): boolean {
 }
 
 async function authenticatedHandler(method: string, request: Request) {
-  const url = new URL(request.url);
-  const transport = url.pathname.substring(1); // Remove leading slash
+  console.log(`[MCP Auth] ${method} ${request.url} received`);
   
-  console.log(`[MCP Auth] ${method} ${url.pathname} received`);
-  
-  // Redirect main MCP transport to /mcp
-  if (transport === 'mcp') {
-    console.log('[MCP Auth] Redirecting to /mcp endpoint');
-    const newUrl = new URL(request.url);
-    newUrl.pathname = '/mcp';
-    return Response.redirect(newUrl.toString(), 308);
-  }
-  
-  // Only handle legacy transport paths, exclude static files  
-  if (!['sse', 'message'].includes(transport) || transport.includes('.')) {
-    console.log(`[MCP Auth] Not a supported transport path: ${transport}`);
-    return new Response('Not Found', { status: 404 });
-  }
-  
-  // SSE endpoint GET requests are for establishing the event stream connection
-  // Check for authentication on SSE connection, but allow through even if missing for now
-  if (transport === 'sse' && method === 'GET') {
-    console.log('[MCP Auth] SSE connection establishment');
-    console.log('[MCP Auth] SSE Headers:', Object.fromEntries(request.headers.entries()));
-    if (validateAuth(request)) {
-      console.log('[MCP Auth] SSE authenticated - allowing through');
-    } else {
-      console.log('[MCP Auth] SSE not authenticated - allowing through anyway for connection establishment');
-    }
-    return handler(request);
-  }
-  
-  // Message endpoint - check if this is an exploratory request or authenticated request
-  if (transport === 'message') {
-    console.log('[MCP Auth] Message endpoint request');
-    console.log('[MCP Auth] Headers:', Object.fromEntries(request.headers.entries()));
-    console.log('[MCP Auth] URL:', request.url);
-    
-    if (!validateAuth(request)) {
-      console.log('[MCP Auth] Message endpoint - no authentication, allowing through for discovery');
-      // Allow through for discovery/exploration
-    } else {
-      console.log('[MCP Auth] Message endpoint - authenticated request');
-    }
+  // Allow through for discovery/exploration on message endpoint
+  if (request.url.includes('/message')) {
+    console.log('[MCP Auth] Message endpoint - allowing through for discovery');
     return handler(request);
   }
   
@@ -639,8 +600,6 @@ async function authenticatedHandler(method: string, request: Request) {
   }
   
   console.log('[MCP Auth] Authentication successful');
-  console.log('[MCP Auth] Forwarding to MCP handler');
-  
   return handler(request);
 }
 
