@@ -9,7 +9,7 @@ const db = drizzle(client);
 
 const handler = createMcpHandler(
   (server) => {
-    console.log('MCP server initialized at /mcp');
+    console.log('MCP server initialized with dynamic transport');
     
     server.tool(
       "create_action",
@@ -64,7 +64,7 @@ const handler = createMcpHandler(
   },
   {
     redisUrl: process.env.REDIS_URL,
-    basePath: "", // No basePath since we're at /mcp
+    basePath: "", // Dynamic transport routing
     verboseLogs: true,
     maxDuration: 60,
   },
