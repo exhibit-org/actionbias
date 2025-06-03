@@ -88,8 +88,8 @@ async function authenticatedHandler(method: string, request: Request) {
   
   console.log(`[MCP Auth] ${method} ${url.pathname} received`);
   
-  // Only handle MCP transport paths
-  if (!['sse', 'mcp'].includes(transport)) {
+  // Only handle MCP transport paths, exclude static files
+  if (!['sse', 'mcp'].includes(transport) || transport.includes('.')) {
     console.log(`[MCP Auth] Not an MCP transport path: ${transport}`);
     return new Response('Not Found', { status: 404 });
   }
