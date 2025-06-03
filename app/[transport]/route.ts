@@ -88,12 +88,26 @@ async function authenticatedHandler(method: string, request: Request) {
   
   console.log(`[MCP Auth] ${method} ${url.pathname} received`);
   
-  // Only handle MCP transport paths, exclude static files
-  if (!['sse', 'mcp'].includes(transport) || transport.includes('.')) {
+  // Only handle MCP transport paths, exclude static files  
+  if (!['sse', 'mcp', 'message'].includes(transport) || transport.includes('.')) {
     console.log(`[MCP Auth] Not an MCP transport path: ${transport}`);
     return new Response('Not Found', { status: 404 });
   }
   
+  // SSE endpoint GET requests are for establishing the event stream connection
+  // Authentication will be handled by the SSE transport internally via message endpoint
+  if (transport === 'sse' && method === 'GET') {
+    console.log('[MCP Auth] SSE connection establishment - allowing through');
+    return handler(request);
+  }
+  
+  // Message endpoint requires authentication for actual MCP requests
+  if (transport === 'message') {
+    console.log('[MCP Auth] Message endpoint requires authentication');
+    // Continue to authentication check below
+  }
+  
+  // All other requests require authentication
   if (!validateAuth(request)) {
     console.log('[MCP Auth] Authentication failed');
     return new Response('Unauthorized', { status: 401 });
