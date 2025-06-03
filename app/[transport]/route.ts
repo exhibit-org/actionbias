@@ -95,16 +95,31 @@ async function authenticatedHandler(method: string, request: Request) {
   }
   
   // SSE endpoint GET requests are for establishing the event stream connection
-  // Authentication will be handled by the SSE transport internally via message endpoint
+  // Check for authentication on SSE connection, but allow through even if missing for now
   if (transport === 'sse' && method === 'GET') {
-    console.log('[MCP Auth] SSE connection establishment - allowing through');
+    console.log('[MCP Auth] SSE connection establishment');
+    console.log('[MCP Auth] SSE Headers:', Object.fromEntries(request.headers.entries()));
+    if (validateAuth(request)) {
+      console.log('[MCP Auth] SSE authenticated - allowing through');
+    } else {
+      console.log('[MCP Auth] SSE not authenticated - allowing through anyway for connection establishment');
+    }
     return handler(request);
   }
   
-  // Message endpoint requires authentication for actual MCP requests
+  // Message endpoint - check if this is an exploratory request or authenticated request
   if (transport === 'message') {
-    console.log('[MCP Auth] Message endpoint requires authentication');
-    // Continue to authentication check below
+    console.log('[MCP Auth] Message endpoint request');
+    console.log('[MCP Auth] Headers:', Object.fromEntries(request.headers.entries()));
+    console.log('[MCP Auth] URL:', request.url);
+    
+    if (!validateAuth(request)) {
+      console.log('[MCP Auth] Message endpoint - no authentication, allowing through for discovery');
+      // Allow through for discovery/exploration
+    } else {
+      console.log('[MCP Auth] Message endpoint - authenticated request');
+    }
+    return handler(request);
   }
   
   // All other requests require authentication
