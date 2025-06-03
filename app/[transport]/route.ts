@@ -1,8 +1,9 @@
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { eq } from "drizzle-orm";
 import postgres from "postgres";
-import { actions, actionDataSchema } from "../../db/schema";
+import { actions, actionDataSchema, edges } from "../../db/schema";
 
 const client = postgres(process.env.DATABASE_URL!);
 const db = drizzle(client);
@@ -98,6 +99,145 @@ const handler = createMcpHandler(
         }
       },
     );
+
+    server.tool(
+      "add_child_action",
+      "Create a new action as a child of an existing action",
+      {
+        title: z.string().min(1).describe("The title for the new child action"),
+        parent_id: z.string().uuid().describe("The ID of the parent action"),
+      },
+      async ({ title, parent_id }) => {
+        try {
+          console.log(`Creating child action "${title}" under parent ${parent_id}`);
+          
+          // Check that parent exists
+          const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+          
+          if (parentAction.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Error: Parent action with ID ${parent_id} not found`,
+                },
+              ],
+            };
+          }
+          
+          // Create new action
+          const newAction = await db
+            .insert(actions)
+            .values({
+              id: crypto.randomUUID(),
+              data: { title },
+            })
+            .returning();
+
+          // Create parent-child relationship
+          const newEdge = await db
+            .insert(edges)
+            .values({
+              src: parent_id,
+              dst: newAction[0].id,
+              kind: "child",
+            })
+            .returning();
+
+          console.log(`Created child action:`, newAction[0]);
+          console.log(`Created parent relationship:`, newEdge[0]);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Created child action: ${title}\nID: ${newAction[0].id}\nParent: ${parentAction[0].data?.title}\nCreated: ${newAction[0].createdAt}`,
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error creating child action:', error);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error creating child action: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+          };
+        }
+      },
+    );
+
+    server.tool(
+      "add_dependency",
+      "Create a dependency relationship between two existing actions",
+      {
+        action_id: z.string().uuid().describe("The ID of the action that depends on another"),
+        depends_on_id: z.string().uuid().describe("The ID of the action that must be completed first"),
+      },
+      async ({ action_id, depends_on_id }) => {
+        try {
+          console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
+          
+          // Check that both actions exist
+          const action = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+          const dependsOn = await db.select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
+          
+          if (action.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Error: Action with ID ${action_id} not found`,
+                },
+              ],
+            };
+          }
+          
+          if (dependsOn.length === 0) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Error: Dependency action with ID ${depends_on_id} not found`,
+                },
+              ],
+            };
+          }
+          
+          const newEdge = await db
+            .insert(edges)
+            .values({
+              src: depends_on_id,
+              dst: action_id,
+              kind: "depends_on",
+            })
+            .returning();
+
+          console.log(`Created dependency:`, newEdge[0]);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Created dependency: ${action[0].data?.title} depends on ${dependsOn[0].data?.title}\nCreated: ${newEdge[0].createdAt}`,
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error creating dependency:', error);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error creating dependency: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+          };
+        }
+      },
+    );
   },
   {
     capabilities: {
@@ -107,6 +247,12 @@ const handler = createMcpHandler(
         },
         list_actions: {
           description: "List all actions in the database",
+        },
+        add_child_action: {
+          description: "Create a new action as a child of an existing action",
+        },
+        add_dependency: {
+          description: "Create a dependency relationship between two existing actions",
         },
       },
     },
