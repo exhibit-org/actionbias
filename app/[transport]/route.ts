@@ -52,12 +52,61 @@ const handler = createMcpHandler(
         }
       },
     );
+
+    server.tool(
+      "list_actions",
+      "List all actions in the database",
+      {
+        limit: z.number().min(1).max(100).default(20).describe("Maximum number of actions to return"),
+        offset: z.number().min(0).default(0).describe("Number of actions to skip for pagination"),
+      },
+      async ({ limit, offset }) => {
+        try {
+          console.log(`Listing actions with limit: ${limit}, offset: ${offset}`);
+          
+          const actionList = await db
+            .select()
+            .from(actions)
+            .limit(limit)
+            .offset(offset)
+            .orderBy(actions.createdAt);
+
+          console.log(`Found ${actionList.length} actions`);
+
+          const formattedActions = actionList.map(action => 
+            `${action.data?.title || 'untitled'} (ID: ${action.id}, Created: ${action.createdAt})`
+          ).join('\n');
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Found ${actionList.length} actions:\n\n${formattedActions}`,
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error listing actions:', error);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error listing actions: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+          };
+        }
+      },
+    );
   },
   {
     capabilities: {
       tools: {
         create_action: {
           description: "Create a new action in the database",
+        },
+        list_actions: {
+          description: "List all actions in the database",
         },
       },
     },
