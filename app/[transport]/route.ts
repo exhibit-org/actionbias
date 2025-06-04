@@ -31,8 +31,8 @@ const handler = createMcpHandler(
     
     // Register MCP resources for data access
     server.resource(
-      "actionbias://actions",
-      "List all actions with pagination support",
+      "actions",
+      "List all actions with pagination support", 
       async (uri) => {
         try {
           const url = new URL(uri);
@@ -58,7 +58,7 @@ const handler = createMcpHandler(
     );
 
     server.resource(
-      "actionbias://actions/tree",
+      "actions/tree",
       "Hierarchical view of actions showing parent-child relationships",
       async (uri) => {
         try {
@@ -81,7 +81,7 @@ const handler = createMcpHandler(
     );
 
     server.resource(
-      "actionbias://actions/dependencies",
+      "actions/dependencies",
       "Dependency graph view showing all action dependencies and dependents",
       async (uri) => {
         try {
@@ -104,8 +104,8 @@ const handler = createMcpHandler(
     );
 
     server.resource(
-      "actionbias://action/{id}",
-      "Individual action details with relationships",
+      "action/{id}",
+      "Individual action details with relationships", 
       async (uri) => {
         try {
           const url = new URL(uri);
@@ -399,16 +399,16 @@ const handler = createMcpHandler(
   {
     capabilities: {
       resources: {
-        "actionbias://actions": {
+        "actions": {
           description: "List all actions with pagination support",
         },
-        "actionbias://actions/tree": {
+        "actions/tree": {
           description: "Hierarchical view of actions showing parent-child relationships",
         },
-        "actionbias://actions/dependencies": {
+        "actions/dependencies": {
           description: "Dependency graph view showing all action dependencies and dependents",
         },
-        "actionbias://action/{id}": {
+        "action/{id}": {
           description: "Individual action details with relationships",
         },
       },
