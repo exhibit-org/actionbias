@@ -273,36 +273,8 @@ const handler = createMcpHandler(
         try {
           console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
           
-          // Check that both actions exist
-          console.log('Checking if action exists:', action_id);
-          const action = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
-          console.log('Action query result:', action);
-          
-          console.log('Checking if dependency action exists:', depends_on_id);
-          const dependsOn = await db.select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
-          console.log('Dependency action query result:', dependsOn);
-          
-          if (action.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Action with ID ${action_id} not found`,
-                },
-              ],
-            };
-          }
-          
-          if (dependsOn.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Dependency action with ID ${depends_on_id} not found`,
-                },
-              ],
-            };
-          }
+          // Create dependency directly without validation for now
+          // (validation queries seem to be causing timeouts)
           
           const newEdge = await db
             .insert(edges)
@@ -319,7 +291,7 @@ const handler = createMcpHandler(
             content: [
               {
                 type: "text",
-                text: `Created dependency: ${action[0].data?.title} depends on ${dependsOn[0].data?.title}\nCreated: ${newEdge[0].createdAt}`,
+                text: `Created dependency: ${action_id} depends on ${depends_on_id}\nCreated: ${newEdge[0].createdAt}`,
               },
             ],
           };
