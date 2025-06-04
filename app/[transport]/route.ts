@@ -274,8 +274,13 @@ const handler = createMcpHandler(
           console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
           
           // Check that both actions exist
+          console.log('Checking if action exists:', action_id);
           const action = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+          console.log('Action query result:', action);
+          
+          console.log('Checking if dependency action exists:', depends_on_id);
           const dependsOn = await db.select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
+          console.log('Dependency action query result:', dependsOn);
           
           if (action.length === 0) {
             return {
@@ -320,11 +325,12 @@ const handler = createMcpHandler(
           };
         } catch (error) {
           console.error('Error creating dependency:', error);
+          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
           return {
             content: [
               {
                 type: "text",
-                text: `Error creating dependency: ${error instanceof Error ? error.message : "Unknown error"}`,
+                text: `Error creating dependency: ${error instanceof Error ? error.message : "Unknown error"}\nStack: ${error instanceof Error ? error.stack?.substring(0, 200) : 'No stack'}`,
               },
             ],
           };
@@ -572,6 +578,50 @@ const handler = createMcpHandler(
         }
       },
     );
+
+    server.tool(
+      "test_simple_dependency",
+      "Simple test to create a dependency without validation",
+      {
+        action_id: z.string().uuid(),
+        depends_on_id: z.string().uuid(),
+      },
+      async ({ action_id, depends_on_id }) => {
+        try {
+          console.log('Simple dependency test starting...');
+          
+          const newEdge = await db
+            .insert(edges)
+            .values({
+              src: depends_on_id,
+              dst: action_id,
+              kind: "depends_on",
+            })
+            .returning();
+
+          console.log('Simple dependency created:', newEdge[0]);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Simple dependency created successfully: ${depends_on_id} → ${action_id}`,
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Simple dependency error:', error);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Simple dependency error: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+          };
+        }
+      },
+    );
   },
   {
     capabilities: {
@@ -596,6 +646,9 @@ const handler = createMcpHandler(
         },
         test_db_connection: {
           description: "Test database connection and schema",
+        },
+        test_simple_dependency: {
+          description: "Simple test to create a dependency without validation",
         },
       },
     },
