@@ -35,9 +35,35 @@ const handler = createMcpHandler(
       "List all actions with pagination support", 
       async (uri) => {
         try {
-          const url = new URL(uri);
+          // Handle both simple resource names and full URLs
+          let url;
+          try {
+            url = new URL(uri);
+          } catch {
+            // If URI is just a resource name like "actions", create a dummy URL to parse query params
+            url = new URL(`mcp://localhost/${uri}`);
+          }
+          
           const limit = parseInt(url.searchParams.get('limit') || '20');
           const offset = parseInt(url.searchParams.get('offset') || '0');
+          
+          // Check if database is available
+          if (!process.env.DATABASE_URL) {
+            return {
+              contents: [
+                {
+                  uri: uri.toString(),
+                  text: JSON.stringify({
+                    error: "Database not configured",
+                    message: "DATABASE_URL environment variable is not set",
+                    actions: [],
+                    total: 0
+                  }, null, 2),
+                  mimeType: "application/json",
+                },
+              ],
+            };
+          }
           
           const result = await ActionsService.getActionListResource({ limit, offset });
           
@@ -62,6 +88,23 @@ const handler = createMcpHandler(
       "Hierarchical view of actions showing parent-child relationships",
       async (uri) => {
         try {
+          // Check if database is available
+          if (!process.env.DATABASE_URL) {
+            return {
+              contents: [
+                {
+                  uri: uri.toString(),
+                  text: JSON.stringify({
+                    error: "Database not configured",
+                    message: "DATABASE_URL environment variable is not set",
+                    rootActions: []
+                  }, null, 2),
+                  mimeType: "application/json",
+                },
+              ],
+            };
+          }
+          
           const result = await ActionsService.getActionTreeResource();
           
           return {
@@ -85,6 +128,23 @@ const handler = createMcpHandler(
       "Dependency graph view showing all action dependencies and dependents",
       async (uri) => {
         try {
+          // Check if database is available
+          if (!process.env.DATABASE_URL) {
+            return {
+              contents: [
+                {
+                  uri: uri.toString(),
+                  text: JSON.stringify({
+                    error: "Database not configured", 
+                    message: "DATABASE_URL environment variable is not set",
+                    dependencies: []
+                  }, null, 2),
+                  mimeType: "application/json",
+                },
+              ],
+            };
+          }
+          
           const result = await ActionsService.getActionDependenciesResource();
           
           return {
@@ -108,12 +168,41 @@ const handler = createMcpHandler(
       "Individual action details with relationships", 
       async (uri) => {
         try {
-          const url = new URL(uri);
-          const pathSegments = url.pathname.split('/');
-          const actionId = pathSegments[pathSegments.length - 1];
+          // Handle both simple resource names and full URLs  
+          let actionId;
+          try {
+            const url = new URL(uri);
+            const pathSegments = url.pathname.split('/');
+            actionId = pathSegments[pathSegments.length - 1];
+          } catch {
+            // If URI is like "action/123", extract the ID directly
+            const segments = uri.toString().split('/');
+            actionId = segments[segments.length - 1];
+          }
           
           if (!actionId) {
             throw new Error("Action ID is required");
+          }
+          
+          // Check if database is available
+          if (!process.env.DATABASE_URL) {
+            return {
+              contents: [
+                {
+                  uri: uri.toString(),
+                  text: JSON.stringify({
+                    error: "Database not configured",
+                    message: "DATABASE_URL environment variable is not set",
+                    id: actionId,
+                    title: "Action not available",
+                    children: [],
+                    dependencies: [],
+                    dependents: []
+                  }, null, 2),
+                  mimeType: "application/json",
+                },
+              ],
+            };
           }
           
           const result = await ActionsService.getActionDetailResource(actionId);
