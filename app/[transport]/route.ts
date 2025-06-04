@@ -1,39 +1,27 @@
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { eq, and } from "drizzle-orm";
-import postgres from "postgres";
-import { actions, actionDataSchema, edges } from "../../db/schema";
 
-const client = postgres(process.env.DATABASE_URL!);
-const db = drizzle(client);
-
-// Helper function to get all descendants of given action IDs
-async function getAllDescendants(actionIds: string[]): Promise<string[]> {
-  if (actionIds.length === 0) return [];
+// Helper function to make internal API calls
+async function makeApiCall(endpoint: string, options: RequestInit = {}) {
+  const baseUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'http://localhost:3000';
   
-  const descendants = new Set<string>(actionIds);
-  let toProcess = [...actionIds];
+  const response = await fetch(`${baseUrl}/api${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
   
-  while (toProcess.length > 0) {
-    const currentLevel = [...toProcess];
-    toProcess = [];
-    
-    for (const actionId of currentLevel) {
-      const childEdges = await db.select().from(edges).where(
-        and(eq(edges.src, actionId), eq(edges.kind, "child"))
-      );
-      
-      for (const edge of childEdges) {
-        if (edge.dst && !descendants.has(edge.dst)) {
-          descendants.add(edge.dst);
-          toProcess.push(edge.dst);
-        }
-      }
-    }
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || `API call failed: ${response.status}`);
   }
   
-  return Array.from(descendants);
+  return data;
 }
 
 const handler = createMcpHandler(
@@ -52,77 +40,20 @@ const handler = createMcpHandler(
         try {
           console.log(`Creating action with title: ${title}`);
           
-          // Validate parent exists if provided
-          if (parent_id) {
-            const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
-            if (parentAction.length === 0) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: `Error: Parent action with ID ${parent_id} not found`,
-                  },
-                ],
-              };
-            }
-          }
+          const result = await makeApiCall('/actions', {
+            method: 'POST',
+            body: JSON.stringify({ title, parent_id, depends_on_ids }),
+          });
 
-          // Validate dependencies exist if provided
-          if (depends_on_ids && depends_on_ids.length > 0) {
-            for (const depId of depends_on_ids) {
-              const depAction = await db.select().from(actions).where(eq(actions.id, depId)).limit(1);
-              if (depAction.length === 0) {
-                return {
-                  content: [
-                    {
-                      type: "text",
-                      text: `Error: Dependency action with ID ${depId} not found`,
-                    },
-                  ],
-                };
-              }
-            }
-          }
-          
-          const newAction = await db
-            .insert(actions)
-            .values({
-              id: crypto.randomUUID(),
-              data: { title },
-            })
-            .returning();
-
-          console.log(`Created action:`, newAction[0]);
-
-          // Create parent relationship if specified
-          if (parent_id) {
-            await db.insert(edges).values({
-              src: parent_id,
-              dst: newAction[0].id,
-              kind: "child",
-            });
-          }
-
-          // Create dependency relationships if specified
-          if (depends_on_ids && depends_on_ids.length > 0) {
-            for (const depId of depends_on_ids) {
-              await db.insert(edges).values({
-                src: depId,
-                dst: newAction[0].id,
-                kind: "depends_on",
-              });
-            }
-          }
-
-          let message = `Created action: ${title}\nID: ${newAction[0].id}\nCreated: ${newAction[0].createdAt}`;
+          const { action, dependencies_count } = result.data;
+          let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
           
           if (parent_id) {
-            const parent = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
-            message += `\nParent: ${parent[0].data?.title}`;
+            message += `\nParent: ${parent_id}`;
           }
           
-          if (depends_on_ids && depends_on_ids.length > 0) {
-            message += `\nDependencies: ${depends_on_ids.length} actions`;
+          if (dependencies_count > 0) {
+            message += `\nDependencies: ${dependencies_count} actions`;
           }
 
           return {
@@ -158,16 +89,14 @@ const handler = createMcpHandler(
         try {
           console.log(`Listing actions with limit: ${limit}, offset: ${offset}`);
           
-          const actionList = await db
-            .select()
-            .from(actions)
-            .limit(limit)
-            .offset(offset)
-            .orderBy(actions.createdAt);
+          const result = await makeApiCall(`/actions?limit=${limit}&offset=${offset}`, {
+            method: 'GET',
+          });
 
-          console.log(`Found ${actionList.length} actions`);
+          const actions = result.data;
+          console.log(`Found ${actions.length} actions`);
 
-          const formattedActions = actionList.map(action => 
+          const formattedActions = actions.map((action: any) => 
             `${action.data?.title || 'untitled'} (ID: ${action.id}, Created: ${action.createdAt})`
           ).join('\n');
 
@@ -175,7 +104,7 @@ const handler = createMcpHandler(
             content: [
               {
                 type: "text",
-                text: `Found ${actionList.length} actions:\n\n${formattedActions}`,
+                text: `Found ${actions.length} actions:\n\n${formattedActions}`,
               },
             ],
           };
@@ -204,47 +133,18 @@ const handler = createMcpHandler(
         try {
           console.log(`Creating child action "${title}" under parent ${parent_id}`);
           
-          // Check that parent exists
-          const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
-          
-          if (parentAction.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Parent action with ID ${parent_id} not found`,
-                },
-              ],
-            };
-          }
-          
-          // Create new action
-          const newAction = await db
-            .insert(actions)
-            .values({
-              id: crypto.randomUUID(),
-              data: { title },
-            })
-            .returning();
+          const result = await makeApiCall('/actions/children', {
+            method: 'POST',
+            body: JSON.stringify({ title, parent_id }),
+          });
 
-          // Create parent-child relationship
-          const newEdge = await db
-            .insert(edges)
-            .values({
-              src: parent_id,
-              dst: newAction[0].id,
-              kind: "child",
-            })
-            .returning();
-
-          console.log(`Created child action:`, newAction[0]);
-          console.log(`Created parent relationship:`, newEdge[0]);
+          const { action, parent } = result.data;
 
           return {
             content: [
               {
                 type: "text",
-                text: `Created child action: ${title}\nID: ${newAction[0].id}\nParent: ${parentAction[0].data?.title}\nCreated: ${newAction[0].createdAt}`,
+                text: `Created child action: ${title}\nID: ${action.id}\nParent: ${parent.data?.title}\nCreated: ${action.createdAt}`,
               },
             ],
           };
@@ -273,36 +173,28 @@ const handler = createMcpHandler(
         try {
           console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
           
-          // Create dependency directly without validation for now
-          // (validation queries seem to be causing timeouts)
-          
-          const newEdge = await db
-            .insert(edges)
-            .values({
-              src: depends_on_id,
-              dst: action_id,
-              kind: "depends_on",
-            })
-            .returning();
+          const result = await makeApiCall('/actions/dependencies', {
+            method: 'POST',
+            body: JSON.stringify({ action_id, depends_on_id }),
+          });
 
-          console.log(`Created dependency:`, newEdge[0]);
+          const edge = result.data;
 
           return {
             content: [
               {
                 type: "text",
-                text: `Created dependency: ${action_id} depends on ${depends_on_id}\nCreated: ${newEdge[0].createdAt}`,
+                text: `Created dependency: ${action_id} depends on ${depends_on_id}\nCreated: ${edge.createdAt}`,
               },
             ],
           };
         } catch (error) {
           console.error('Error creating dependency:', error);
-          console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
           return {
             content: [
               {
                 type: "text",
-                text: `Error creating dependency: ${error instanceof Error ? error.message : "Unknown error"}\nStack: ${error instanceof Error ? error.stack?.substring(0, 200) : 'No stack'}`,
+                text: `Error creating dependency: ${error instanceof Error ? error.message : "Unknown error"}`,
               },
             ],
           };
@@ -322,87 +214,18 @@ const handler = createMcpHandler(
         try {
           console.log(`Deleting action ${action_id} with child handling: ${child_handling}`);
           
-          // Check that action exists
-          const actionToDelete = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+          const result = await makeApiCall(`/actions/${action_id}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ child_handling, new_parent_id }),
+          });
+
+          const { deleted_action, children_count, child_handling: handling, new_parent_id: newParentId } = result.data;
+          let message = `Deleted action: ${deleted_action.data?.title}\nID: ${action_id}`;
           
-          if (actionToDelete.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Action with ID ${action_id} not found`,
-                },
-              ],
-            };
-          }
-
-          // Find all children (actions where this action is the parent)
-          const childEdges = await db.select().from(edges).where(
-            and(eq(edges.src, action_id), eq(edges.kind, "child"))
-          );
-
-          const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
-          
-          // Handle children based on strategy
-          if (child_handling === "delete_recursive" && childIds.length > 0) {
-            // Recursively delete all children by deleting their edges first, then the actions
-            // This is simpler than true recursion and avoids call stack issues
-            const allDescendants = await getAllDescendants(childIds);
-            
-            // Delete all descendant actions (edges will cascade delete)
-            for (const descendantId of allDescendants) {
-              await db.delete(actions).where(eq(actions.id, descendantId));
-            }
-          } else if (child_handling === "reparent" && childIds.length > 0) {
-            if (!new_parent_id) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: `Error: new_parent_id is required when child_handling is 'reparent'`,
-                  },
-                ],
-              };
-            }
-            
-            // Check that new parent exists
-            const newParent = await db.select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
-            if (newParent.length === 0) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: `Error: New parent action with ID ${new_parent_id} not found`,
-                  },
-                ],
-              };
-            }
-
-            // Update all child edges to point to new parent
-            for (const childId of childIds) {
-              if (childId) {
-                await db.insert(edges).values({
-                  src: new_parent_id,
-                  dst: childId,
-                  kind: "child",
-                });
-              }
-            }
-          }
-          // For "orphan", we just delete the action and let cascade delete handle the edges
-
-          // Delete the action (this will cascade delete all edges due to foreign key constraints)
-          const deletedAction = await db.delete(actions).where(eq(actions.id, action_id)).returning();
-
-          console.log(`Deleted action:`, deletedAction[0]);
-
-          let message = `Deleted action: ${actionToDelete[0].data?.title}\nID: ${action_id}`;
-          
-          if (childIds.length > 0) {
-            message += `\nChildren handled via ${child_handling}: ${childIds.length} child actions`;
-            if (child_handling === "reparent" && new_parent_id) {
-              const newParent = await db.select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
-              message += `\nNew parent: ${newParent[0]?.data?.title}`;
+          if (children_count > 0) {
+            message += `\nChildren handled via ${handling}: ${children_count} child actions`;
+            if (handling === "reparent" && newParentId) {
+              message += `\nNew parent: ${newParentId}`;
             }
           }
 
@@ -439,68 +262,18 @@ const handler = createMcpHandler(
         try {
           console.log(`Removing dependency: ${action_id} no longer depends on ${depends_on_id}`);
           
-          // Check that both actions exist
-          const action = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
-          const dependsOn = await db.select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
-          
-          if (action.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Action with ID ${action_id} not found`,
-                },
-              ],
-            };
-          }
-          
-          if (dependsOn.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Error: Dependency action with ID ${depends_on_id} not found`,
-                },
-              ],
-            };
-          }
+          const result = await makeApiCall('/actions/dependencies', {
+            method: 'DELETE',
+            body: JSON.stringify({ action_id, depends_on_id }),
+          });
 
-          // Check if dependency exists
-          const existingEdge = await db.select().from(edges).where(
-            and(
-              eq(edges.src, depends_on_id),
-              eq(edges.dst, action_id),
-              eq(edges.kind, "depends_on")
-            )
-          ).limit(1);
-
-          if (existingEdge.length === 0) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No dependency found: ${action[0].data?.title} does not depend on ${dependsOn[0].data?.title}`,
-                },
-              ],
-            };
-          }
-          
-          // Delete the dependency edge
-          const deletedEdge = await db.delete(edges).where(
-            and(
-              eq(edges.src, depends_on_id),
-              eq(edges.dst, action_id),
-              eq(edges.kind, "depends_on")
-            )
-          ).returning();
-
-          console.log(`Removed dependency:`, deletedEdge[0]);
+          const { action, depends_on, deleted_edge } = result.data;
 
           return {
             content: [
               {
                 type: "text",
-                text: `Removed dependency: ${action[0].data?.title} no longer depends on ${dependsOn[0].data?.title}\nRemoved: ${deletedEdge[0].createdAt}`,
+                text: `Removed dependency: ${action.data?.title} no longer depends on ${depends_on.data?.title}\nRemoved: ${deleted_edge.createdAt}`,
               },
             ],
           };
