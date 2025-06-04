@@ -518,82 +518,6 @@ const handler = createMcpHandler(
       },
     );
 
-    server.tool(
-      "test_db_connection",
-      "Test database connection and schema",
-      {},
-      async () => {
-        try {
-          console.log('Testing database connection...');
-          
-          // Try to query the actions table to see what columns exist
-          const result = await db.select().from(actions).limit(1);
-          
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Database connection successful. Found ${result.length} actions in database.`,
-              },
-            ],
-          };
-        } catch (error) {
-          console.error('Database test error:', error);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Database error: ${error instanceof Error ? error.message : "Unknown error"}`,
-              },
-            ],
-          };
-        }
-      },
-    );
-
-    server.tool(
-      "test_simple_dependency",
-      "Simple test to create a dependency without validation",
-      {
-        action_id: z.string().uuid(),
-        depends_on_id: z.string().uuid(),
-      },
-      async ({ action_id, depends_on_id }) => {
-        try {
-          console.log('Simple dependency test starting...');
-          
-          const newEdge = await db
-            .insert(edges)
-            .values({
-              src: depends_on_id,
-              dst: action_id,
-              kind: "depends_on",
-            })
-            .returning();
-
-          console.log('Simple dependency created:', newEdge[0]);
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Simple dependency created successfully: ${depends_on_id} → ${action_id}`,
-              },
-            ],
-          };
-        } catch (error) {
-          console.error('Simple dependency error:', error);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Simple dependency error: ${error instanceof Error ? error.message : "Unknown error"}`,
-              },
-            ],
-          };
-        }
-      },
-    );
   },
   {
     capabilities: {
@@ -615,12 +539,6 @@ const handler = createMcpHandler(
         },
         remove_dependency: {
           description: "Remove a dependency relationship between two actions",
-        },
-        test_db_connection: {
-          description: "Test database connection and schema",
-        },
-        test_simple_dependency: {
-          description: "Simple test to create a dependency without validation",
         },
       },
     },
