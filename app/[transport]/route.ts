@@ -1,5 +1,6 @@
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
+import { ActionsService } from "../../lib/services/actions";
 
 // Helper function to make internal API calls
 async function makeApiCall(endpoint: string, options: RequestInit = {}) {
@@ -28,6 +29,112 @@ const handler = createMcpHandler(
   (server) => {
     console.log('MCP server initialized with dynamic transport');
     
+    // Register MCP resources for data access
+    server.resource(
+      "actionbias://actions",
+      "List all actions with pagination support",
+      async (uri) => {
+        try {
+          const url = new URL(uri);
+          const limit = parseInt(url.searchParams.get('limit') || '20');
+          const offset = parseInt(url.searchParams.get('offset') || '0');
+          
+          const result = await ActionsService.getActionListResource({ limit, offset });
+          
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(result, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error fetching actions resource:', error);
+          throw new Error(`Failed to fetch actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      }
+    );
+
+    server.resource(
+      "actionbias://actions/tree",
+      "Hierarchical view of actions showing parent-child relationships",
+      async (uri) => {
+        try {
+          const result = await ActionsService.getActionTreeResource();
+          
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(result, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error fetching action tree resource:', error);
+          throw new Error(`Failed to fetch action tree: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      }
+    );
+
+    server.resource(
+      "actionbias://actions/dependencies",
+      "Dependency graph view showing all action dependencies and dependents",
+      async (uri) => {
+        try {
+          const result = await ActionsService.getActionDependenciesResource();
+          
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(result, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error fetching action dependencies resource:', error);
+          throw new Error(`Failed to fetch action dependencies: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      }
+    );
+
+    server.resource(
+      "actionbias://action/{id}",
+      "Individual action details with relationships",
+      async (uri) => {
+        try {
+          const url = new URL(uri);
+          const pathSegments = url.pathname.split('/');
+          const actionId = pathSegments[pathSegments.length - 1];
+          
+          if (!actionId) {
+            throw new Error("Action ID is required");
+          }
+          
+          const result = await ActionsService.getActionDetailResource(actionId);
+          
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify(result, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error fetching action detail resource:', error);
+          throw new Error(`Failed to fetch action details: ${error instanceof Error ? error.message : "Unknown error"}`);
+        }
+      }
+    );
+
+    // Keep mutation tools (simplified names)
     server.tool(
       "create_action",
       "Create a new action in the database with optional parent and dependencies",
@@ -78,49 +185,6 @@ const handler = createMcpHandler(
       },
     );
 
-    server.tool(
-      "list_actions",
-      "List all actions in the database",
-      {
-        limit: z.number().min(1).max(100).default(20).describe("Maximum number of actions to return"),
-        offset: z.number().min(0).default(0).describe("Number of actions to skip for pagination"),
-      },
-      async ({ limit, offset }) => {
-        try {
-          console.log(`Listing actions with limit: ${limit}, offset: ${offset}`);
-          
-          const result = await makeApiCall(`/actions?limit=${limit}&offset=${offset}`, {
-            method: 'GET',
-          });
-
-          const actions = result.data;
-          console.log(`Found ${actions.length} actions`);
-
-          const formattedActions = actions.map((action: any) => 
-            `${action.data?.title || 'untitled'} (ID: ${action.id}, Created: ${action.createdAt})`
-          ).join('\n');
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Found ${actions.length} actions:\n\n${formattedActions}`,
-              },
-            ],
-          };
-        } catch (error) {
-          console.error('Error listing actions:', error);
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Error listing actions: ${error instanceof Error ? error.message : "Unknown error"}`,
-              },
-            ],
-          };
-        }
-      },
-    );
 
     server.tool(
       "add_child_action",
@@ -291,15 +355,66 @@ const handler = createMcpHandler(
       },
     );
 
+    server.tool(
+      "update_action",
+      "Update an existing action's properties",
+      {
+        action_id: z.string().uuid().describe("The ID of the action to update"),
+        title: z.string().min(1).describe("The new title for the action"),
+      },
+      async ({ action_id, title }) => {
+        try {
+          console.log(`Updating action ${action_id} with new title: ${title}`);
+          
+          const result = await makeApiCall(`/actions/${action_id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ title }),
+          });
+
+          const action = result.data;
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Updated action: ${title}\nID: ${action.id}\nUpdated: ${action.updatedAt}`,
+              },
+            ],
+          };
+        } catch (error) {
+          console.error('Error updating action:', error);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error updating action: ${error instanceof Error ? error.message : "Unknown error"}`,
+              },
+            ],
+          };
+        }
+      },
+    );
+
   },
   {
     capabilities: {
+      resources: {
+        "actionbias://actions": {
+          description: "List all actions with pagination support",
+        },
+        "actionbias://actions/tree": {
+          description: "Hierarchical view of actions showing parent-child relationships",
+        },
+        "actionbias://actions/dependencies": {
+          description: "Dependency graph view showing all action dependencies and dependents",
+        },
+        "actionbias://action/{id}": {
+          description: "Individual action details with relationships",
+        },
+      },
       tools: {
         create_action: {
           description: "Create a new action in the database with optional parent and dependencies",
-        },
-        list_actions: {
-          description: "List all actions in the database",
         },
         add_child_action: {
           description: "Create a new action as a child of an existing action",
@@ -312,6 +427,9 @@ const handler = createMcpHandler(
         },
         remove_dependency: {
           description: "Remove a dependency relationship between two actions",
+        },
+        update_action: {
+          description: "Update an existing action's properties",
         },
       },
     },

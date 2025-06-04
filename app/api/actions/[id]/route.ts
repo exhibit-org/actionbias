@@ -7,6 +7,40 @@ const deleteActionSchema = z.object({
   new_parent_id: z.string().uuid().optional(),
 });
 
+const updateActionSchema = z.object({
+  title: z.string().min(1),
+});
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const body = await request.json();
+    const updateParams = updateActionSchema.parse(body);
+    const resolvedParams = await params;
+    
+    const result = await ActionsService.updateAction({
+      action_id: resolvedParams.id,
+      ...updateParams
+    });
+    
+    return NextResponse.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error updating action:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 400 }
+    );
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
