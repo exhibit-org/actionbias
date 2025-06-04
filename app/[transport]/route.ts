@@ -71,19 +71,21 @@ const handler = createMcpHandler(
       { description: "List all actions with pagination support" }, 
       async (uri) => {
         try {
-          // Handle both simple resource names and full URLs
-          let url;
-          let actualUri = uri.toString();
+          // Parse URI parameters if present - default to reasonable limits
+          let limit = 20;
+          let offset = 0;
           
-          try {
-            url = new URL(actualUri);
-          } catch {
-            // If URI is just a resource name like "actions", create a dummy URL to parse query params
-            url = new URL(`mcp://localhost/${actualUri}`);
+          // Try to extract parameters from URI if it contains query string
+          const uriString = uri.toString();
+          if (uriString.includes('?')) {
+            try {
+              const url = new URL(uriString.includes('://') ? uriString : `mcp://localhost/${uriString}`);
+              limit = parseInt(url.searchParams.get('limit') || '20');
+              offset = parseInt(url.searchParams.get('offset') || '0');
+            } catch (urlError) {
+              console.log('Could not parse URI parameters, using defaults:', urlError);
+            }
           }
-          
-          const limit = parseInt(url.searchParams.get('limit') || '20');
-          const offset = parseInt(url.searchParams.get('offset') || '0');
           
           // Check if database is available
           if (!process.env.DATABASE_URL) {
@@ -127,8 +129,6 @@ const handler = createMcpHandler(
       { description: "Hierarchical view of actions showing parent-child relationships" },
       async (uri) => {
         try {
-          let actualUri = uri.toString();
-          
           // Check if database is available
           if (!process.env.DATABASE_URL) {
             return {
@@ -170,8 +170,6 @@ const handler = createMcpHandler(
       { description: "Dependency graph view showing all action dependencies and dependents" },
       async (uri) => {
         try {
-          let actualUri = uri.toString();
-          
           // Check if database is available
           if (!process.env.DATABASE_URL) {
             return {
@@ -213,22 +211,21 @@ const handler = createMcpHandler(
       { description: "Individual action details with relationships" }, 
       async (uri) => {
         try {
-          let actualUri = uri.toString();
-          
-          // Handle both simple resource names and full URLs  
+          // Extract action ID from URI
+          const uriString = uri.toString();
           let actionId;
-          try {
-            const url = new URL(actualUri);
-            const pathSegments = url.pathname.split('/');
-            actionId = pathSegments[pathSegments.length - 1];
-          } catch {
-            // If URI is like "action/123", extract the ID directly
-            const segments = actualUri.split('/');
+          
+          // Handle different URI formats: "action/123", "mcp://localhost/action/123", etc.
+          if (uriString.includes('/')) {
+            const segments = uriString.split('/');
             actionId = segments[segments.length - 1];
+          } else {
+            // If no slash, the entire URI might be the ID
+            actionId = uriString;
           }
           
-          if (!actionId) {
-            throw new Error("Action ID is required");
+          if (!actionId || actionId === 'action' || actionId === '{id}') {
+            throw new Error("Action ID is required - URI should be like 'action/123'");
           }
           
           // Check if database is available
