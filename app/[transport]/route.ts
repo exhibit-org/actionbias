@@ -37,11 +37,13 @@ const handler = createMcpHandler(
         try {
           // Handle both simple resource names and full URLs
           let url;
+          let actualUri = uri.toString();
+          
           try {
-            url = new URL(uri);
+            url = new URL(actualUri);
           } catch {
             // If URI is just a resource name like "actions", create a dummy URL to parse query params
-            url = new URL(`mcp://localhost/${uri}`);
+            url = new URL(`mcp://localhost/${actualUri}`);
           }
           
           const limit = parseInt(url.searchParams.get('limit') || '20');
@@ -88,6 +90,8 @@ const handler = createMcpHandler(
       "Hierarchical view of actions showing parent-child relationships",
       async (uri) => {
         try {
+          let actualUri = uri.toString();
+          
           // Check if database is available
           if (!process.env.DATABASE_URL) {
             return {
@@ -128,6 +132,8 @@ const handler = createMcpHandler(
       "Dependency graph view showing all action dependencies and dependents",
       async (uri) => {
         try {
+          let actualUri = uri.toString();
+          
           // Check if database is available
           if (!process.env.DATABASE_URL) {
             return {
@@ -168,15 +174,17 @@ const handler = createMcpHandler(
       "Individual action details with relationships", 
       async (uri) => {
         try {
+          let actualUri = uri.toString();
+          
           // Handle both simple resource names and full URLs  
           let actionId;
           try {
-            const url = new URL(uri);
+            const url = new URL(actualUri);
             const pathSegments = url.pathname.split('/');
             actionId = pathSegments[pathSegments.length - 1];
           } catch {
             // If URI is like "action/123", extract the ID directly
-            const segments = uri.toString().split('/');
+            const segments = actualUri.split('/');
             actionId = segments[segments.length - 1];
           }
           
