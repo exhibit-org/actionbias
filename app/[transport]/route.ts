@@ -3,13 +3,18 @@ import { z } from "zod";
 import { ActionsService } from "../../lib/services/actions";
 
 // Helper function to make internal API calls with authentication
-async function makeApiCall(endpoint: string, options: RequestInit = {}, authToken?: string) {
-  // Use the current request's host for internal API calls
-  const baseUrl = typeof window !== 'undefined' 
-    ? window.location.origin
-    : process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : 'http://localhost:3000';
+async function makeApiCall(endpoint: string, options: RequestInit = {}, authToken?: string, hostHeader?: string) {
+  // Use the host header from the current request if available, otherwise fall back to VERCEL_URL
+  let baseUrl;
+  if (hostHeader) {
+    baseUrl = `https://${hostHeader}`;
+  } else if (typeof window !== 'undefined') {
+    baseUrl = window.location.origin;
+  } else if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
+  } else {
+    baseUrl = 'http://localhost:3000';
+  }
   
   const url = `${baseUrl}/api${endpoint}`;
   console.log(`Making API call to: ${url}`);
@@ -282,12 +287,10 @@ const handler = createMcpHandler(
           // TODO: Properly extract auth token from MCP request context
           const authToken = 'test-token';
           
-          const result = await makeApiCall('/actions', {
-            method: 'POST',
-            body: JSON.stringify({ title, parent_id, depends_on_ids }),
-          }, authToken);
+          // Call ActionsService directly to avoid HTTP authentication issues
+          const result = await ActionsService.createAction({ title, parent_id, depends_on_ids });
 
-          const { action, dependencies_count } = result.data;
+          const { action, dependencies_count } = result;
           let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
           
           if (parent_id) {
