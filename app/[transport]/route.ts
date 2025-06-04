@@ -2,8 +2,8 @@ import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
 import { ActionsService } from "../../lib/services/actions";
 
-// Helper function to make internal API calls
-async function makeApiCall(endpoint: string, options: RequestInit = {}) {
+// Helper function to make internal API calls with authentication
+async function makeApiCall(endpoint: string, options: RequestInit = {}, authToken?: string) {
   // Use the current request's host for internal API calls
   const baseUrl = typeof window !== 'undefined' 
     ? window.location.origin
@@ -14,12 +14,26 @@ async function makeApiCall(endpoint: string, options: RequestInit = {}) {
   const url = `${baseUrl}/api${endpoint}`;
   console.log(`Making API call to: ${url}`);
   
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Add existing headers
+  if (options.headers) {
+    Object.assign(headers, options.headers);
+  }
+  
+  // Add authentication if available
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+    console.log('Adding authentication to API call');
+  } else {
+    console.log('No authentication token available for API call');
+  }
+  
   const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
   
   console.log(`API response status: ${response.status} ${response.statusText}`);
@@ -260,14 +274,18 @@ const handler = createMcpHandler(
         parent_id: z.string().uuid().optional().describe("Optional parent action ID to create a child relationship"),
         depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
       },
-      async ({ title, parent_id, depends_on_ids }) => {
+      async ({ title, parent_id, depends_on_ids }, extra) => {
         try {
           console.log(`Creating action with title: ${title}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall('/actions', {
             method: 'POST',
             body: JSON.stringify({ title, parent_id, depends_on_ids }),
-          });
+          }, authToken);
 
           const { action, dependencies_count } = result.data;
           let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
@@ -310,14 +328,18 @@ const handler = createMcpHandler(
         title: z.string().min(1).describe("The title for the new child action"),
         parent_id: z.string().uuid().describe("The ID of the parent action"),
       },
-      async ({ title, parent_id }) => {
+      async ({ title, parent_id }, extra) => {
         try {
           console.log(`Creating child action "${title}" under parent ${parent_id}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall('/actions/children', {
             method: 'POST',
             body: JSON.stringify({ title, parent_id }),
-          });
+          }, authToken);
 
           const { action, parent } = result.data;
 
@@ -350,14 +372,18 @@ const handler = createMcpHandler(
         action_id: z.string().uuid().describe("The ID of the action that depends on another"),
         depends_on_id: z.string().uuid().describe("The ID of the action that must be completed first"),
       },
-      async ({ action_id, depends_on_id }) => {
+      async ({ action_id, depends_on_id }, extra) => {
         try {
           console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall('/actions/dependencies', {
             method: 'POST',
             body: JSON.stringify({ action_id, depends_on_id }),
-          });
+          }, authToken);
 
           const edge = result.data;
 
@@ -391,14 +417,18 @@ const handler = createMcpHandler(
         child_handling: z.enum(["delete_recursive", "orphan", "reparent"]).default("orphan").describe("How to handle child actions: delete_recursive (delete all children), orphan (remove parent relationship), or reparent (move children to deleted action's parent)"),
         new_parent_id: z.string().uuid().optional().describe("Required if child_handling is 'reparent' - the new parent for orphaned children"),
       },
-      async ({ action_id, child_handling, new_parent_id }) => {
+      async ({ action_id, child_handling, new_parent_id }, extra) => {
         try {
           console.log(`Deleting action ${action_id} with child handling: ${child_handling}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall(`/actions/${action_id}`, {
             method: 'DELETE',
             body: JSON.stringify({ child_handling, new_parent_id }),
-          });
+          }, authToken);
 
           const { deleted_action, children_count, child_handling: handling, new_parent_id: newParentId } = result.data;
           let message = `Deleted action: ${deleted_action.data?.title}\nID: ${action_id}`;
@@ -439,14 +469,18 @@ const handler = createMcpHandler(
         action_id: z.string().uuid().describe("The ID of the action that currently depends on another"),
         depends_on_id: z.string().uuid().describe("The ID of the action that the dependency should be removed from"),
       },
-      async ({ action_id, depends_on_id }) => {
+      async ({ action_id, depends_on_id }, extra) => {
         try {
           console.log(`Removing dependency: ${action_id} no longer depends on ${depends_on_id}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall('/actions/dependencies', {
             method: 'DELETE',
             body: JSON.stringify({ action_id, depends_on_id }),
-          });
+          }, authToken);
 
           const { action, depends_on, deleted_edge } = result.data;
 
@@ -479,14 +513,18 @@ const handler = createMcpHandler(
         action_id: z.string().uuid().describe("The ID of the action to update"),
         title: z.string().min(1).describe("The new title for the action"),
       },
-      async ({ action_id, title }) => {
+      async ({ action_id, title }, extra) => {
         try {
           console.log(`Updating action ${action_id} with new title: ${title}`);
+          
+          // For now, use test-token for internal API calls
+          // TODO: Properly extract auth token from MCP request context
+          const authToken = 'test-token';
           
           const result = await makeApiCall(`/actions/${action_id}`, {
             method: 'PUT',
             body: JSON.stringify({ title }),
-          });
+          }, authToken);
 
           const action = result.data;
 
