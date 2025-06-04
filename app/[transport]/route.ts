@@ -1,5 +1,6 @@
 import { createMcpHandler } from "@vercel/mcp-adapter";
 import { z } from "zod";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ActionsService } from "../../lib/services/actions";
 
 // Helper function to make internal API calls with authentication
@@ -204,23 +205,13 @@ const handler = createMcpHandler(
 
     server.resource(
       "Individual action details with relationships",
-      "mcp://actionbias/action/{id}",
-      async (uri) => {
+      new ResourceTemplate("mcp://actionbias/action/{id}", { list: undefined }),
+      async (uri, { id }) => {
         try {
-          // Extract action ID from URI
-          const uriString = uri.toString();
-          let actionId;
+          // Handle id parameter which can be string or string[]
+          const actionId = Array.isArray(id) ? id[0] : id;
           
-          // Handle MCP URI format: "mcp://actionbias/action/123"
-          if (uriString.includes('/')) {
-            const segments = uriString.split('/');
-            actionId = segments[segments.length - 1];
-          } else {
-            // If no slash, the entire URI might be the ID
-            actionId = uriString;
-          }
-          
-          if (!actionId || actionId === 'action' || actionId === '{id}') {
+          if (!actionId || actionId === '{id}') {
             throw new Error("Action ID is required - URI should be like 'mcp://actionbias/action/123'");
           }
           

@@ -15,8 +15,8 @@
     "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "@vercel/mcp-adapter": "0.4.1",
+    "@modelcontextprotocol/sdk": "1.12.0",
+    "@vercel/mcp-adapter": "0.7.3",
     "drizzle-kit": "^0.31.1",
     "drizzle-orm": "^0.44.1",
     "next": "15.2.4",
