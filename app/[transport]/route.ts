@@ -66,8 +66,8 @@ const handler = createMcpHandler(
     
     // Register MCP resources for data access
     server.resource(
-      "List all actions with pagination support",
-      "actions",
+      "List all actions with pagination support", 
+      "mcp://actionbias/actions",
       async (uri) => {
         try {
           // Parse URI parameters if present - default to reasonable limits
@@ -78,7 +78,7 @@ const handler = createMcpHandler(
           const uriString = uri.toString();
           if (uriString.includes('?')) {
             try {
-              const url = new URL(uriString.includes('://') ? uriString : `mcp://localhost/${uriString}`);
+              const url = new URL(uriString.includes('://') ? uriString : `mcp://actionbias/${uriString}`);
               limit = parseInt(url.searchParams.get('limit') || '20');
               offset = parseInt(url.searchParams.get('offset') || '0');
             } catch (urlError) {
@@ -124,7 +124,7 @@ const handler = createMcpHandler(
 
     server.resource(
       "Hierarchical view of actions showing parent-child relationships",
-      "actions/tree",
+      "mcp://actionbias/actions/tree",
       async (uri) => {
         try {
           // Check if database is available
@@ -164,7 +164,7 @@ const handler = createMcpHandler(
 
     server.resource(
       "Dependency graph view showing all action dependencies and dependents",
-      "actions/dependencies",
+      "mcp://actionbias/actions/dependencies",
       async (uri) => {
         try {
           // Check if database is available
@@ -204,14 +204,14 @@ const handler = createMcpHandler(
 
     server.resource(
       "Individual action details with relationships",
-      "action/{id}",
+      "mcp://actionbias/action/{id}",
       async (uri) => {
         try {
           // Extract action ID from URI
           const uriString = uri.toString();
           let actionId;
           
-          // Handle different URI formats: "action/123", "mcp://localhost/action/123", etc.
+          // Handle MCP URI format: "mcp://actionbias/action/123"
           if (uriString.includes('/')) {
             const segments = uriString.split('/');
             actionId = segments[segments.length - 1];
@@ -221,7 +221,7 @@ const handler = createMcpHandler(
           }
           
           if (!actionId || actionId === 'action' || actionId === '{id}') {
-            throw new Error("Action ID is required - URI should be like 'action/123'");
+            throw new Error("Action ID is required - URI should be like 'mcp://actionbias/action/123'");
           }
           
           // Check if database is available
@@ -550,16 +550,16 @@ const handler = createMcpHandler(
   {
     capabilities: {
       resources: {
-        "actions": {
+        "mcp://actionbias/actions": {
           description: "List all actions with pagination support",
         },
-        "actions/tree": {
+        "mcp://actionbias/actions/tree": {
           description: "Hierarchical view of actions showing parent-child relationships",
         },
-        "actions/dependencies": {
+        "mcp://actionbias/actions/dependencies": {
           description: "Dependency graph view showing all action dependencies and dependents",
         },
-        "action/{id}": {
+        "mcp://actionbias/action/{id}": {
           description: "Individual action details with relationships",
         },
       },
