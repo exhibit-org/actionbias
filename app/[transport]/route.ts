@@ -4,11 +4,17 @@ import { ActionsService } from "../../lib/services/actions";
 
 // Helper function to make internal API calls
 async function makeApiCall(endpoint: string, options: RequestInit = {}) {
-  const baseUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
-    : 'http://localhost:3000';
+  // Use the current request's host for internal API calls
+  const baseUrl = typeof window !== 'undefined' 
+    ? window.location.origin
+    : process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL}` 
+      : 'http://localhost:3000';
   
-  const response = await fetch(`${baseUrl}/api${endpoint}`, {
+  const url = `${baseUrl}/api${endpoint}`;
+  console.log(`Making API call to: ${url}`);
+  
+  const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
@@ -16,12 +22,22 @@ async function makeApiCall(endpoint: string, options: RequestInit = {}) {
     ...options,
   });
   
-  const data = await response.json();
+  console.log(`API response status: ${response.status} ${response.statusText}`);
   
   if (!response.ok) {
-    throw new Error(data.error || `API call failed: ${response.status}`);
+    const errorText = await response.text();
+    console.error(`API call failed: ${response.status} ${response.statusText}`, errorText);
+    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
   }
   
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    const errorText = await response.text();
+    console.error(`Expected JSON but got: ${contentType}`, errorText);
+    throw new Error(`Expected JSON response but got ${contentType}`);
+  }
+  
+  const data = await response.json();
   return data;
 }
 
@@ -32,7 +48,8 @@ const handler = createMcpHandler(
     // Register MCP resources for data access
     server.resource(
       "actions",
-      "List all actions with pagination support", 
+      "actions",
+      { description: "List all actions with pagination support" }, 
       async (uri) => {
         try {
           // Handle both simple resource names and full URLs
@@ -87,7 +104,8 @@ const handler = createMcpHandler(
 
     server.resource(
       "actions/tree",
-      "Hierarchical view of actions showing parent-child relationships",
+      "actions/tree",
+      { description: "Hierarchical view of actions showing parent-child relationships" },
       async (uri) => {
         try {
           let actualUri = uri.toString();
@@ -129,7 +147,8 @@ const handler = createMcpHandler(
 
     server.resource(
       "actions/dependencies",
-      "Dependency graph view showing all action dependencies and dependents",
+      "actions/dependencies",
+      { description: "Dependency graph view showing all action dependencies and dependents" },
       async (uri) => {
         try {
           let actualUri = uri.toString();
@@ -171,7 +190,8 @@ const handler = createMcpHandler(
 
     server.resource(
       "action/{id}",
-      "Individual action details with relationships", 
+      "action/{id}",
+      { description: "Individual action details with relationships" }, 
       async (uri) => {
         try {
           let actualUri = uri.toString();
