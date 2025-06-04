@@ -67,8 +67,7 @@ const handler = createMcpHandler(
     // Register MCP resources for data access
     server.resource(
       "actions",
-      "actions",
-      { description: "List all actions with pagination support" }, 
+      "List all actions with pagination support",
       async (uri) => {
         try {
           // Parse URI parameters if present - default to reasonable limits
@@ -125,8 +124,7 @@ const handler = createMcpHandler(
 
     server.resource(
       "actions/tree",
-      "actions/tree",
-      { description: "Hierarchical view of actions showing parent-child relationships" },
+      "Hierarchical view of actions showing parent-child relationships",
       async (uri) => {
         try {
           // Check if database is available
@@ -166,8 +164,7 @@ const handler = createMcpHandler(
 
     server.resource(
       "actions/dependencies",
-      "actions/dependencies",
-      { description: "Dependency graph view showing all action dependencies and dependents" },
+      "Dependency graph view showing all action dependencies and dependents",
       async (uri) => {
         try {
           // Check if database is available
@@ -207,8 +204,7 @@ const handler = createMcpHandler(
 
     server.resource(
       "action/{id}",
-      "action/{id}",
-      { description: "Individual action details with relationships" }, 
+      "Individual action details with relationships",
       async (uri) => {
         try {
           // Extract action ID from URI
