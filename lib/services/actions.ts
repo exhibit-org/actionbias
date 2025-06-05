@@ -92,7 +92,8 @@ export interface RemoveDependencyParams {
 
 export interface UpdateActionParams {
   action_id: string;
-  title: string;
+  title?: string;
+  done?: boolean;
 }
 
 export class ActionsService {
@@ -327,7 +328,12 @@ export class ActionsService {
   }
 
   static async updateAction(params: UpdateActionParams) {
-    const { action_id, title } = params;
+    const { action_id, title, done } = params;
+    
+    // Validate that at least one field is provided
+    if (title === undefined && done === undefined) {
+      throw new Error("At least one field (title or done) must be provided");
+    }
     
     // Check that action exists
     const existingAction = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
@@ -336,13 +342,25 @@ export class ActionsService {
       throw new Error(`Action with ID ${action_id} not found`);
     }
     
+    // Build update object
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+    
+    // Update title if provided
+    if (title !== undefined) {
+      updateData.data = { title };
+    }
+    
+    // Update done if provided
+    if (done !== undefined) {
+      updateData.done = done;
+    }
+    
     // Update the action
     const updatedAction = await getDb()
       .update(actions)
-      .set({
-        data: { title },
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(actions.id, action_id))
       .returning();
 

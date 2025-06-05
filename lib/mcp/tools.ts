@@ -293,29 +293,51 @@ export function registerTools(server: any) {
   // update_action - Update an action
   server.tool(
     "update_action",
-    "Update an existing action's properties",
+    "Update an existing action's properties including title and completion status",
     {
       action_id: z.string().uuid().describe("The ID of the action to update"),
-      title: z.string().min(1).describe("The new title for the action"),
+      title: z.string().min(1).optional().describe("The new title for the action"),
+      done: z.boolean().optional().describe("Whether the action is completed (true) or not (false)"),
     },
-    async ({ action_id, title }: { action_id: string; title: string }, extra: any) => {
+    async ({ action_id, title, done }: { action_id: string; title?: string; done?: boolean }, extra: any) => {
       try {
-        console.log(`Updating action ${action_id} with new title: ${title}`);
+        // Validate that at least one field is provided
+        if (title === undefined && done === undefined) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Error: At least one field (title or done) must be provided",
+              },
+            ],
+          };
+        }
+
+        const updateData: any = {};
+        if (title !== undefined) updateData.title = title;
+        if (done !== undefined) updateData.done = done;
+        
+        console.log(`Updating action ${action_id} with:`, updateData);
         
         const authToken = 'test-token';
         
         const result = await makeApiCall(`/actions/${action_id}`, {
           method: 'PUT',
-          body: JSON.stringify({ title }),
+          body: JSON.stringify(updateData),
         }, authToken);
 
         const action = result.data;
+        let message = `Updated action: ${action.data?.title}\nID: ${action.id}\nUpdated: ${action.updatedAt}`;
+        
+        if (done !== undefined) {
+          message += `\nStatus: ${done ? 'Completed' : 'Not completed'}`;
+        }
 
         return {
           content: [
             {
               type: "text",
-              text: `Updated action: ${title}\nID: ${action.id}\nUpdated: ${action.updatedAt}`,
+              text: message,
             },
           ],
         };
@@ -351,6 +373,6 @@ export const toolCapabilities = {
     description: "Remove a dependency relationship between two actions",
   },
   update_action: {
-    description: "Update an existing action's properties",
+    description: "Update an existing action's properties including title and completion status",
   },
 };

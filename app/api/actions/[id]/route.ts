@@ -8,8 +8,14 @@ const deleteActionSchema = z.object({
 });
 
 const updateActionSchema = z.object({
-  title: z.string().min(1),
-});
+  title: z.string().min(1).optional(),
+  done: z.boolean().optional(),
+}).refine(
+  (data) => data.title !== undefined || data.done !== undefined,
+  {
+    message: "At least one field (title or done) must be provided",
+  }
+);
 
 export async function PUT(
   request: NextRequest,
