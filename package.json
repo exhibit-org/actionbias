@@ -13,7 +13,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:db": "NODE_OPTIONS='--experimental-vm-modules' jest __tests__/db/ --detectOpenHandles"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.0",
