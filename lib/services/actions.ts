@@ -1,6 +1,4 @@
-import { drizzle } from "drizzle-orm/postgres-js";
 import { eq, and, count, inArray, sql } from "drizzle-orm";
-import postgres from "postgres";
 import { actions, actionDataSchema, edges } from "../../db/schema";
 import { 
   ActionListResource, 
@@ -11,23 +9,8 @@ import {
   ActionDetailResource,
   Action 
 } from "../types/resources";
-
-// Lazy-load database connection to avoid startup failures
-let client: postgres.Sql | null = null;
-let db: ReturnType<typeof drizzle> | null = null;
-
-function getDb() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-  
-  if (!client) {
-    client = postgres(process.env.DATABASE_URL);
-    db = drizzle(client);
-  }
-  
-  return db!;
-}
+import { getDb } from "../db/adapter";
+import "../db/init"; // Auto-initialize PGlite if needed
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -239,7 +222,7 @@ export class ActionsService {
       and(eq(edges.src, action_id), eq(edges.kind, "child"))
     );
 
-    const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     
     // Handle children based on strategy
     if (child_handling === "delete_recursive" && childIds.length > 0) {
@@ -395,7 +378,7 @@ export class ActionsService {
       .orderBy(actions.createdAt);
 
     return {
-      actions: actionList.map(action => ({
+      actions: actionList.map((action: any) => ({
         id: action.id,
         data: action.data as { title: string },
         done: action.done,
@@ -416,7 +399,7 @@ export class ActionsService {
     const allEdges = await getDb().select().from(edges).where(eq(edges.kind, "child"));
 
     // Build lookup maps
-    const actionMap = new Map(allActions.map(action => [action.id, action]));
+    const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
     const childrenMap = new Map<string, string[]>();
     const parentMap = new Map<string, string>();
 
@@ -446,7 +429,7 @@ export class ActionsService {
 
     // Build tree nodes recursively
     function buildNode(actionId: string): ActionNode {
-      const action = actionMap.get(actionId)!;
+      const action = actionMap.get(actionId)! as any;
       const children = childrenMap.get(actionId) || [];
       const dependencies = dependenciesMap.get(actionId) || [];
 
@@ -462,11 +445,11 @@ export class ActionsService {
 
     // Find root actions (actions with no parents)
     const rootActionIds = allActions
-      .filter(action => !parentMap.has(action.id))
-      .map(action => action.id);
+      .filter((action: any) => !parentMap.has(action.id))
+      .map((action: any) => action.id);
 
     return {
-      rootActions: rootActionIds.map(id => buildNode(id)),
+      rootActions: rootActionIds.map((id: any) => buildNode(id)),
     };
   }
 
@@ -474,7 +457,7 @@ export class ActionsService {
     const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
     const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
 
-    const actionMap = new Map(allActions.map(action => [action.id, action]));
+    const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
     const dependsOnMap = new Map<string, string[]>();
     const dependentsMap = new Map<string, string[]>();
 
@@ -495,19 +478,19 @@ export class ActionsService {
       }
     }
 
-    const dependencies: DependencyMapping[] = allActions.map(action => ({
+    const dependencies: DependencyMapping[] = allActions.map((action: any) => ({
       action_id: action.id,
       action_title: action.data?.title || 'untitled',
       action_done: action.done,
       depends_on: (dependsOnMap.get(action.id) || []).map(depId => ({
         id: depId,
-        title: actionMap.get(depId)?.data?.title || 'untitled',
-        done: actionMap.get(depId)?.done || false,
+        title: (actionMap.get(depId) as any)?.data?.title || 'untitled',
+        done: (actionMap.get(depId) as any)?.done || false,
       })),
       dependents: (dependentsMap.get(action.id) || []).map(depId => ({
         id: depId,
-        title: actionMap.get(depId)?.data?.title || 'untitled',
-        done: actionMap.get(depId)?.done || false,
+        title: (actionMap.get(depId) as any)?.data?.title || 'untitled',
+        done: (actionMap.get(depId) as any)?.done || false,
       })),
     }));
 
@@ -531,7 +514,7 @@ export class ActionsService {
     const childEdges = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "child"))
     );
-    const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     const children = childIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, childIds))
       : [];
@@ -540,7 +523,7 @@ export class ActionsService {
     const dependencyEdges = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "depends_on"))
     );
-    const dependencyIds = dependencyEdges.map(edge => edge.src).filter((id): id is string => id !== null);
+    const dependencyIds = dependencyEdges.map((edge: any) => edge.src).filter((id: any): id is string => id !== null);
     const dependencies = dependencyIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, dependencyIds))
       : [];
@@ -549,7 +532,7 @@ export class ActionsService {
     const dependentEdges = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "depends_on"))
     );
-    const dependentIds = dependentEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+    const dependentIds = dependentEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     const dependents = dependentIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, dependentIds))
       : [];
@@ -561,7 +544,7 @@ export class ActionsService {
       created_at: action[0].createdAt.toISOString(),
       updated_at: action[0].updatedAt.toISOString(),
       parent_id: parentId || undefined,
-      children: children.map(child => ({
+      children: children.map((child: any) => ({
         id: child.id,
         data: child.data as { title: string },
         done: child.done,
@@ -569,7 +552,7 @@ export class ActionsService {
         createdAt: child.createdAt.toISOString(),
         updatedAt: child.updatedAt.toISOString(),
       })),
-      dependencies: dependencies.map(dep => ({
+      dependencies: dependencies.map((dep: any) => ({
         id: dep.id,
         data: dep.data as { title: string },
         done: dep.done,
@@ -577,7 +560,7 @@ export class ActionsService {
         createdAt: dep.createdAt.toISOString(),
         updatedAt: dep.updatedAt.toISOString(),
       })),
-      dependents: dependents.map(dep => ({
+      dependents: dependents.map((dep: any) => ({
         id: dep.id,
         data: dep.data as { title: string },
         done: dep.done,
