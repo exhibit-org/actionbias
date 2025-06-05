@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import { eq, and, count, inArray } from "drizzle-orm";
+import { eq, and, count, inArray, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { actions, actionDataSchema, edges } from "../../db/schema";
 import { 
@@ -12,8 +12,22 @@ import {
   Action 
 } from "../types/resources";
 
-const client = postgres(process.env.DATABASE_URL!);
-const db = drizzle(client);
+// Lazy-load database connection to avoid startup failures
+let client: postgres.Sql | null = null;
+let db: ReturnType<typeof drizzle> | null = null;
+
+function getDb() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  
+  if (!client) {
+    client = postgres(process.env.DATABASE_URL);
+    db = drizzle(client);
+  }
+  
+  return db!;
+}
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -27,7 +41,7 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
     toProcess = [];
     
     for (const actionId of currentLevel) {
-      const childEdges = await db.select().from(edges).where(
+      const childEdges = await getDb().select().from(edges).where(
         and(eq(edges.src, actionId), eq(edges.kind, "child"))
       );
       
@@ -52,6 +66,7 @@ export interface CreateActionParams {
 export interface ListActionsParams {
   limit?: number;
   offset?: number;
+  done?: boolean;
 }
 
 export interface AddChildActionParams {
@@ -86,7 +101,7 @@ export class ActionsService {
     
     // Validate parent exists if provided
     if (parent_id) {
-      const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+      const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
       if (parentAction.length === 0) {
         throw new Error(`Parent action with ID ${parent_id} not found`);
       }
@@ -95,14 +110,14 @@ export class ActionsService {
     // Validate dependencies exist if provided
     if (depends_on_ids && depends_on_ids.length > 0) {
       for (const depId of depends_on_ids) {
-        const depAction = await db.select().from(actions).where(eq(actions.id, depId)).limit(1);
+        const depAction = await getDb().select().from(actions).where(eq(actions.id, depId)).limit(1);
         if (depAction.length === 0) {
           throw new Error(`Dependency action with ID ${depId} not found`);
         }
       }
     }
     
-    const newAction = await db
+    const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
@@ -112,7 +127,7 @@ export class ActionsService {
 
     // Create parent relationship if specified
     if (parent_id) {
-      await db.insert(edges).values({
+      await getDb().insert(edges).values({
         src: parent_id,
         dst: newAction[0].id,
         kind: "child",
@@ -122,7 +137,7 @@ export class ActionsService {
     // Create dependency relationships if specified
     if (depends_on_ids && depends_on_ids.length > 0) {
       for (const depId of depends_on_ids) {
-        await db.insert(edges).values({
+        await getDb().insert(edges).values({
           src: depId,
           dst: newAction[0].id,
           kind: "depends_on",
@@ -138,11 +153,18 @@ export class ActionsService {
   }
 
   static async listActions(params: ListActionsParams = {}) {
-    const { limit = 20, offset = 0 } = params;
+    const { limit = 20, offset = 0, done } = params;
     
-    const actionList = await db
+    let query = getDb()
       .select()
-      .from(actions)
+      .from(actions);
+    
+    // Add done filter if specified
+    if (done !== undefined) {
+      query = query.where(eq(actions.done, done)) as any;
+    }
+    
+    const actionList = await query
       .limit(limit)
       .offset(offset)
       .orderBy(actions.createdAt);
@@ -154,14 +176,14 @@ export class ActionsService {
     const { title, parent_id } = params;
     
     // Check that parent exists
-    const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+    const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
     
     if (parentAction.length === 0) {
       throw new Error(`Parent action with ID ${parent_id} not found`);
     }
     
     // Create new action
-    const newAction = await db
+    const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
@@ -170,7 +192,7 @@ export class ActionsService {
       .returning();
 
     // Create parent-child relationship
-    const newEdge = await db
+    const newEdge = await getDb()
       .insert(edges)
       .values({
         src: parent_id,
@@ -189,7 +211,7 @@ export class ActionsService {
   static async addDependency(params: AddDependencyParams) {
     const { action_id, depends_on_id } = params;
     
-    const newEdge = await db
+    const newEdge = await getDb()
       .insert(edges)
       .values({
         src: depends_on_id,
@@ -205,14 +227,14 @@ export class ActionsService {
     const { action_id, child_handling = "orphan", new_parent_id } = params;
     
     // Check that action exists
-    const actionToDelete = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    const actionToDelete = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
     
     if (actionToDelete.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
     }
 
     // Find all children (actions where this action is the parent)
-    const childEdges = await db.select().from(edges).where(
+    const childEdges = await getDb().select().from(edges).where(
       and(eq(edges.src, action_id), eq(edges.kind, "child"))
     );
 
@@ -224,7 +246,7 @@ export class ActionsService {
       
       // Delete all descendant actions (edges will cascade delete)
       for (const descendantId of allDescendants) {
-        await db.delete(actions).where(eq(actions.id, descendantId));
+        await getDb().delete(actions).where(eq(actions.id, descendantId));
       }
     } else if (child_handling === "reparent" && childIds.length > 0) {
       if (!new_parent_id) {
@@ -232,7 +254,7 @@ export class ActionsService {
       }
       
       // Check that new parent exists
-      const newParent = await db.select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
+      const newParent = await getDb().select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
       if (newParent.length === 0) {
         throw new Error(`New parent action with ID ${new_parent_id} not found`);
       }
@@ -240,7 +262,7 @@ export class ActionsService {
       // Update all child edges to point to new parent
       for (const childId of childIds) {
         if (childId) {
-          await db.insert(edges).values({
+          await getDb().insert(edges).values({
             src: new_parent_id,
             dst: childId,
             kind: "child",
@@ -250,7 +272,7 @@ export class ActionsService {
     }
 
     // Delete the action (this will cascade delete all edges due to foreign key constraints)
-    const deletedAction = await db.delete(actions).where(eq(actions.id, action_id)).returning();
+    const deletedAction = await getDb().delete(actions).where(eq(actions.id, action_id)).returning();
 
     return {
       deleted_action: deletedAction[0],
@@ -264,8 +286,8 @@ export class ActionsService {
     const { action_id, depends_on_id } = params;
     
     // Check that both actions exist
-    const action = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
-    const dependsOn = await db.select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
+    const action = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    const dependsOn = await getDb().select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
     
     if (action.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
@@ -276,7 +298,7 @@ export class ActionsService {
     }
 
     // Check if dependency exists
-    const existingEdge = await db.select().from(edges).where(
+    const existingEdge = await getDb().select().from(edges).where(
       and(
         eq(edges.src, depends_on_id),
         eq(edges.dst, action_id),
@@ -289,7 +311,7 @@ export class ActionsService {
     }
     
     // Delete the dependency edge
-    const deletedEdge = await db.delete(edges).where(
+    const deletedEdge = await getDb().delete(edges).where(
       and(
         eq(edges.src, depends_on_id),
         eq(edges.dst, action_id),
@@ -308,14 +330,14 @@ export class ActionsService {
     const { action_id, title } = params;
     
     // Check that action exists
-    const existingAction = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    const existingAction = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
     
     if (existingAction.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
     }
     
     // Update the action
-    const updatedAction = await db
+    const updatedAction = await getDb()
       .update(actions)
       .set({
         data: { title },
@@ -330,16 +352,26 @@ export class ActionsService {
   // Resource methods for MCP resources
 
   static async getActionListResource(params: ListActionsParams = {}): Promise<ActionListResource> {
-    const { limit = 20, offset = 0 } = params;
+    const { limit = 20, offset = 0, done } = params;
+    
+    // Build base query
+    let totalQuery = getDb().select({ count: count() }).from(actions);
+    let actionQuery = getDb()
+      .select()
+      .from(actions);
+    
+    // Add done filter if specified
+    if (done !== undefined) {
+      totalQuery = totalQuery.where(eq(actions.done, done)) as any;
+      actionQuery = actionQuery.where(eq(actions.done, done)) as any;
+    }
     
     // Get total count
-    const totalResult = await db.select({ count: count() }).from(actions);
+    const totalResult = await totalQuery;
     const total = totalResult[0].count;
     
     // Get actions with pagination
-    const actionList = await db
-      .select()
-      .from(actions)
+    const actionList = await actionQuery
       .limit(limit)
       .offset(offset)
       .orderBy(actions.createdAt);
@@ -348,6 +380,7 @@ export class ActionsService {
       actions: actionList.map(action => ({
         id: action.id,
         data: action.data as { title: string },
+        done: action.done,
         version: action.version,
         createdAt: action.createdAt.toISOString(),
         updatedAt: action.updatedAt.toISOString(),
@@ -355,13 +388,14 @@ export class ActionsService {
       total,
       offset,
       limit,
+      ...(done !== undefined && { filtered_by_done: done }),
     };
   }
 
   static async getActionTreeResource(): Promise<ActionTreeResource> {
     // Get all actions and edges
-    const allActions = await db.select().from(actions).orderBy(actions.createdAt);
-    const allEdges = await db.select().from(edges).where(eq(edges.kind, "child"));
+    const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
+    const allEdges = await getDb().select().from(edges).where(eq(edges.kind, "child"));
 
     // Build lookup maps
     const actionMap = new Map(allActions.map(action => [action.id, action]));
@@ -380,7 +414,7 @@ export class ActionsService {
     }
 
     // Get dependency relationships for each action
-    const dependencyEdges = await db.select().from(edges).where(eq(edges.kind, "depends_on"));
+    const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
     const dependenciesMap = new Map<string, string[]>();
     
     for (const edge of dependencyEdges) {
@@ -401,6 +435,7 @@ export class ActionsService {
       return {
         id: actionId,
         title: action.data?.title || 'untitled',
+        done: action.done,
         created_at: action.createdAt.toISOString(),
         children: children.map(childId => buildNode(childId)),
         dependencies,
@@ -418,8 +453,8 @@ export class ActionsService {
   }
 
   static async getActionDependenciesResource(): Promise<ActionDependenciesResource> {
-    const allActions = await db.select().from(actions).orderBy(actions.createdAt);
-    const dependencyEdges = await db.select().from(edges).where(eq(edges.kind, "depends_on"));
+    const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
+    const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
 
     const actionMap = new Map(allActions.map(action => [action.id, action]));
     const dependsOnMap = new Map<string, string[]>();
@@ -445,13 +480,16 @@ export class ActionsService {
     const dependencies: DependencyMapping[] = allActions.map(action => ({
       action_id: action.id,
       action_title: action.data?.title || 'untitled',
+      action_done: action.done,
       depends_on: (dependsOnMap.get(action.id) || []).map(depId => ({
         id: depId,
         title: actionMap.get(depId)?.data?.title || 'untitled',
+        done: actionMap.get(depId)?.done || false,
       })),
       dependents: (dependentsMap.get(action.id) || []).map(depId => ({
         id: depId,
         title: actionMap.get(depId)?.data?.title || 'untitled',
+        done: actionMap.get(depId)?.done || false,
       })),
     }));
 
@@ -460,53 +498,55 @@ export class ActionsService {
 
   static async getActionDetailResource(actionId: string): Promise<ActionDetailResource> {
     // Get the action
-    const action = await db.select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    const action = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
     if (action.length === 0) {
       throw new Error(`Action with ID ${actionId} not found`);
     }
 
     // Get parent relationship
-    const parentEdges = await db.select().from(edges).where(
+    const parentEdges = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "child"))
     );
     const parentId = parentEdges.length > 0 ? parentEdges[0].src : undefined;
 
     // Get children
-    const childEdges = await db.select().from(edges).where(
+    const childEdges = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "child"))
     );
     const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
     const children = childIds.length > 0 
-      ? await db.select().from(actions).where(inArray(actions.id, childIds))
+      ? await getDb().select().from(actions).where(inArray(actions.id, childIds))
       : [];
 
     // Get dependencies (actions this depends on)
-    const dependencyEdges = await db.select().from(edges).where(
+    const dependencyEdges = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "depends_on"))
     );
     const dependencyIds = dependencyEdges.map(edge => edge.src).filter((id): id is string => id !== null);
     const dependencies = dependencyIds.length > 0 
-      ? await db.select().from(actions).where(inArray(actions.id, dependencyIds))
+      ? await getDb().select().from(actions).where(inArray(actions.id, dependencyIds))
       : [];
 
     // Get dependents (actions that depend on this)
-    const dependentEdges = await db.select().from(edges).where(
+    const dependentEdges = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "depends_on"))
     );
     const dependentIds = dependentEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
     const dependents = dependentIds.length > 0 
-      ? await db.select().from(actions).where(inArray(actions.id, dependentIds))
+      ? await getDb().select().from(actions).where(inArray(actions.id, dependentIds))
       : [];
 
     return {
       id: action[0].id,
       title: action[0].data?.title || 'untitled',
+      done: action[0].done,
       created_at: action[0].createdAt.toISOString(),
       updated_at: action[0].updatedAt.toISOString(),
       parent_id: parentId || undefined,
       children: children.map(child => ({
         id: child.id,
         data: child.data as { title: string },
+        done: child.done,
         version: child.version,
         createdAt: child.createdAt.toISOString(),
         updatedAt: child.updatedAt.toISOString(),
@@ -514,6 +554,7 @@ export class ActionsService {
       dependencies: dependencies.map(dep => ({
         id: dep.id,
         data: dep.data as { title: string },
+        done: dep.done,
         version: dep.version,
         createdAt: dep.createdAt.toISOString(),
         updatedAt: dep.updatedAt.toISOString(),
@@ -521,6 +562,7 @@ export class ActionsService {
       dependents: dependents.map(dep => ({
         id: dep.id,
         data: dep.data as { title: string },
+        done: dep.done,
         version: dep.version,
         createdAt: dep.createdAt.toISOString(),
         updatedAt: dep.updatedAt.toISOString(),

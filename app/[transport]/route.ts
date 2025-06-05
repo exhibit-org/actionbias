@@ -74,6 +74,7 @@ const handler = createMcpHandler(
           // Parse URI parameters if present - default to reasonable limits
           let limit = 20;
           let offset = 0;
+          let done: boolean | undefined = undefined;
           
           // Try to extract parameters from URI if it contains query string
           const uriString = uri.toString();
@@ -82,6 +83,12 @@ const handler = createMcpHandler(
               const url = new URL(uriString);
               limit = parseInt(url.searchParams.get('limit') || '20');
               offset = parseInt(url.searchParams.get('offset') || '0');
+              
+              // Parse done parameter
+              const doneParam = url.searchParams.get('done');
+              if (doneParam !== null) {
+                done = doneParam === 'true';
+              }
             } catch (urlError) {
               console.log('Could not parse URI parameters, using defaults:', urlError);
             }
@@ -105,7 +112,7 @@ const handler = createMcpHandler(
             };
           }
           
-          const result = await ActionsService.getActionListResource({ limit, offset });
+          const result = await ActionsService.getActionListResource({ limit, offset, done });
           
           return {
             contents: [

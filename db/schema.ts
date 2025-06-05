@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, jsonb, integer, primaryKey, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, jsonb, integer, primaryKey, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
 // Zod schema for actions.data field
@@ -11,6 +11,7 @@ export type ActionData = z.infer<typeof actionDataSchema>;
 export const actions = pgTable('actions', {
   id: uuid('id').primaryKey(),
   data: jsonb('data').$type<ActionData>(),
+  done: boolean('done').default(false).notNull(),
   version: integer('version').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

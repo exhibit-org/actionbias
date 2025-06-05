@@ -11,6 +11,7 @@ const createActionSchema = z.object({
 const listActionsSchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(20),
   offset: z.coerce.number().min(0).default(0),
+  done: z.coerce.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     const params = listActionsSchema.parse({
       limit: searchParams.get('limit'),
       offset: searchParams.get('offset'),
+      done: searchParams.get('done'),
     });
     
     const actions = await ActionsService.listActions(params);

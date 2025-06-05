@@ -5,6 +5,7 @@ export interface Action {
   data: {
     title: string;
   };
+  done: boolean;
   version: number | null;
   createdAt: string;
   updatedAt: string;
@@ -18,15 +19,16 @@ export interface Edge {
   updatedAt: string;
 }
 
-// actionbias://actions
+// actions://list
 export interface ActionListResource {
   actions: Action[];
   total: number;
   offset?: number;
   limit?: number;
+  filtered_by_done?: boolean;
 }
 
-// actionbias://actions/tree  
+// actions://tree  
 export interface ActionTreeResource {
   rootActions: ActionNode[];
 }
@@ -34,12 +36,13 @@ export interface ActionTreeResource {
 export interface ActionNode {
   id: string;
   title: string;
+  done: boolean;
   created_at: string;
   children: ActionNode[];
   dependencies: string[]; // IDs of actions this depends on
 }
 
-// actionbias://actions/dependencies
+// actions://dependencies
 export interface ActionDependenciesResource {
   dependencies: DependencyMapping[];
 }
@@ -47,20 +50,24 @@ export interface ActionDependenciesResource {
 export interface DependencyMapping {
   action_id: string;
   action_title: string;
+  action_done: boolean;
   depends_on: Array<{
     id: string;
     title: string;
+    done: boolean;
   }>;
   dependents: Array<{
     id: string;
     title: string;
+    done: boolean;
   }>;
 }
 
-// actionbias://action/{id}
+// actions://{id}
 export interface ActionDetailResource {
   id: string;
   title: string;
+  done: boolean;
   created_at: string;
   updated_at: string;
   parent_id?: string;
