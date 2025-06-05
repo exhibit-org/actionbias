@@ -109,48 +109,6 @@ export function registerTools(server: any) {
     },
   );
 
-  // add_child_action - Create a child action
-  server.tool(
-    "add_child_action",
-    "Create a new action as a child of an existing action",
-    {
-      title: z.string().min(1).describe("The title for the new child action"),
-      parent_id: z.string().uuid().describe("The ID of the parent action"),
-    },
-    async ({ title, parent_id }: { title: string; parent_id: string }, extra: any) => {
-      try {
-        console.log(`Creating child action "${title}" under parent ${parent_id}`);
-        
-        const authToken = 'test-token';
-        
-        const result = await makeApiCall('/actions/children', {
-          method: 'POST',
-          body: JSON.stringify({ title, parent_id }),
-        }, authToken);
-
-        const { action, parent } = result.data;
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Created child action: ${title}\nID: ${action.id}\nParent: ${parent.data?.title}\nCreated: ${action.createdAt}`,
-            },
-          ],
-        };
-      } catch (error) {
-        console.error('Error creating child action:', error);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error creating child action: ${error instanceof Error ? error.message : "Unknown error"}`,
-            },
-          ],
-        };
-      }
-    },
-  );
 
   // add_dependency - Create dependency relationship
   server.tool(
@@ -359,9 +317,6 @@ export function registerTools(server: any) {
 export const toolCapabilities = {
   create_action: {
     description: "Create a new action in the database with optional parent and dependencies",
-  },
-  add_child_action: {
-    description: "Create a new action as a child of an existing action",
   },
   add_dependency: {
     description: "Create a dependency relationship between two existing actions",
