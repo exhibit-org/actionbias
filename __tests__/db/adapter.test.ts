@@ -1,4 +1,4 @@
-import { getDb, initializePGlite } from '../../lib/db/adapter';
+import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
 
 describe('Database Adapter', () => {
   const originalEnv = process.env;
@@ -8,7 +8,9 @@ describe('Database Adapter', () => {
     process.env = { ...originalEnv };
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    // Clean up any PGlite instances created during tests
+    await cleanupPGlite();
     process.env = originalEnv;
   });
 

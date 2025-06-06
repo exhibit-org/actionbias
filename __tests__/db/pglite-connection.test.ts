@@ -16,7 +16,13 @@ describe('PGlite Connection and Operations', () => {
     testDb = await initializePGlite();
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    // Clean up PGlite instances to prevent Jest from hanging
+    if (rawPglite) {
+      await rawPglite.close();
+    }
+    
+    // Reset environment
     process.env = originalEnv;
   });
 

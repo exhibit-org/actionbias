@@ -30,6 +30,9 @@ function getDb() {
   return db!;
 }
 
+// Store reference to the raw PGlite instance for cleanup
+let rawPgliteInstance: any = null;
+
 // Initialize PGlite if needed (called during setup)
 export async function initializePGlite() {
   if (pgliteDb) return pgliteDb;
@@ -40,12 +43,22 @@ export async function initializePGlite() {
     
     const dbPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
     const pglite = new PGlite(dbPath);
+    rawPgliteInstance = pglite; // Store for cleanup
     pgliteDb = drizzlePGlite(pglite);
     
     return pgliteDb;
   } catch (error) {
     throw new Error(`Failed to initialize PGlite: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+// Clean up PGlite instances (for tests and graceful shutdown)
+export async function cleanupPGlite() {
+  if (rawPgliteInstance) {
+    await rawPgliteInstance.close();
+    rawPgliteInstance = null;
+  }
+  pgliteDb = null;
 }
 
 export { getDb };
