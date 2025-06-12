@@ -570,4 +570,45 @@ export class ActionsService {
       })),
     };
   }
+
+  static async getNextAction(): Promise<Action | null> {
+    // Find the earliest created action that is not done and has all dependencies completed
+    const openActions = await getDb()
+      .select()
+      .from(actions)
+      .where(eq(actions.done, false))
+      .orderBy(actions.createdAt);
+
+    for (const action of openActions) {
+      const dependencyEdges = await getDb()
+        .select()
+        .from(edges)
+        .where(and(eq(edges.dst, action.id), eq(edges.kind, "depends_on")));
+      const dependencyIds = dependencyEdges
+        .map((edge: any) => edge.src)
+        .filter((id: any): id is string => id !== null);
+
+      if (dependencyIds.length > 0) {
+        const dependencies = await getDb()
+          .select()
+          .from(actions)
+          .where(inArray(actions.id, dependencyIds));
+        const unmet = dependencies.find((dep: any) => !dep.done);
+        if (unmet) {
+          continue;
+        }
+      }
+
+      return {
+        id: action.id,
+        data: action.data as { title: string },
+        done: action.done,
+        version: action.version,
+        createdAt: action.createdAt.toISOString(),
+        updatedAt: action.updatedAt.toISOString(),
+      };
+    }
+
+    return null;
+  }
 }
