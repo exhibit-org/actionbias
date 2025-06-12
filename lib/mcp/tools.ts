@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
+import { getDb } from "../db/adapter";
+import { actions, edges } from "../../db/schema";
+import { eq, and } from "drizzle-orm";
 
 // Helper function to make internal API calls with authentication
 async function makeApiCall(endpoint: string, options: RequestInit = {}, authToken?: string, hostHeader?: string) {
@@ -57,6 +60,71 @@ async function makeApiCall(endpoint: string, options: RequestInit = {}, authToke
   
   const data = await response.json();
   return data;
+}
+
+// Helper function to build nested action structure
+async function buildNestedActionStructure(nextActionId: string) {
+  // Get the parent chain
+  const parentChain = [];
+  let currentId = nextActionId;
+  
+  // Walk up the parent chain
+  while (true) {
+    const action = await getDb()
+      .select()
+      .from(actions)
+      .where(eq(actions.id, currentId))
+      .limit(1);
+    
+    if (action.length === 0) break;
+    
+    parentChain.unshift({
+      id: currentId,
+      title: action[0].data?.title || 'untitled',
+      created_at: action[0].createdAt.toISOString()
+    });
+    
+    // Find parent
+    const parentEdges = await getDb()
+      .select()
+      .from(edges)
+      .where(and(eq(edges.dst, currentId), eq(edges.kind, "child")));
+    
+    if (parentEdges.length === 0) break;
+    
+    const parentId = parentEdges[0].src;
+    if (!parentId) break;
+    
+    currentId = parentId;
+  }
+  
+  // Build nested structure from root down to next action
+  let result: any = null;
+  for (let i = 0; i < parentChain.length; i++) {
+    const actionInfo = parentChain[i];
+    const isNextAction = actionInfo.id === nextActionId;
+    
+    const node: any = {
+      id: actionInfo.id,
+      title: actionInfo.title,
+      created_at: actionInfo.created_at,
+      is_next_action: isNextAction
+    };
+    
+    if (i === 0) {
+      // Root node
+      result = node;
+    } else {
+      // Add as child of previous node
+      let current = result;
+      for (let j = 1; j < i; j++) {
+        current = current.child;
+      }
+      current.child = node;
+    }
+  }
+  
+  return result;
 }
 
 export function registerTools(server: any) {
@@ -322,17 +390,20 @@ export function registerTools(server: any) {
             content: [
               {
                 type: "text",
-                text: "No available actions to work on",
+                text: JSON.stringify({ next_action: null }),
               },
             ],
           };
         }
-        const message = `Next action: ${action.data.title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
+        
+        // Build nested structure from root to next action
+        const nestedStructure = await buildNestedActionStructure(action.id);
+        
         return {
           content: [
             {
               type: "text",
-              text: message,
+              text: JSON.stringify(nestedStructure, null, 2),
             },
           ],
         };
@@ -342,7 +413,7 @@ export function registerTools(server: any) {
           content: [
             {
               type: "text",
-              text: `Error getting next action: ${error instanceof Error ? error.message : "Unknown error"}`,
+              text: JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
             },
           ],
         };
