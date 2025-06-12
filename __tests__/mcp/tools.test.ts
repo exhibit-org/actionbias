@@ -86,16 +86,19 @@ describe("MCP Tools", () => {
     it("returns success message", async () => {
       registerTools(server);
       const handler = tools["delete_action"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { deleted_action: { data: { title: "A" } }, children_count: 0, child_handling: "orphan" } }), { status: 200, headers: { "content-type": "application/json" } }));
+      mockedService.deleteAction.mockResolvedValue({
+        deleted_action: { data: { title: "A" } },
+        children_count: 0,
+        child_handling: "orphan",
+      } as any);
       const res = await handler({ action_id: "a1", child_handling: "orphan" }, {});
-      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe("https://example.com/api/actions/a1");
       expect(res.content[0].text).toContain("Deleted action");
     });
 
     it("returns error message on failure", async () => {
       registerTools(server);
       const handler = tools["delete_action"];
-      global.fetch = jest.fn().mockResolvedValue(new Response("bad", { status: 500, statusText: "Fail" }));
+      mockedService.deleteAction.mockRejectedValue(new Error("fail"));
       const res = await handler({ action_id: "a1" }, {});
       expect(res.content[0].text).toContain("Error deleting action");
     });

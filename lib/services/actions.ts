@@ -40,6 +40,74 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
   return Array.from(descendants);
 }
 
+// Check if all dependencies for an action have been completed
+async function dependenciesMet(actionId: string): Promise<boolean> {
+  const dependencyEdges = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "depends_on")));
+  const dependencyIds = dependencyEdges
+    .map((edge: any) => edge.src)
+    .filter((id: any): id is string => id !== null);
+
+  if (dependencyIds.length > 0) {
+    const dependencies = await getDb()
+      .select()
+      .from(actions)
+      .where(inArray(actions.id, dependencyIds));
+    const unmet = dependencies.find((dep: any) => !dep.done);
+    if (unmet) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Recursively find the next actionable child of a given action
+async function findNextActionInChildren(actionId: string): Promise<{ action: any | null; allDone: boolean }> {
+  const childEdges = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
+  const childIds = childEdges
+    .map((edge: any) => edge.dst)
+    .filter((id: any): id is string => id !== null);
+
+  if (childIds.length === 0) {
+    return { action: null, allDone: true };
+  }
+
+  const children = await getDb()
+    .select()
+    .from(actions)
+    .where(inArray(actions.id, childIds))
+    .orderBy(actions.createdAt);
+
+  let allChildrenDone = true;
+  for (const child of children) {
+    if (!child.done) {
+      allChildrenDone = false;
+      const depsMet = await dependenciesMet(child.id);
+      if (!depsMet) {
+        continue;
+      }
+
+      const result = await findNextActionInChildren(child.id);
+      if (result.action) {
+        return { action: result.action, allDone: false };
+      }
+
+      if (result.allDone) {
+        return { action: child, allDone: false };
+      }
+
+      return { action: null, allDone: false };
+    }
+  }
+
+  return { action: null, allDone: allChildrenDone };
+}
+
 export interface CreateActionParams {
   title: string;
   parent_id?: string;
@@ -580,33 +648,33 @@ export class ActionsService {
       .orderBy(actions.createdAt);
 
     for (const action of openActions) {
-      const dependencyEdges = await getDb()
-        .select()
-        .from(edges)
-        .where(and(eq(edges.dst, action.id), eq(edges.kind, "depends_on")));
-      const dependencyIds = dependencyEdges
-        .map((edge: any) => edge.src)
-        .filter((id: any): id is string => id !== null);
-
-      if (dependencyIds.length > 0) {
-        const dependencies = await getDb()
-          .select()
-          .from(actions)
-          .where(inArray(actions.id, dependencyIds));
-        const unmet = dependencies.find((dep: any) => !dep.done);
-        if (unmet) {
-          continue;
-        }
+      if (!(await dependenciesMet(action.id))) {
+        continue;
       }
 
-      return {
-        id: action.id,
-        data: action.data as { title: string },
-        done: action.done,
-        version: action.version,
-        createdAt: action.createdAt.toISOString(),
-        updatedAt: action.updatedAt.toISOString(),
-      };
+      const result = await findNextActionInChildren(action.id);
+      if (result.action) {
+        const a = result.action;
+        return {
+          id: a.id,
+          data: a.data as { title: string },
+          done: a.done,
+          version: a.version,
+          createdAt: a.createdAt.toISOString(),
+          updatedAt: a.updatedAt.toISOString(),
+        };
+      }
+
+      if (result.allDone) {
+        return {
+          id: action.id,
+          data: action.data as { title: string },
+          done: action.done,
+          version: action.version,
+          createdAt: action.createdAt.toISOString(),
+          updatedAt: action.updatedAt.toISOString(),
+        };
+      }
     }
 
     return null;
