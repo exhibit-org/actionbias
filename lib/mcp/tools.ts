@@ -166,14 +166,10 @@ export function registerTools(server: any) {
       try {
         console.log(`Deleting action ${action_id} with child handling: ${child_handling}`);
         
-        const authToken = 'test-token';
-        
-        const result = await makeApiCall(`/actions/${action_id}`, {
-          method: 'DELETE',
-          body: JSON.stringify({ child_handling, new_parent_id }),
-        }, authToken);
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const result = await ActionsService.deleteAction({ action_id, child_handling, new_parent_id });
 
-        const { deleted_action, children_count, child_handling: handling, new_parent_id: newParentId } = result.data;
+        const { deleted_action, children_count, child_handling: handling, new_parent_id: newParentId } = result;
         let message = `Deleted action: ${deleted_action.data?.title}\nID: ${action_id}`;
         
         if (children_count > 0) {
