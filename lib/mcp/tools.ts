@@ -312,6 +312,47 @@ export function registerTools(server: any) {
       }
     },
   );
+
+  // get_next_action - Return the next actionable task
+  server.tool(
+    "get_next_action",
+    "Return the next action that should be worked on based on dependencies",
+    {},
+    async (_args: {}, extra: any) => {
+      try {
+        const action = await ActionsService.getNextAction();
+        if (!action) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "No available actions to work on",
+              },
+            ],
+          };
+        }
+        const message = `Next action: ${action.data.title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error getting next action:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting next action: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
 }
 
 export const toolCapabilities = {
@@ -329,5 +370,8 @@ export const toolCapabilities = {
   },
   update_action: {
     description: "Update an existing action's properties including title and completion status",
+  },
+  get_next_action: {
+    description: "Return the next action that should be worked on based on dependencies",
   },
 };

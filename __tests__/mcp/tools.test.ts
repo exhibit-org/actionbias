@@ -8,6 +8,7 @@ jest.mock("../../lib/services/actions", () => ({
     deleteAction: jest.fn(),
     removeDependency: jest.fn(),
     updateAction: jest.fn(),
+    getNextAction: jest.fn(),
   },
 }));
 
@@ -31,13 +32,14 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(5);
+    expect(server.tool).toHaveBeenCalledTimes(6);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
       "delete_action",
       "remove_dependency",
       "update_action",
+      "get_next_action",
     ]);
   });
 
@@ -139,6 +141,32 @@ describe("MCP Tools", () => {
       global.fetch = jest.fn().mockResolvedValue(new Response("bad", { status: 500, statusText: "Fail" }));
       const res = await handler({ action_id: "a1", title: "A" }, {});
       expect(res.content[0].text).toContain("Error updating action");
+    });
+  });
+
+  describe("get_next_action", () => {
+    it("returns message when action available", async () => {
+      registerTools(server);
+      const handler = tools["get_next_action"];
+      mockedService.getNextAction.mockResolvedValue({ id: "a1", data: { title: "A" }, done: false, version: 0, createdAt: "now", updatedAt: "now" } as any);
+      const res = await handler({}, {});
+      expect(res.content[0].text).toContain("Next action: A");
+    });
+
+    it("returns no action message when none", async () => {
+      registerTools(server);
+      const handler = tools["get_next_action"];
+      mockedService.getNextAction.mockResolvedValue(null as any);
+      const res = await handler({}, {});
+      expect(res.content[0].text).toContain("No available actions");
+    });
+
+    it("returns error message on failure", async () => {
+      registerTools(server);
+      const handler = tools["get_next_action"];
+      mockedService.getNextAction.mockRejectedValue(new Error("fail"));
+      const res = await handler({}, {});
+      expect(res.content[0].text).toContain("Error getting next action");
     });
   });
 });
