@@ -50,7 +50,7 @@ async function buildNestedActionStructure(nextActionId: string) {
 export function registerResources(server: any) {
   // actions://list - List all actions with pagination support
   server.resource(
-    "List all actions with pagination support", 
+    "List all actions with pagination support (excludes completed actions by default)", 
     "actions://list",
     async (uri: any) => {
       try {
@@ -58,6 +58,7 @@ export function registerResources(server: any) {
         let limit = 20;
         let offset = 0;
         let done: boolean | undefined = undefined;
+        let includeCompleted = false;
         
         // Try to extract parameters from URI if it contains query string
         const uriString = uri.toString();
@@ -71,6 +72,12 @@ export function registerResources(server: any) {
             const doneParam = url.searchParams.get('done');
             if (doneParam !== null) {
               done = doneParam === 'true';
+            }
+            
+            // Parse includeCompleted parameter
+            const includeCompletedParam = url.searchParams.get('includeCompleted');
+            if (includeCompletedParam !== null) {
+              includeCompleted = includeCompletedParam === 'true';
             }
           } catch (urlError) {
             console.log('Could not parse URI parameters, using defaults:', urlError);
@@ -95,7 +102,7 @@ export function registerResources(server: any) {
           };
         }
         
-        const result = await ActionsService.getActionListResource({ limit, offset, done });
+        const result = await ActionsService.getActionListResource({ limit, offset, done, includeCompleted });
         
         return {
           contents: [
@@ -115,10 +122,28 @@ export function registerResources(server: any) {
 
   // actions://tree - Hierarchical view of actions
   server.resource(
-    "Hierarchical view of actions showing parent-child relationships",
+    "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default)",
     "actions://tree",
     async (uri: any) => {
       try {
+        // Parse URI parameters
+        let includeCompleted = false;
+        
+        const uriString = uri.toString();
+        if (uriString.includes('?')) {
+          try {
+            const url = new URL(uriString);
+            
+            // Parse includeCompleted parameter
+            const includeCompletedParam = url.searchParams.get('includeCompleted');
+            if (includeCompletedParam !== null) {
+              includeCompleted = includeCompletedParam === 'true';
+            }
+          } catch (urlError) {
+            console.log('Could not parse URI parameters, using defaults:', urlError);
+          }
+        }
+        
         // Check if database is available
         if (!process.env.DATABASE_URL) {
           return {
@@ -136,7 +161,7 @@ export function registerResources(server: any) {
           };
         }
         
-        const result = await ActionsService.getActionTreeResource();
+        const result = await ActionsService.getActionTreeResource(includeCompleted);
         
         return {
           contents: [
@@ -156,10 +181,28 @@ export function registerResources(server: any) {
 
   // actions://dependencies - Dependency graph view
   server.resource(
-    "Dependency graph view showing all action dependencies and dependents",
+    "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default)",
     "actions://dependencies",
     async (uri: any) => {
       try {
+        // Parse URI parameters
+        let includeCompleted = false;
+        
+        const uriString = uri.toString();
+        if (uriString.includes('?')) {
+          try {
+            const url = new URL(uriString);
+            
+            // Parse includeCompleted parameter
+            const includeCompletedParam = url.searchParams.get('includeCompleted');
+            if (includeCompletedParam !== null) {
+              includeCompleted = includeCompletedParam === 'true';
+            }
+          } catch (urlError) {
+            console.log('Could not parse URI parameters, using defaults:', urlError);
+          }
+        }
+        
         // Check if database is available
         if (!process.env.DATABASE_URL) {
           return {
@@ -177,7 +220,7 @@ export function registerResources(server: any) {
           };
         }
         
-        const result = await ActionsService.getActionDependenciesResource();
+        const result = await ActionsService.getActionDependenciesResource(includeCompleted);
         
         return {
           contents: [
@@ -315,13 +358,13 @@ export function registerResources(server: any) {
 
 export const resourceCapabilities = {
   "actions://list": {
-    description: "List all actions with pagination support",
+    description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
   "actions://tree": {
-    description: "Hierarchical view of actions showing parent-child relationships",
+    description: "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
   "actions://dependencies": {
-    description: "Dependency graph view showing all action dependencies and dependents",
+    description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
   "actions://next": {
     description: "Get the next action that should be worked on based on dependencies",

@@ -120,6 +120,7 @@ export interface ListActionsParams {
   limit?: number;
   offset?: number;
   done?: boolean;
+  includeCompleted?: boolean;
 }
 
 export interface AddChildActionParams {
@@ -465,7 +466,7 @@ export class ActionsService {
   // Resource methods for MCP resources
 
   static async getActionListResource(params: ListActionsParams = {}): Promise<ActionListResource> {
-    const { limit = 20, offset = 0, done } = params;
+    const { limit = 20, offset = 0, done, includeCompleted = false } = params;
     
     // Build base query
     let totalQuery = getDb().select({ count: count() }).from(actions);
@@ -475,8 +476,12 @@ export class ActionsService {
     
     // Add done filter if specified
     if (done !== undefined) {
-      totalQuery = totalQuery.where(eq(actions.done, done)) as any;
-      actionQuery = actionQuery.where(eq(actions.done, done)) as any;
+      totalQuery = totalQuery.where(eq(actions.done, done));
+      actionQuery = actionQuery.where(eq(actions.done, done));
+    } else if (!includeCompleted) {
+      // Default: exclude completed actions unless explicitly requested
+      totalQuery = totalQuery.where(eq(actions.done, false));
+      actionQuery = actionQuery.where(eq(actions.done, false));
     }
     
     // Get total count
@@ -505,7 +510,7 @@ export class ActionsService {
     };
   }
 
-  static async getActionTreeResource(): Promise<ActionTreeResource> {
+  static async getActionTreeResource(includeCompleted: boolean = false): Promise<ActionTreeResource> {
     // Get all actions and edges
     const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
     const allEdges = await getDb().select().from(edges).where(eq(edges.kind, "child"));
@@ -539,18 +544,29 @@ export class ActionsService {
       }
     }
 
-    // Build tree nodes recursively
-    function buildNode(actionId: string): ActionNode {
+    // Build tree nodes recursively, filtering completed actions if needed
+    function buildNode(actionId: string): ActionNode | null {
       const action = actionMap.get(actionId)! as any;
+      
+      // Skip completed actions unless includeCompleted is true
+      if (!includeCompleted && action.done) {
+        return null;
+      }
+      
       const children = childrenMap.get(actionId) || [];
       const dependencies = dependenciesMap.get(actionId) || [];
+
+      // Filter children to exclude completed ones (unless includeCompleted is true)
+      const filteredChildren = children
+        .map(childId => buildNode(childId))
+        .filter((child): child is ActionNode => child !== null);
 
       return {
         id: actionId,
         title: action.data?.title || 'untitled',
         done: action.done,
         created_at: action.createdAt.toISOString(),
-        children: children.map(childId => buildNode(childId)),
+        children: filteredChildren,
         dependencies,
       };
     }
@@ -560,13 +576,23 @@ export class ActionsService {
       .filter((action: any) => !parentMap.has(action.id))
       .map((action: any) => action.id);
 
+    // Build root nodes and filter out completed ones
+    const rootNodes = rootActionIds
+      .map((id: any) => buildNode(id))
+      .filter((node: ActionNode | null): node is ActionNode => node !== null);
+
     return {
-      rootActions: rootActionIds.map((id: any) => buildNode(id)),
+      rootActions: rootNodes,
     };
   }
 
-  static async getActionDependenciesResource(): Promise<ActionDependenciesResource> {
-    const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
+  static async getActionDependenciesResource(includeCompleted: boolean = false): Promise<ActionDependenciesResource> {
+    // Get all actions and filter if needed
+    let actionQuery = getDb().select().from(actions);
+    if (!includeCompleted) {
+      actionQuery = actionQuery.where(eq(actions.done, false));
+    }
+    const allActions = await actionQuery.orderBy(actions.createdAt);
     const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
 
     const actionMap = new Map(allActions.map((action: any) => [action.id, action]));

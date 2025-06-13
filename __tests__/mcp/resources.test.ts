@@ -70,7 +70,7 @@ describe("MCP Resources", () => {
     const expected = { total: 1, limit: 5, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     const result = await handler(new URL("actions://list?limit=5"));
-    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 5, offset: 0, done: undefined });
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 5, offset: 0, done: undefined, includeCompleted: false });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
@@ -90,7 +90,17 @@ describe("MCP Resources", () => {
     const expected = { total: 5, limit: 10, offset: 20, actions: [], filtered_by_done: true } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     const result = await handler(new URL("actions://list?limit=10&offset=20&done=true"));
-    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 10, offset: 20, done: true });
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 10, offset: 20, done: true, includeCompleted: false });
+    expect(JSON.parse(result.contents[0].text)).toEqual(expected);
+  });
+
+  it("list resource parses includeCompleted parameter", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    const expected = { total: 3, limit: 20, offset: 0, actions: [] } as any;
+    mockedService.getActionListResource.mockResolvedValue(expected);
+    const result = await handler(new URL("actions://list?includeCompleted=true"));
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 20, offset: 0, done: undefined, includeCompleted: true });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
@@ -101,7 +111,17 @@ describe("MCP Resources", () => {
     const expected = { rootActions: [] } as any;
     mockedService.getActionTreeResource.mockResolvedValue(expected);
     const result = await handler(new URL("actions://tree"));
-    expect(mockedService.getActionTreeResource).toHaveBeenCalled();
+    expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(false);
+    expect(JSON.parse(result.contents[0].text)).toEqual(expected);
+  });
+
+  it("tree resource parses includeCompleted parameter", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[1][2];
+    const expected = { rootActions: [] } as any;
+    mockedService.getActionTreeResource.mockResolvedValue(expected);
+    const result = await handler(new URL("actions://tree?includeCompleted=true"));
+    expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(true);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
@@ -111,7 +131,17 @@ describe("MCP Resources", () => {
     const expected = { dependencies: [] } as any;
     mockedService.getActionDependenciesResource.mockResolvedValue(expected);
     const result = await handler(new URL("actions://dependencies"));
-    expect(mockedService.getActionDependenciesResource).toHaveBeenCalled();
+    expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
+    expect(JSON.parse(result.contents[0].text)).toEqual(expected);
+  });
+
+  it("dependencies resource parses includeCompleted parameter", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[2][2];
+    const expected = { dependencies: [] } as any;
+    mockedService.getActionDependenciesResource.mockResolvedValue(expected);
+    const result = await handler(new URL("actions://dependencies?includeCompleted=true"));
+    expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(true);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
