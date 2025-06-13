@@ -908,7 +908,7 @@ describe("ActionsService - Full Coverage", () => {
             }),
           });
 
-        const result = await ActionsService.getActionListResource();
+        const result = await ActionsService.getActionListResource({ includeCompleted: true });
         
         expect(result.actions).toHaveLength(1);
         expect(result.total).toBe(5);
@@ -955,7 +955,7 @@ describe("ActionsService - Full Coverage", () => {
             }),
           });
 
-        const result = await ActionsService.getActionListResource({ limit: 10, offset: 20 });
+        const result = await ActionsService.getActionListResource({ limit: 10, offset: 20, includeCompleted: true });
         
         expect(result.offset).toBe(20);
         expect(result.limit).toBe(10);
@@ -1027,7 +1027,7 @@ describe("ActionsService - Full Coverage", () => {
             }),
           });
 
-        const result = await ActionsService.getActionDependenciesResource();
+        const result = await ActionsService.getActionDependenciesResource(true);
         
         expect(result.dependencies).toHaveLength(2);
         expect(result.dependencies[0].action_id).toBe('1');
