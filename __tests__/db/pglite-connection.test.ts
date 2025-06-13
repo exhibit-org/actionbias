@@ -22,6 +22,20 @@ describe('PGlite Connection and Operations', () => {
       await rawPglite.close();
     }
     
+    // Clean up the test database directory
+    const fs = require('fs');
+    const path = require('path');
+    const dbPath = '.pglite-connection-test';
+    
+    try {
+      if (fs.existsSync(dbPath)) {
+        fs.rmSync(dbPath, { recursive: true, force: true });
+        console.log(`Cleaned up test database directory: ${dbPath}`);
+      }
+    } catch (error) {
+      console.warn(`Failed to clean up test database directory: ${error}`);
+    }
+    
     // Reset environment
     process.env = originalEnv;
   });

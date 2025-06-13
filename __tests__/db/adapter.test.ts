@@ -11,6 +11,22 @@ describe('Database Adapter', () => {
   afterAll(async () => {
     // Clean up any PGlite instances created during tests
     await cleanupPGlite();
+    
+    // Clean up test database directories
+    const fs = require('fs');
+    const testDirs = ['.pglite-adapter-test', '.pglite-adapter-test-2', 'custom-adapter-test'];
+    
+    for (const dir of testDirs) {
+      try {
+        if (fs.existsSync(dir)) {
+          fs.rmSync(dir, { recursive: true, force: true });
+          console.log(`Cleaned up test database directory: ${dir}`);
+        }
+      } catch (error) {
+        console.warn(`Failed to clean up test database directory ${dir}: ${error}`);
+      }
+    }
+    
     process.env = originalEnv;
   });
 
