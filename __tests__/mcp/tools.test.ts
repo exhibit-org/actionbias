@@ -8,7 +8,6 @@ jest.mock("../../lib/services/actions", () => ({
     deleteAction: jest.fn(),
     removeDependency: jest.fn(),
     updateAction: jest.fn(),
-    getNextAction: jest.fn(),
   },
 }));
 
@@ -46,14 +45,13 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(6);
+    expect(server.tool).toHaveBeenCalledTimes(5);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
       "delete_action",
       "remove_dependency",
       "update_action",
-      "get_next_action",
     ]);
   });
 
@@ -161,51 +159,4 @@ describe("MCP Tools", () => {
     });
   });
 
-  describe("get_next_action", () => {
-    // Mock the buildNestedActionStructure function directly to avoid complex DB mocking
-    let originalBuildNestedActionStructure: any;
-    
-    beforeEach(() => {
-      // Dynamically require and mock the function
-      const toolsModule = require("../../lib/mcp/tools");
-      originalBuildNestedActionStructure = toolsModule.buildNestedActionStructure;
-    });
-
-    afterEach(() => {
-      if (originalBuildNestedActionStructure) {
-        jest.restoreAllMocks();
-      }
-    });
-
-    it("returns JSON format with action data", async () => {
-      registerTools(server);
-      const handler = tools["get_next_action"];
-      mockedService.getNextAction.mockResolvedValue({ id: "a1", data: { title: "Test Action" }, done: false, version: 0, createdAt: "now", updatedAt: "now" } as any);
-      
-      const res = await handler({}, {});
-      const result = JSON.parse(res.content[0].text);
-      
-      // Should return some JSON structure (exact structure depends on DB calls)
-      expect(typeof result).toBe("object");
-      expect(result).not.toBeNull();
-    });
-
-    it("returns null when no action available", async () => {
-      registerTools(server);
-      const handler = tools["get_next_action"];
-      mockedService.getNextAction.mockResolvedValue(null as any);
-      const res = await handler({}, {});
-      const result = JSON.parse(res.content[0].text);
-      expect(result.next_action).toBe(null);
-    });
-
-    it("returns error JSON on failure", async () => {
-      registerTools(server);
-      const handler = tools["get_next_action"];
-      mockedService.getNextAction.mockRejectedValue(new Error("fail"));
-      const res = await handler({}, {});
-      const result = JSON.parse(res.content[0].text);
-      expect(result.error).toBe("fail");
-    });
-  });
 });

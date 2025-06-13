@@ -1,5 +1,73 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ActionsService } from "../services/actions";
+import { getDb } from "../db/adapter";
+import { actions, edges } from "../../db/schema";
+import { eq, and } from "drizzle-orm";
+
+// Helper function to build nested action structure
+async function buildNestedActionStructure(nextActionId: string) {
+  // Get the parent chain
+  const parentChain = [];
+  let currentId = nextActionId;
+  
+  // Walk up the parent chain
+  while (true) {
+    const action = await getDb()
+      .select()
+      .from(actions)
+      .where(eq(actions.id, currentId))
+      .limit(1);
+    
+    if (action.length === 0) break;
+    
+    parentChain.unshift({
+      id: currentId,
+      title: action[0].data?.title || 'untitled',
+      created_at: action[0].createdAt.toISOString()
+    });
+    
+    // Find parent
+    const parentEdges = await getDb()
+      .select()
+      .from(edges)
+      .where(and(eq(edges.dst, currentId), eq(edges.kind, "child")));
+    
+    if (parentEdges.length === 0) break;
+    
+    const parentId = parentEdges[0].src;
+    if (!parentId) break;
+    
+    currentId = parentId;
+  }
+  
+  // Build nested structure from root down to next action
+  let result: any = null;
+  for (let i = 0; i < parentChain.length; i++) {
+    const actionInfo = parentChain[i];
+    const isNextAction = actionInfo.id === nextActionId;
+    
+    const node: any = {
+      id: actionInfo.id,
+      title: actionInfo.title,
+      created_at: actionInfo.created_at,
+      is_next_action: isNextAction
+    };
+    
+    if (i === 0) {
+      // Root node
+      result = node;
+    } else {
+      // Add as child of previous node
+      let current = result;
+      for (let j = 1; j < i; j++) {
+        current = current.child;
+      }
+      current.child = node;
+    }
+  }
+  
+  return result;
+}
 
 export function registerResources(server: any) {
   // actions://list - List all actions with pagination support
@@ -200,6 +268,71 @@ export function registerResources(server: any) {
       }
     }
   );
+
+  // actions://next - Get the next actionable task with context
+  server.resource(
+    "Get the next action that should be worked on based on dependencies",
+    "actions://next",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  next_action: null
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const action = await ActionsService.getNextAction();
+        if (!action) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({ next_action: null }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        // Build nested structure from root to next action
+        const nestedStructure = await buildNestedActionStructure(action.id);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(nestedStructure, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error getting next action:', error);
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({ 
+                error: error instanceof Error ? error.message : "Unknown error" 
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
@@ -211,6 +344,9 @@ export const resourceCapabilities = {
   },
   "actions://dependencies": {
     description: "Dependency graph view showing all action dependencies and dependents",
+  },
+  "actions://next": {
+    description: "Get the next action that should be worked on based on dependencies",
   },
   "actions://{id}": {
     description: "Individual action details with relationships",

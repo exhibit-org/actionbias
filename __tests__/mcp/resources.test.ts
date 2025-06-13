@@ -7,7 +7,30 @@ jest.mock("../../lib/services/actions", () => ({
     getActionTreeResource: jest.fn(),
     getActionDependenciesResource: jest.fn(),
     getActionDetailResource: jest.fn(),
+    getNextAction: jest.fn(),
   },
+}));
+
+jest.mock("../../lib/db/adapter", () => ({
+  getDb: jest.fn(() => ({
+    select: jest.fn(() => ({
+      from: jest.fn(() => ({
+        where: jest.fn(() => ({
+          limit: jest.fn(() => Promise.resolve([])),
+        })),
+      })),
+    })),
+  })),
+}));
+
+jest.mock("../../db/schema", () => ({
+  actions: {},
+  edges: {},
+}));
+
+jest.mock("drizzle-orm", () => ({
+  eq: jest.fn(),
+  and: jest.fn(),
 }));
 
 const mockedService = ActionsService as jest.Mocked<typeof ActionsService>;
@@ -26,11 +49,12 @@ describe("MCP Resources", () => {
 
   it("registers all resources", () => {
     registerResources(server);
-    expect(server.resource).toHaveBeenCalledTimes(4);
+    expect(server.resource).toHaveBeenCalledTimes(5);
     expect(Object.keys(resourceCapabilities)).toEqual([
       "actions://list",
       "actions://tree",
       "actions://dependencies",
+      "actions://next",
       "actions://{id}",
     ]);
   });
@@ -75,9 +99,38 @@ describe("MCP Resources", () => {
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
+  it("next resource returns action structure", async () => {
+    registerResources(server);
+    // Find the correct next resource by checking the URI
+    const nextCall = server.resource.mock.calls.find(call => call[1] === "actions://next");
+    const handler = nextCall[2];
+    const mockAction = { id: "123", data: { title: "Next Action" }, done: false, version: 1, createdAt: "now", updatedAt: "now" } as any;
+    mockedService.getNextAction.mockResolvedValue(mockAction);
+    const result = await handler(new URL("actions://next"));
+    expect(mockedService.getNextAction).toHaveBeenCalled();
+    const data = JSON.parse(result.contents[0].text);
+    expect(data).toBeDefined();
+  });
+
+  it("next resource returns null when no action", async () => {
+    registerResources(server);
+    // Find the correct next resource by checking the URI
+    const nextCall = server.resource.mock.calls.find(call => call[1] === "actions://next");
+    const handler = nextCall[2];
+    mockedService.getNextAction.mockResolvedValue(null);
+    const result = await handler(new URL("actions://next"));
+    expect(mockedService.getNextAction).toHaveBeenCalled();
+    const data = JSON.parse(result.contents[0].text);
+    expect(data.next_action).toBe(null);
+  });
+
   it("detail resource returns data", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[3][2];
+    // Find the detail resource by looking for the one that's NOT a string URI
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
     const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now" } as any;
     mockedService.getActionDetailResource.mockResolvedValue(expected);
     const result = await handler(new URL("actions://123"), { id: "123" });
@@ -87,7 +140,11 @@ describe("MCP Resources", () => {
 
   it("detail resource rejects missing id", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[3][2];
+    // Find the detail resource by looking for the one that's NOT a string URI
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
     await expect(handler(new URL("actions://{id}"), { id: "{id}" })).rejects.toThrow();
   });
 });
