@@ -22,12 +22,12 @@ function getDb() {
   }
   
   // Handle regular PostgreSQL URLs
-  if (!client) {
+  if (!db) {
     client = postgres(databaseUrl);
     db = drizzle(client);
   }
   
-  return db!;
+  return db;
 }
 
 // Store reference to the raw PGlite instance for cleanup
