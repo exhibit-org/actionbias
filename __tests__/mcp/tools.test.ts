@@ -75,6 +75,16 @@ describe("MCP Tools", () => {
       const res = await handler({ title: "A" }, {});
       expect(res.content[0].text).toContain("Error creating action: fail");
     });
+
+    it("creates action with vision", async () => {
+      registerTools(server);
+      const handler = tools["create_action"];
+      const expected = { action: { id: "1", createdAt: "now", data: { title: "A", vision: "World peace achieved" } }, dependencies_count: 0 } as any;
+      mockedService.createAction.mockResolvedValue(expected);
+      const res = await handler({ title: "A", vision: "World peace achieved" }, {});
+      expect(mockedService.createAction).toHaveBeenCalledWith({ title: "A", vision: "World peace achieved", parent_id: undefined, depends_on_ids: undefined });
+      expect(res.content[0].text).toContain("Created action: A");
+    });
   });
 
   describe("add_dependency", () => {
@@ -144,12 +154,6 @@ describe("MCP Tools", () => {
   });
 
   describe("update_action", () => {
-    it("rejects when no fields provided", async () => {
-      registerTools(server);
-      const handler = tools["update_action"];
-      const res = await handler({ action_id: "a1" }, {});
-      expect(res.content[0].text).toContain("At least one field");
-    });
 
     it("returns success message", async () => {
       registerTools(server);
@@ -178,6 +182,23 @@ describe("MCP Tools", () => {
       mockedService.updateAction.mockRejectedValue(new Error("fail"));
       const res = await handler({ action_id: "a1", title: "A" }, {});
       expect(res.content[0].text).toContain("Error updating action: fail");
+    });
+
+    it("updates action with vision", async () => {
+      registerTools(server);
+      const handler = tools["update_action"];
+      const expected = { id: "a1", data: { title: "A", vision: "Success state defined" }, updatedAt: "2024-01-01" } as any;
+      mockedService.updateAction.mockResolvedValue(expected);
+      const res = await handler({ action_id: "a1", vision: "Success state defined" }, {});
+      expect(mockedService.updateAction).toHaveBeenCalledWith({ action_id: "a1", vision: "Success state defined" });
+      expect(res.content[0].text).toContain("Updated action");
+    });
+
+    it("rejects when no fields provided including vision", async () => {
+      registerTools(server);
+      const handler = tools["update_action"];
+      const res = await handler({ action_id: "a1" }, {});
+      expect(res.content[0].text).toContain("At least one field (title, vision, or done) must be provided");
     });
   });
 

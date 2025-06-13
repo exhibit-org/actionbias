@@ -53,6 +53,22 @@ describe("ActionsService - Full Coverage", () => {
       expect(result.parent_id).toBeUndefined();
     });
 
+    it("should create action with title and vision", async () => {
+      const result = await ActionsService.createAction({ 
+        title: "Test Action", 
+        vision: "Success is achieved when this action is complete" 
+      });
+      
+      expect(result.action.id).toBe('test-uuid-123');
+      expect(result.dependencies_count).toBe(0);
+      expect(result.parent_id).toBeUndefined();
+      // Verify that vision was included in the data
+      expect(mockDb.insert().values).toHaveBeenCalledWith({
+        id: 'test-uuid-123',
+        data: { title: "Test Action", vision: "Success is achieved when this action is complete" },
+      });
+    });
+
     it("should create action with parent", async () => {
       // Mock parent exists
       mockDb.select.mockReturnValue({
@@ -763,7 +779,36 @@ describe("ActionsService - Full Coverage", () => {
     it("should throw error if no fields provided", async () => {
       await expect(ActionsService.updateAction({
         action_id: "action-id"
-      })).rejects.toThrow("At least one field (title or done) must be provided");
+      })).rejects.toThrow("At least one field (title, vision, or done) must be provided");
+    });
+
+    it("should update action vision", async () => {
+      const existingAction = { id: 'action-id', data: { title: 'Old Title' }, done: false };
+      const updatedAction = { id: 'action-id', data: { title: 'Old Title', vision: 'New vision' }, done: false };
+
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            limit: jest.fn().mockResolvedValue([existingAction]),
+          }),
+        }),
+      });
+
+      mockDb.update.mockReturnValue({
+        set: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            returning: jest.fn().mockResolvedValue([updatedAction]),
+          }),
+        }),
+      });
+
+      const result = await ActionsService.updateAction({
+        action_id: "action-id",
+        vision: "New vision"
+      });
+
+      expect(result.data.vision).toBe('New vision');
+      expect(result.data.title).toBe('Old Title'); // Should preserve existing title
     });
   });
 

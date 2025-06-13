@@ -4,6 +4,7 @@ import { ActionsService, CreateActionParams, ListActionsParams } from "../../../
 
 const createActionSchema = z.object({
   title: z.string().min(1),
+  vision: z.string().optional(),
   parent_id: z.string().uuid().optional(),
   depends_on_ids: z.array(z.string().uuid()).optional(),
 });

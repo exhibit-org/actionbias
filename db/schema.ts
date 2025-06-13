@@ -4,6 +4,7 @@ import { z } from 'zod';
 // Zod schema for actions.data field
 export const actionDataSchema = z.object({
   title: z.string().min(1, "Title is required"),
+  vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
 });
 
 export type ActionData = z.infer<typeof actionDataSchema>;
