@@ -53,3 +53,6 @@ node scripts/test-streamable-http-client.mjs http://localhost:3000
 - Requires Fluid compute enabled for efficient execution
 - Set `maxDuration` to 800 for Pro/Enterprise accounts
 - SSE transport requires Redis attachment via `REDIS_URL`
+
+## Deployment Workflow
+- To test out a change we've made to the actionbias MCP server, we have to push the code to the main branch and wait about 60 seconds for Vercel to deploy the new version of the code

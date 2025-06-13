@@ -7,6 +7,7 @@ import {
   ActionDependenciesResource, 
   DependencyMapping,
   ActionDetailResource,
+  ActionMetadata,
   Action 
 } from "../types/resources";
 import { getDb } from "../db/adapter";
@@ -636,6 +637,18 @@ export class ActionsService {
   }
 
   static async getActionDetailResource(actionId: string): Promise<ActionDetailResource> {
+    // Helper function to convert action to ActionMetadata
+    const toActionMetadata = (action: any): ActionMetadata => ({
+      id: action.id,
+      title: action.data?.title || 'untitled',
+      description: action.data?.description,
+      vision: action.data?.vision,
+      done: action.done,
+      version: action.version,
+      created_at: action.createdAt.toISOString(),
+      updated_at: action.updatedAt.toISOString(),
+    });
+
     // Get the action
     const action = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
     if (action.length === 0) {
@@ -647,6 +660,24 @@ export class ActionsService {
       and(eq(edges.dst, actionId), eq(edges.kind, "child"))
     );
     const parentId = parentEdges.length > 0 ? parentEdges[0].src : undefined;
+
+    // Build parent chain by walking up the hierarchy
+    const parentChain: ActionMetadata[] = [];
+    let currentParentId = parentId;
+    
+    while (currentParentId) {
+      const parentAction = await getDb().select().from(actions).where(eq(actions.id, currentParentId)).limit(1);
+      
+      if (parentAction.length === 0) break;
+      
+      parentChain.unshift(toActionMetadata(parentAction[0])); // Add to front to maintain order from root
+      
+      // Find the next parent
+      const nextParentEdges = await getDb().select().from(edges).where(
+        and(eq(edges.dst, currentParentId), eq(edges.kind, "child"))
+      );
+      currentParentId = nextParentEdges.length > 0 ? nextParentEdges[0].src : undefined;
+    }
 
     // Get children
     const childEdges = await getDb().select().from(edges).where(
@@ -678,34 +709,17 @@ export class ActionsService {
     return {
       id: action[0].id,
       title: action[0].data?.title || 'untitled',
+      description: action[0].data?.description,
+      vision: action[0].data?.vision,
       done: action[0].done,
+      version: action[0].version,
       created_at: action[0].createdAt.toISOString(),
       updated_at: action[0].updatedAt.toISOString(),
       parent_id: parentId || undefined,
-      children: children.map((child: any) => ({
-        id: child.id,
-        data: child.data as { title: string },
-        done: child.done,
-        version: child.version,
-        createdAt: child.createdAt.toISOString(),
-        updatedAt: child.updatedAt.toISOString(),
-      })),
-      dependencies: dependencies.map((dep: any) => ({
-        id: dep.id,
-        data: dep.data as { title: string },
-        done: dep.done,
-        version: dep.version,
-        createdAt: dep.createdAt.toISOString(),
-        updatedAt: dep.updatedAt.toISOString(),
-      })),
-      dependents: dependents.map((dep: any) => ({
-        id: dep.id,
-        data: dep.data as { title: string },
-        done: dep.done,
-        version: dep.version,
-        createdAt: dep.createdAt.toISOString(),
-        updatedAt: dep.updatedAt.toISOString(),
-      })),
+      parent_chain: parentChain,
+      children: children.map(toActionMetadata),
+      dependencies: dependencies.map(toActionMetadata),
+      dependents: dependents.map(toActionMetadata),
     };
   }
 

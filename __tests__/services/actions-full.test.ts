@@ -1042,6 +1042,7 @@ describe("ActionsService - Full Coverage", () => {
         id: 'action-id', 
         data: { title: 'Test Action' }, 
         done: false,
+        version: 1,
         createdAt: new Date('2023-01-01'),
         updatedAt: new Date('2023-01-01'),
       };
@@ -1065,6 +1066,10 @@ describe("ActionsService - Full Coverage", () => {
         
         expect(result.id).toBe('action-id');
         expect(result.title).toBe('Test Action');
+        expect(result.description).toBeUndefined();
+        expect(result.vision).toBeUndefined();
+        expect(result.done).toBe(false);
+        expect(result.parent_chain).toEqual([]);
         expect(result.children).toEqual([]);
         expect(result.dependencies).toEqual([]);
         expect(result.dependents).toEqual([]);
@@ -1083,8 +1088,16 @@ describe("ActionsService - Full Coverage", () => {
           .rejects.toThrow("Action with ID non-existent not found");
       });
 
-      it("should include parent_id when parent exists", async () => {
+      it("should include parent_id and parent_chain when parent exists", async () => {
         const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'child' };
+        const parentAction = {
+          id: 'parent-id',
+          data: { title: 'Parent Action', description: 'Parent desc' },
+          done: false,
+          version: 1,
+          createdAt: new Date('2023-01-01'),
+          updatedAt: new Date('2023-01-01'),
+        };
 
         mockDb.select
           .mockReturnValueOnce({
@@ -1099,6 +1112,18 @@ describe("ActionsService - Full Coverage", () => {
               where: jest.fn().mockResolvedValue([parentEdge]),
             }),
           })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue([parentAction]),
+              }),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockResolvedValue([]), // No more parents
+            }),
+          })
           .mockReturnValue({
             from: jest.fn().mockReturnValue({
               where: jest.fn().mockResolvedValue([]),
@@ -1108,6 +1133,17 @@ describe("ActionsService - Full Coverage", () => {
         const result = await ActionsService.getActionDetailResource('action-id');
         
         expect(result.parent_id).toBe('parent-id');
+        expect(result.parent_chain).toHaveLength(1);
+        expect(result.parent_chain[0]).toEqual({
+          id: 'parent-id',
+          title: 'Parent Action',
+          description: 'Parent desc',
+          vision: undefined,
+          done: false,
+          version: 1,
+          created_at: '2023-01-01T00:00:00.000Z',
+          updated_at: '2023-01-01T00:00:00.000Z',
+        });
       });
 
       it("should include children when they exist", async () => {

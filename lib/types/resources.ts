@@ -67,11 +67,26 @@ export interface DependencyMapping {
 export interface ActionDetailResource {
   id: string;
   title: string;
+  description?: string;
+  vision?: string;
   done: boolean;
+  version: number | null;
   created_at: string;
   updated_at: string;
   parent_id?: string;
-  children: Action[];
-  dependencies: Action[]; // actions this depends on
-  dependents: Action[]; // actions that depend on this one
+  parent_chain: ActionMetadata[]; // all parent actions up to root
+  children: ActionMetadata[];
+  dependencies: ActionMetadata[]; // actions this depends on
+  dependents: ActionMetadata[]; // actions that depend on this one
+}
+
+export interface ActionMetadata {
+  id: string;
+  title: string;
+  description?: string;
+  vision?: string;
+  done: boolean;
+  version: number | null;
+  created_at: string;
+  updated_at: string;
 }
