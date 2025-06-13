@@ -18,7 +18,7 @@ describe("ActionsService - Basic Functionality", () => {
         ActionsService.updateAction({
           action_id: "test-id",
         })
-      ).rejects.toThrow("At least one field (title or done) must be provided");
+      ).rejects.toThrow("At least one field (title, description, vision, or done) must be provided");
     });
 
     it("should validate child_handling parameter", () => {

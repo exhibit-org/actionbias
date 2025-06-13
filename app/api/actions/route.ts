@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ActionsService, CreateActionParams, ListActionsParams } from "../../../lib/services/actions";
+import { actionDataSchema } from "../../../db/schema";
 
-const createActionSchema = z.object({
-  title: z.string().min(1),
+const createActionSchema = actionDataSchema.extend({
   parent_id: z.string().uuid().optional(),
   depends_on_ids: z.array(z.string().uuid()).optional(),
 });

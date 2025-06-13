@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ActionsService } from "../../../../lib/services/actions";
+import { actionDataSchema } from "../../../../db/schema";
 
 const deleteActionSchema = z.object({
   child_handling: z.enum(["delete_recursive", "reparent"]).default("reparent"),
   new_parent_id: z.string().uuid().optional(),
 });
 
-const updateActionSchema = z.object({
-  title: z.string().min(1).optional(),
+const updateActionSchema = actionDataSchema.partial().extend({
   done: z.boolean().optional(),
 }).refine(
-  (data) => data.title !== undefined || data.done !== undefined,
+  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined || data.done !== undefined,
   {
-    message: "At least one field (title or done) must be provided",
+    message: "At least one field (title, description, vision, or done) must be provided",
   }
 );
 

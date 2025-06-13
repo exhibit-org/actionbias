@@ -110,6 +110,8 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
 
 export interface CreateActionParams {
   title: string;
+  description?: string;
+  vision?: string;
   parent_id?: string;
   depends_on_ids?: string[];
 }
@@ -122,6 +124,8 @@ export interface ListActionsParams {
 
 export interface AddChildActionParams {
   title: string;
+  description?: string;
+  vision?: string;
   parent_id: string;
 }
 
@@ -144,12 +148,14 @@ export interface RemoveDependencyParams {
 export interface UpdateActionParams {
   action_id: string;
   title?: string;
+  description?: string;
+  vision?: string;
   done?: boolean;
 }
 
 export class ActionsService {
   static async createAction(params: CreateActionParams) {
-    const { title, parent_id, depends_on_ids } = params;
+    const { title, description, vision, parent_id, depends_on_ids } = params;
     
     // Validate parent exists if provided
     if (parent_id) {
@@ -169,11 +175,23 @@ export class ActionsService {
       }
     }
     
+    // Build and validate action data
+    const actionData: any = { title };
+    if (description !== undefined) {
+      actionData.description = description;
+    }
+    if (vision !== undefined) {
+      actionData.vision = vision;
+    }
+    
+    // Validate action data against schema
+    const validatedData = actionDataSchema.parse(actionData);
+    
     const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
-        data: { title },
+        data: validatedData,
       })
       .returning();
 
@@ -225,7 +243,7 @@ export class ActionsService {
   }
 
   static async addChildAction(params: AddChildActionParams) {
-    const { title, parent_id } = params;
+    const { title, description, vision, parent_id } = params;
     
     // Check that parent exists
     const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
@@ -235,11 +253,22 @@ export class ActionsService {
     }
     
     // Create new action
+    const actionData: any = { title };
+    if (description !== undefined) {
+      actionData.description = description;
+    }
+    if (vision !== undefined) {
+      actionData.vision = vision;
+    }
+    
+    // Validate action data against schema
+    const validatedData = actionDataSchema.parse(actionData);
+    
     const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
-        data: { title },
+        data: validatedData,
       })
       .returning();
 
@@ -379,11 +408,11 @@ export class ActionsService {
   }
 
   static async updateAction(params: UpdateActionParams) {
-    const { action_id, title, done } = params;
+    const { action_id, title, description, vision, done } = params;
     
     // Validate that at least one field is provided
-    if (title === undefined && done === undefined) {
-      throw new Error("At least one field (title or done) must be provided");
+    if (title === undefined && description === undefined && vision === undefined && done === undefined) {
+      throw new Error("At least one field (title, description, vision, or done) must be provided");
     }
     
     // Check that action exists
@@ -398,9 +427,24 @@ export class ActionsService {
       updatedAt: new Date(),
     };
     
-    // Update title if provided
-    if (title !== undefined) {
-      updateData.data = { title };
+    // Update data fields if provided (preserve existing data)
+    if (title !== undefined || description !== undefined || vision !== undefined) {
+      const currentData = existingAction[0].data as any || {};
+      const newData = { ...currentData };
+      
+      if (title !== undefined) {
+        newData.title = title;
+      }
+      if (description !== undefined) {
+        newData.description = description;
+      }
+      if (vision !== undefined) {
+        newData.vision = vision;
+      }
+      
+      // Validate updated data against schema
+      const validatedData = actionDataSchema.parse(newData);
+      updateData.data = validatedData;
     }
     
     // Update done if provided
