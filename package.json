@@ -14,7 +14,7 @@
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
     "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --ci --coverage --watchAll=false",
-    "test:db": "NODE_OPTIONS='--experimental-vm-modules' jest __tests__/db/ --detectOpenHandles"
+    "test:db": "NODE_OPTIONS='--experimental-vm-modules' jest __tests__/db/ --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.12.0",
