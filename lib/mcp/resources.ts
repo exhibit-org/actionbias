@@ -24,11 +24,13 @@ async function buildNestedActionStructure(nextActionId: string) {
       created_at: action.createdAt.toISOString(),
     });
 
-    const [parentEdge] = await getDb()
+    const parentEdgeResult: any[] = await getDb()
       .select()
       .from(edges)
       .where(and(eq(edges.dst, currentId), eq(edges.kind, 'child')))
       .limit(1);
+    
+    const parentEdge = parentEdgeResult[0];
 
     currentId = parentEdge?.src ?? undefined;
   }
