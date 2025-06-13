@@ -126,14 +126,8 @@ export function registerTools(server: any) {
       try {
         console.log(`Creating dependency: ${action_id} depends on ${depends_on_id}`);
         
-        const authToken = 'test-token';
-        
-        const result = await makeApiCall('/actions/dependencies', {
-          method: 'POST',
-          body: JSON.stringify({ action_id, depends_on_id }),
-        }, authToken);
-
-        const edge = result.data;
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const edge = await ActionsService.addDependency({ action_id, depends_on_id });
 
         return {
           content: [
@@ -217,14 +211,10 @@ export function registerTools(server: any) {
       try {
         console.log(`Removing dependency: ${action_id} no longer depends on ${depends_on_id}`);
         
-        const authToken = 'test-token';
-        
-        const result = await makeApiCall('/actions/dependencies', {
-          method: 'DELETE',
-          body: JSON.stringify({ action_id, depends_on_id }),
-        }, authToken);
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const result = await ActionsService.removeDependency({ action_id, depends_on_id });
 
-        const { action, depends_on, deleted_edge } = result.data;
+        const { action, depends_on, deleted_edge } = result;
 
         return {
           content: [
@@ -277,14 +267,11 @@ export function registerTools(server: any) {
         
         console.log(`Updating action ${action_id} with:`, updateData);
         
-        const authToken = 'test-token';
-        
-        const result = await makeApiCall(`/actions/${action_id}`, {
-          method: 'PUT',
-          body: JSON.stringify(updateData),
-        }, authToken);
-
-        const action = result.data;
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const action = await ActionsService.updateAction({
+          action_id,
+          ...updateData
+        });
         let message = `Updated action: ${action.data?.title}\nID: ${action.id}\nUpdated: ${action.updatedAt}`;
         
         if (done !== undefined) {

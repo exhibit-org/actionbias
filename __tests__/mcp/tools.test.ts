@@ -81,44 +81,19 @@ describe("MCP Tools", () => {
     it("returns success message", async () => {
       registerTools(server);
       const handler = tools["add_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { createdAt: "now" } }), { status: 200, headers: { "content-type": "application/json" } }));
+      const expected = { src: "a2", dst: "a1", kind: "depends_on", createdAt: "now" } as any;
+      mockedService.addDependency.mockResolvedValue(expected);
       const res = await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe("https://example.com/api/actions/dependencies");
+      expect(mockedService.addDependency).toHaveBeenCalledWith({ action_id: "a1", depends_on_id: "a2" });
       expect(res.content[0].text).toContain("Created dependency");
     });
 
     it("returns error message on failure", async () => {
       registerTools(server);
       const handler = tools["add_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response("bad", { status: 400, statusText: "Bad" }));
+      mockedService.addDependency.mockRejectedValue(new Error("fail"));
       const res = await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect(res.content[0].text).toContain("Error creating dependency");
-    });
-
-    it("handles non-JSON response", async () => {
-      registerTools(server);
-      const handler = tools["add_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response("text response", { status: 200, headers: { "content-type": "text/plain" } }));
-      const res = await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect(res.content[0].text).toContain("Error creating dependency");
-      expect(global.console.error).toHaveBeenCalledWith(expect.stringContaining("Expected JSON but got: text/plain"), "text response");
-    });
-
-    it("uses localhost when VERCEL_URL not set", async () => {
-      delete process.env.VERCEL_URL;
-      registerTools(server);
-      const handler = tools["add_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { createdAt: "now" } }), { status: 200, headers: { "content-type": "application/json" } }));
-      await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe("http://localhost:3000/api/actions/dependencies");
-    });
-
-    it("logs authentication when token provided", async () => {
-      registerTools(server);
-      const handler = tools["add_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { createdAt: "now" } }), { status: 200, headers: { "content-type": "application/json" } }));
-      await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect(global.console.log).toHaveBeenCalledWith("Adding authentication to API call");
+      expect(res.content[0].text).toContain("Error creating dependency: fail");
     });
   });
 
@@ -148,17 +123,23 @@ describe("MCP Tools", () => {
     it("returns success message", async () => {
       registerTools(server);
       const handler = tools["remove_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { action: {}, depends_on: {}, deleted_edge: {} } }), { status: 200, headers: { "content-type": "application/json" } }));
+      const expected = { 
+        action: { data: { title: "Action 1" } }, 
+        depends_on: { data: { title: "Action 2" } }, 
+        deleted_edge: { createdAt: "now" } 
+      } as any;
+      mockedService.removeDependency.mockResolvedValue(expected);
       const res = await handler({ action_id: "a1", depends_on_id: "a2" }, {});
+      expect(mockedService.removeDependency).toHaveBeenCalledWith({ action_id: "a1", depends_on_id: "a2" });
       expect(res.content[0].text).toContain("Removed dependency");
     });
 
     it("returns error message on failure", async () => {
       registerTools(server);
       const handler = tools["remove_dependency"];
-      global.fetch = jest.fn().mockResolvedValue(new Response("bad", { status: 400, statusText: "Bad" }));
+      mockedService.removeDependency.mockRejectedValue(new Error("fail"));
       const res = await handler({ action_id: "a1", depends_on_id: "a2" }, {});
-      expect(res.content[0].text).toContain("Error removing dependency");
+      expect(res.content[0].text).toContain("Error removing dependency: fail");
     });
   });
 
@@ -173,16 +154,20 @@ describe("MCP Tools", () => {
     it("returns success message", async () => {
       registerTools(server);
       const handler = tools["update_action"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { id: "a1", data: { title: "A" } } }), { status: 200, headers: { "content-type": "application/json" } }));
+      const expected = { id: "a1", data: { title: "A" }, updatedAt: "2024-01-01" } as any;
+      mockedService.updateAction.mockResolvedValue(expected);
       const res = await handler({ action_id: "a1", title: "A" }, {});
+      expect(mockedService.updateAction).toHaveBeenCalledWith({ action_id: "a1", title: "A" });
       expect(res.content[0].text).toContain("Updated action");
     });
 
     it("returns success message with done status", async () => {
       registerTools(server);
       const handler = tools["update_action"];
-      global.fetch = jest.fn().mockResolvedValue(new Response(JSON.stringify({ data: { id: "a1", data: { title: "A" }, updatedAt: "2024-01-01" } }), { status: 200, headers: { "content-type": "application/json" } }));
+      const expected = { id: "a1", data: { title: "A" }, updatedAt: "2024-01-01", done: true } as any;
+      mockedService.updateAction.mockResolvedValue(expected);
       const res = await handler({ action_id: "a1", done: true }, {});
+      expect(mockedService.updateAction).toHaveBeenCalledWith({ action_id: "a1", done: true });
       expect(res.content[0].text).toContain("Updated action");
       expect(res.content[0].text).toContain("Status: Completed");
     });
@@ -190,9 +175,9 @@ describe("MCP Tools", () => {
     it("returns error message on failure", async () => {
       registerTools(server);
       const handler = tools["update_action"];
-      global.fetch = jest.fn().mockResolvedValue(new Response("bad", { status: 500, statusText: "Fail" }));
+      mockedService.updateAction.mockRejectedValue(new Error("fail"));
       const res = await handler({ action_id: "a1", title: "A" }, {});
-      expect(res.content[0].text).toContain("Error updating action");
+      expect(res.content[0].text).toContain("Error updating action: fail");
     });
   });
 
