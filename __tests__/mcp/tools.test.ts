@@ -129,9 +129,9 @@ describe("MCP Tools", () => {
       mockedService.deleteAction.mockResolvedValue({
         deleted_action: { data: { title: "A" } },
         children_count: 0,
-        child_handling: "orphan",
+        child_handling: "reparent",
       } as any);
-      const res = await handler({ action_id: "a1", child_handling: "orphan" }, {});
+      const res = await handler({ action_id: "a1", child_handling: "reparent" }, {});
       expect(res.content[0].text).toContain("Deleted action");
     });
 
@@ -139,7 +139,7 @@ describe("MCP Tools", () => {
       registerTools(server);
       const handler = tools["delete_action"];
       mockedService.deleteAction.mockRejectedValue(new Error("fail"));
-      const res = await handler({ action_id: "a1" }, {});
+      const res = await handler({ action_id: "a1", child_handling: "delete_recursive" }, {});
       expect(res.content[0].text).toContain("Error deleting action");
     });
   });

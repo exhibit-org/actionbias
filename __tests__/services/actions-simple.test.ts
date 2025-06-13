@@ -23,8 +23,7 @@ describe("ActionsService - Basic Functionality", () => {
 
     it("should validate child_handling parameter", () => {
       // Test that the parameter validation exists
-      const validHandlings = ["delete_recursive", "orphan", "reparent"];
-      expect(validHandlings).toContain("orphan");
+      const validHandlings = ["delete_recursive", "reparent"];
       expect(validHandlings).toContain("reparent");
       expect(validHandlings).toContain("delete_recursive");
     });

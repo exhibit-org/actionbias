@@ -58,7 +58,7 @@ const deleteActionResponseSchema = successResponseSchema.extend({
   data: z.object({
     deleted_action: actionSchema,
     children_count: z.number(),
-    child_handling: z.enum(['delete_recursive', 'orphan', 'reparent']),
+    child_handling: z.enum(['delete_recursive', 'reparent']),
     new_parent_id: z.string().uuid().optional(),
   }),
 });
@@ -304,7 +304,7 @@ describe('API Response Format Validation', () => {
   });
 
   describe('Delete Action Response', () => {
-    it('should validate delete action response with orphan strategy', () => {
+    it('should validate delete action response with delete_recursive strategy', () => {
       const response = {
         success: true,
         data: {
@@ -316,14 +316,14 @@ describe('API Response Format Validation', () => {
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
           children_count: 2,
-          child_handling: 'orphan',
+          child_handling: 'delete_recursive',
         },
       };
 
       const result = deleteActionResponseSchema.parse(response);
       expect(result.data.deleted_action.data.title).toBe('Deleted Action');
       expect(result.data.children_count).toBe(2);
-      expect(result.data.child_handling).toBe('orphan');
+      expect(result.data.child_handling).toBe('delete_recursive');
     });
 
     it('should validate delete action response with reparent strategy', () => {

@@ -269,7 +269,7 @@ describe("ActionsService - Full Coverage", () => {
       });
     });
 
-    it("should delete action with orphan handling", async () => {
+    it("should delete action with reparent default handling", async () => {
       // Mock action exists
       mockDb.select
         .mockReturnValueOnce({
@@ -288,7 +288,7 @@ describe("ActionsService - Full Coverage", () => {
       const result = await ActionsService.deleteAction({ action_id: "action-id" });
 
       expect(result.deleted_action.id).toBe('action-id');
-      expect(result.child_handling).toBe("orphan");
+      expect(result.child_handling).toBe("reparent");
       expect(result.children_count).toBe(0);
     });
 
@@ -428,6 +428,126 @@ describe("ActionsService - Full Coverage", () => {
         child_handling: "reparent",
         new_parent_id: "non-existent"
       })).rejects.toThrow("New parent action with ID non-existent not found");
+    });
+
+    it("should handle root-level parent deletion with reparent correctly", async () => {
+      // Test scenario: Delete a root-level action with children, but since it's root-level,
+      // children should be handled without creating invalid parent connections
+      const rootAction = { id: 'root-id', data: { title: 'Root Action' } };
+      const childEdge = { src: 'root-id', dst: 'child-id', kind: 'child' };
+
+      mockDb.select
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([rootAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockResolvedValue([childEdge]), // Has children
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: 'new-parent-id', data: { title: 'New Parent' } }]),
+            }),
+          }),
+        });
+
+      // Mock the edge insertion for reparenting
+      mockDb.insert.mockReturnValue({
+        values: jest.fn().mockReturnValue({
+          returning: jest.fn().mockResolvedValue([{ src: 'new-parent-id', dst: 'child-id', kind: 'child' }]),
+        }),
+      });
+
+      // Mock the delete operation to return the correct action
+      mockDb.delete.mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          returning: jest.fn().mockResolvedValue([rootAction]),
+        }),
+      });
+
+      const result = await ActionsService.deleteAction({
+        action_id: "root-id",
+        child_handling: "reparent",
+        new_parent_id: "new-parent-id"
+      });
+
+      expect(result.deleted_action.id).toBe('root-id');
+      expect(result.children_count).toBe(1);
+      expect(result.child_handling).toBe("reparent");
+      expect(result.new_parent_id).toBe("new-parent-id");
+
+      // Verify that new parent-child relationship was created
+      expect(mockDb.insert).toHaveBeenCalledWith(expect.any(Object)); // edges table
+      expect(mockDb.insert().values).toHaveBeenCalledWith({
+        src: 'new-parent-id',
+        dst: 'child-id',
+        kind: 'child',
+      });
+    });
+
+    it("should ensure all edges are deleted in recursive deletion", async () => {
+      // Test scenario: Delete an action with descendants recursively,
+      // ensuring no orphaned edges remain
+      const parentAction = { id: 'parent-id', data: { title: 'Parent Action' } };
+      const childEdges = [
+        { src: 'parent-id', dst: 'child-1-id', kind: 'child' },
+        { src: 'parent-id', dst: 'child-2-id', kind: 'child' }
+      ];
+      
+      // Mock finding the parent action
+      mockDb.select
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([parentAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockResolvedValue(childEdges), // Has children
+          }),
+        })
+        // Mock getAllDescendants queries - simulate finding grandchildren
+        .mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockResolvedValue([
+              { src: 'child-1-id', dst: 'grandchild-1-id', kind: 'child' },
+              { src: 'child-2-id', dst: 'grandchild-2-id', kind: 'child' }
+            ]),
+          }),
+        });
+
+      // Mock the delete operation to return the correct action
+      mockDb.delete.mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          returning: jest.fn().mockResolvedValue([parentAction]),
+        }),
+      });
+
+      const result = await ActionsService.deleteAction({
+        action_id: "parent-id",
+        child_handling: "delete_recursive"
+      });
+
+      expect(result.deleted_action.id).toBe('parent-id');
+      expect(result.children_count).toBe(2);
+      expect(result.child_handling).toBe("delete_recursive");
+
+      // Verify that descendant actions are deleted
+      // The delete should be called for each descendant (child-1-id, child-2-id, grandchild-1-id, grandchild-2-id)
+      // Plus the main action itself
+      expect(mockDb.delete).toHaveBeenCalledTimes(5); // 4 descendants + 1 main action
+      
+      // Verify the main action deletion (this happens last)
+      const lastDeleteCall = mockDb.delete.mock.calls[mockDb.delete.mock.calls.length - 1];
+      expect(lastDeleteCall).toBeDefined(); // Verify delete was called
     });
   });
 

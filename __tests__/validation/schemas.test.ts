@@ -24,7 +24,7 @@ const addDependencySchema = z.object({
 });
 
 const deleteActionSchema = z.object({
-  child_handling: z.enum(["delete_recursive", "orphan", "reparent"]).default("orphan"),
+  child_handling: z.enum(["delete_recursive", "reparent"]).default("reparent"),
   new_parent_id: z.string().uuid().optional(),
 });
 
@@ -212,12 +212,12 @@ describe('API Schema Validation', () => {
       const data = {};
       const result = deleteActionSchema.parse(data);
       
-      expect(result.child_handling).toBe('orphan');
+      expect(result.child_handling).toBe('reparent');
       expect(result.new_parent_id).toBeUndefined();
     });
 
     it('should validate explicit child_handling strategies', () => {
-      const strategies = ['delete_recursive', 'orphan', 'reparent'] as const;
+      const strategies = ['delete_recursive', 'reparent'] as const;
       
       strategies.forEach(strategy => {
         const data = { child_handling: strategy };

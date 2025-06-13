@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ActionsService } from "../../../../lib/services/actions";
 
 const deleteActionSchema = z.object({
-  child_handling: z.enum(["delete_recursive", "orphan", "reparent"]).default("orphan"),
+  child_handling: z.enum(["delete_recursive", "reparent"]).default("reparent"),
   new_parent_id: z.string().uuid().optional(),
 });
 

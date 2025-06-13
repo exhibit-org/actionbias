@@ -163,10 +163,10 @@ export function registerTools(server: any) {
     "Delete an action and handle its children",
     {
       action_id: z.string().uuid().describe("The ID of the action to delete"),
-      child_handling: z.enum(["delete_recursive", "orphan", "reparent"]).default("orphan").describe("How to handle child actions: delete_recursive (delete all children), orphan (remove parent relationship), or reparent (move children to deleted action's parent)"),
+      child_handling: z.enum(["delete_recursive", "reparent"]).default("reparent").describe("How to handle child actions: delete_recursive (delete all children), or reparent (move children to deleted action's parent)"),
       new_parent_id: z.string().uuid().optional().describe("Required if child_handling is 'reparent' - the new parent for orphaned children"),
     },
-    async ({ action_id, child_handling, new_parent_id }: { action_id: string; child_handling?: "delete_recursive" | "orphan" | "reparent"; new_parent_id?: string }, extra: any) => {
+    async ({ action_id, child_handling, new_parent_id }: { action_id: string; child_handling?: "delete_recursive" | "reparent"; new_parent_id?: string }, extra: any) => {
       try {
         console.log(`Deleting action ${action_id} with child handling: ${child_handling}`);
         

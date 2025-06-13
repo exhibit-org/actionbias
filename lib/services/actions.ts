@@ -132,7 +132,7 @@ export interface AddDependencyParams {
 
 export interface DeleteActionParams {
   action_id: string;
-  child_handling?: "delete_recursive" | "orphan" | "reparent";
+  child_handling?: "delete_recursive" | "reparent";
   new_parent_id?: string;
 }
 
@@ -276,7 +276,7 @@ export class ActionsService {
   }
 
   static async deleteAction(params: DeleteActionParams) {
-    const { action_id, child_handling = "orphan", new_parent_id } = params;
+    const { action_id, child_handling = "reparent", new_parent_id } = params;
     
     // Check that action exists
     const actionToDelete = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
