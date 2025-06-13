@@ -11,9 +11,9 @@ const deleteActionSchema = z.object({
 const updateActionSchema = actionDataSchema.partial().extend({
   done: z.boolean().optional(),
 }).refine(
-  (data) => data.title !== undefined || data.vision !== undefined || data.done !== undefined,
+  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined || data.done !== undefined,
   {
-    message: "At least one field (title, vision, or done) must be provided",
+    message: "At least one field (title, description, vision, or done) must be provided",
   }
 );
 

@@ -70,16 +70,17 @@ export function registerTools(server: any) {
     "Create a new action in the database with optional parent and dependencies",
     {
       title: z.string().min(1).describe("The title for the action"),
+      description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
       parent_id: z.string().uuid().optional().describe("Optional parent action ID to create a child relationship"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
     },
-    async ({ title, vision, parent_id, depends_on_ids }: { title: string; vision?: string; parent_id?: string; depends_on_ids?: string[] }, extra: any) => {
+    async ({ title, description, vision, parent_id, depends_on_ids }: { title: string; description?: string; vision?: string; parent_id?: string; depends_on_ids?: string[] }, extra: any) => {
       try {
         console.log(`Creating action with title: ${title}`);
         
         // Call ActionsService directly to avoid HTTP authentication issues
-        const result = await ActionsService.createAction({ title, vision, parent_id, depends_on_ids });
+        const result = await ActionsService.createAction({ title, description, vision, parent_id, depends_on_ids });
 
         const { action, dependencies_count } = result;
         let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
@@ -246,18 +247,19 @@ export function registerTools(server: any) {
     {
       action_id: z.string().uuid().describe("The ID of the action to update"),
       title: z.string().min(1).optional().describe("The new title for the action"),
+      description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
       done: z.boolean().optional().describe("Whether the action is completed (true) or not (false)"),
     },
-    async ({ action_id, title, vision, done }: { action_id: string; title?: string; vision?: string; done?: boolean }, extra: any) => {
+    async ({ action_id, title, description, vision, done }: { action_id: string; title?: string; description?: string; vision?: string; done?: boolean }, extra: any) => {
       try {
         // Validate that at least one field is provided
-        if (title === undefined && vision === undefined && done === undefined) {
+        if (title === undefined && description === undefined && vision === undefined && done === undefined) {
           return {
             content: [
               {
                 type: "text",
-                text: "Error: At least one field (title, vision, or done) must be provided",
+                text: "Error: At least one field (title, description, vision, or done) must be provided",
               },
             ],
           };
@@ -265,6 +267,7 @@ export function registerTools(server: any) {
 
         const updateData: any = {};
         if (title !== undefined) updateData.title = title;
+        if (description !== undefined) updateData.description = description;
         if (vision !== undefined) updateData.vision = vision;
         if (done !== undefined) updateData.done = done;
         

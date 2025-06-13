@@ -69,6 +69,43 @@ describe("ActionsService - Full Coverage", () => {
       });
     });
 
+    it("should create action with title and description", async () => {
+      const result = await ActionsService.createAction({ 
+        title: "Test Action", 
+        description: "Follow steps 1-5 in the implementation guide" 
+      });
+      
+      expect(result.action.id).toBe('test-uuid-123');
+      expect(result.dependencies_count).toBe(0);
+      expect(result.parent_id).toBeUndefined();
+      // Verify that description was included in the data
+      expect(mockDb.insert().values).toHaveBeenCalledWith({
+        id: 'test-uuid-123',
+        data: { title: "Test Action", description: "Follow steps 1-5 in the implementation guide" },
+      });
+    });
+
+    it("should create action with all metadata fields", async () => {
+      const result = await ActionsService.createAction({ 
+        title: "Complete Task", 
+        description: "Execute according to the project plan",
+        vision: "Task is fully complete and reviewed" 
+      });
+      
+      expect(result.action.id).toBe('test-uuid-123');
+      expect(result.dependencies_count).toBe(0);
+      expect(result.parent_id).toBeUndefined();
+      // Verify that all fields were included in the data
+      expect(mockDb.insert().values).toHaveBeenCalledWith({
+        id: 'test-uuid-123',
+        data: { 
+          title: "Complete Task", 
+          description: "Execute according to the project plan",
+          vision: "Task is fully complete and reviewed" 
+        },
+      });
+    });
+
     it("should create action with parent", async () => {
       // Mock parent exists
       mockDb.select.mockReturnValue({
@@ -779,7 +816,7 @@ describe("ActionsService - Full Coverage", () => {
     it("should throw error if no fields provided", async () => {
       await expect(ActionsService.updateAction({
         action_id: "action-id"
-      })).rejects.toThrow("At least one field (title, vision, or done) must be provided");
+      })).rejects.toThrow("At least one field (title, description, vision, or done) must be provided");
     });
 
     it("should update action vision", async () => {
@@ -809,6 +846,36 @@ describe("ActionsService - Full Coverage", () => {
 
       expect(result.data.vision).toBe('New vision');
       expect(result.data.title).toBe('Old Title'); // Should preserve existing title
+    });
+
+    it("should update action description", async () => {
+      const existingAction = { id: 'action-id', data: { title: 'Old Title', vision: 'Old Vision' }, done: false };
+      const updatedAction = { id: 'action-id', data: { title: 'Old Title', description: 'New description', vision: 'Old Vision' }, done: false };
+
+      mockDb.select.mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            limit: jest.fn().mockResolvedValue([existingAction]),
+          }),
+        }),
+      });
+
+      mockDb.update.mockReturnValue({
+        set: jest.fn().mockReturnValue({
+          where: jest.fn().mockReturnValue({
+            returning: jest.fn().mockResolvedValue([updatedAction]),
+          }),
+        }),
+      });
+
+      const result = await ActionsService.updateAction({
+        action_id: "action-id",
+        description: "New description"
+      });
+
+      expect(result.data.description).toBe('New description');
+      expect(result.data.title).toBe('Old Title'); // Should preserve existing title
+      expect(result.data.vision).toBe('Old Vision'); // Should preserve existing vision
     });
   });
 
