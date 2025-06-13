@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
 import { getDb } from "../db/adapter";
-import { actions, edges } from "../../db/schema";
+import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 
 // Helper function to make internal API calls with authentication

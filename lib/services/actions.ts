@@ -172,16 +172,20 @@ export class ActionsService {
       }
     }
     
+    // Build and validate action data
     const actionData: any = { title };
     if (vision !== undefined) {
       actionData.vision = vision;
     }
     
+    // Validate action data against schema
+    const validatedData = actionDataSchema.parse(actionData);
+    
     const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
-        data: actionData,
+        data: validatedData,
       })
       .returning();
 
@@ -248,11 +252,14 @@ export class ActionsService {
       actionData.vision = vision;
     }
     
+    // Validate action data against schema
+    const validatedData = actionDataSchema.parse(actionData);
+    
     const newAction = await getDb()
       .insert(actions)
       .values({
         id: crypto.randomUUID(),
-        data: actionData,
+        data: validatedData,
       })
       .returning();
 
@@ -423,7 +430,9 @@ export class ActionsService {
         newData.vision = vision;
       }
       
-      updateData.data = newData;
+      // Validate updated data against schema
+      const validatedData = actionDataSchema.parse(newData);
+      updateData.data = validatedData;
     }
     
     // Update done if provided

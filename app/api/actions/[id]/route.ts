@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ActionsService } from "../../../../lib/services/actions";
+import { actionDataSchema } from "../../../../db/schema";
 
 const deleteActionSchema = z.object({
   child_handling: z.enum(["delete_recursive", "reparent"]).default("reparent"),
   new_parent_id: z.string().uuid().optional(),
 });
 
-const updateActionSchema = z.object({
-  title: z.string().min(1).optional(),
-  vision: z.string().optional(),
+const updateActionSchema = actionDataSchema.partial().extend({
   done: z.boolean().optional(),
 }).refine(
   (data) => data.title !== undefined || data.vision !== undefined || data.done !== undefined,
