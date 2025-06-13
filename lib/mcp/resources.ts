@@ -6,67 +6,43 @@ import { eq, and } from "drizzle-orm";
 
 // Helper function to build nested action structure
 async function buildNestedActionStructure(nextActionId: string) {
-  // Get the parent chain
-  const parentChain = [];
-  let currentId = nextActionId;
-  
-  // Walk up the parent chain
-  while (true) {
-    const action = await getDb()
+  const chain: { id: string; title: string; created_at: string }[] = [];
+  let currentId: string | undefined = nextActionId;
+
+  // Walk up the parent chain collecting data
+  while (currentId) {
+    const [action] = await getDb()
       .select()
       .from(actions)
       .where(eq(actions.id, currentId))
       .limit(1);
-    
-    if (action.length === 0) break;
-    
-    parentChain.unshift({
+    if (!action) break;
+
+    chain.push({
       id: currentId,
-      title: action[0].data?.title || 'untitled',
-      created_at: action[0].createdAt.toISOString()
+      title: action.data?.title || 'untitled',
+      created_at: action.createdAt.toISOString(),
     });
-    
-    // Find parent
-    const parentEdges = await getDb()
+
+    const [parentEdge] = await getDb()
       .select()
       .from(edges)
-      .where(and(eq(edges.dst, currentId), eq(edges.kind, "child")));
-    
-    if (parentEdges.length === 0) break;
-    
-    const parentId = parentEdges[0].src;
-    if (!parentId) break;
-    
-    currentId = parentId;
+      .where(and(eq(edges.dst, currentId), eq(edges.kind, 'child')))
+      .limit(1);
+
+    currentId = parentEdge?.src ?? undefined;
   }
-  
-  // Build nested structure from root down to next action
-  let result: any = null;
-  for (let i = 0; i < parentChain.length; i++) {
-    const actionInfo = parentChain[i];
-    const isNextAction = actionInfo.id === nextActionId;
-    
-    const node: any = {
-      id: actionInfo.id,
-      title: actionInfo.title,
-      created_at: actionInfo.created_at,
-      is_next_action: isNextAction
-    };
-    
-    if (i === 0) {
-      // Root node
-      result = node;
-    } else {
-      // Add as child of previous node
-      let current = result;
-      for (let j = 1; j < i; j++) {
-        current = current.child;
-      }
-      current.child = node;
-    }
-  }
-  
-  return result;
+
+  // Build nested structure from root to next action
+  return chain
+    .reverse()
+    .reduceRight<any>((child, info) => ({
+      id: info.id,
+      title: info.title,
+      created_at: info.created_at,
+      is_next_action: info.id === nextActionId,
+      ...(child ? { child } : {}),
+    }), null);
 }
 
 export function registerResources(server: any) {
