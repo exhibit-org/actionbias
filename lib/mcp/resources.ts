@@ -4,49 +4,6 @@ import { getDb } from "../db/adapter";
 import { actions, edges } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 
-// Helper function to build nested action structure
-async function buildNestedActionStructure(nextActionId: string) {
-  const chain: { id: string; title: string; created_at: string }[] = [];
-  let currentId: string | undefined = nextActionId;
-
-  // Walk up the parent chain collecting data
-  while (currentId) {
-    const [action] = await getDb()
-      .select()
-      .from(actions)
-      .where(eq(actions.id, currentId))
-      .limit(1);
-    if (!action) break;
-
-    chain.push({
-      id: currentId,
-      title: action.data?.title || 'untitled',
-      created_at: action.createdAt.toISOString(),
-    });
-
-    const parentEdgeResult: any[] = await getDb()
-      .select()
-      .from(edges)
-      .where(and(eq(edges.dst, currentId), eq(edges.kind, 'child')))
-      .limit(1);
-    
-    const parentEdge = parentEdgeResult[0];
-
-    currentId = parentEdge?.src ?? undefined;
-  }
-
-  // Build nested structure from root to next action
-  return chain
-    .reverse()
-    .reduceRight<any>((child, info) => ({
-      id: info.id,
-      title: info.title,
-      created_at: info.created_at,
-      is_next_action: info.id === nextActionId,
-      ...(child ? { child } : {}),
-    }), null);
-}
-
 export function registerResources(server: any) {
   // actions://list - List all actions with pagination support
   server.resource(
@@ -290,9 +247,9 @@ export function registerResources(server: any) {
     }
   );
 
-  // actions://next - Get the next actionable task with context
+  // actions://next - Get the next actionable task with complete metadata context
   server.resource(
-    "Get the next action that should be worked on based on dependencies",
+    "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
     "actions://next",
     async (uri: any) => {
       try {
@@ -326,14 +283,14 @@ export function registerResources(server: any) {
           };
         }
         
-        // Build nested structure from root to next action
-        const nestedStructure = await buildNestedActionStructure(action.id);
+        // Get complete action details with metadata for action and all parents
+        const actionDetails = await ActionsService.getActionDetailResource(action.id);
         
         return {
           contents: [
             {
               uri: uri.toString(),
-              text: JSON.stringify(nestedStructure, null, 2),
+              text: JSON.stringify(actionDetails, null, 2),
               mimeType: "application/json",
             },
           ],
@@ -367,7 +324,7 @@ export const resourceCapabilities = {
     description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
   "actions://next": {
-    description: "Get the next action that should be worked on based on dependencies",
+    description: "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
   },
   "actions://{id}": {
     description: "Individual action details with relationships",

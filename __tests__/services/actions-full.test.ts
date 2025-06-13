@@ -1146,6 +1146,96 @@ describe("ActionsService - Full Coverage", () => {
         });
       });
 
+      it("should build complete parent chain with multiple levels", async () => {
+        const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'child' };
+        const grandparentEdge = { src: 'grandparent-id', dst: 'parent-id', kind: 'child' };
+        
+        const parentAction = {
+          id: 'parent-id',
+          data: { title: 'Parent Action' },
+          done: false,
+          version: 1,
+          createdAt: new Date('2023-01-01'),
+          updatedAt: new Date('2023-01-01'),
+        };
+        
+        const grandparentAction = {
+          id: 'grandparent-id',
+          data: { title: 'Grandparent Action', vision: 'Grand vision' },
+          done: true,
+          version: 2,
+          createdAt: new Date('2022-12-01'),
+          updatedAt: new Date('2022-12-01'),
+        };
+
+        mockDb.select
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue([mockAction]),
+              }),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockResolvedValue([parentEdge]),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue([parentAction]),
+              }),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockResolvedValue([grandparentEdge]),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockReturnValue({
+                limit: jest.fn().mockResolvedValue([grandparentAction]),
+              }),
+            }),
+          })
+          .mockReturnValueOnce({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockResolvedValue([]), // No more parents
+            }),
+          })
+          .mockReturnValue({
+            from: jest.fn().mockReturnValue({
+              where: jest.fn().mockResolvedValue([]),
+            }),
+          });
+
+        const result = await ActionsService.getActionDetailResource('action-id');
+        
+        expect(result.parent_chain).toHaveLength(2);
+        expect(result.parent_chain[0]).toEqual({
+          id: 'grandparent-id',
+          title: 'Grandparent Action',
+          description: undefined,
+          vision: 'Grand vision',
+          done: true,
+          version: 2,
+          created_at: '2022-12-01T00:00:00.000Z',
+          updated_at: '2022-12-01T00:00:00.000Z',
+        });
+        expect(result.parent_chain[1]).toEqual({
+          id: 'parent-id',
+          title: 'Parent Action',
+          description: undefined,
+          vision: undefined,
+          done: false,
+          version: 1,
+          created_at: '2023-01-01T00:00:00.000Z',
+          updated_at: '2023-01-01T00:00:00.000Z',
+        });
+      });
+
       it("should include children when they exist", async () => {
         const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
         const childAction = { 

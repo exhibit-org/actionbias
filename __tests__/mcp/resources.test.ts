@@ -151,11 +151,31 @@ describe("MCP Resources", () => {
     const nextCall = server.resource.mock.calls.find(call => call[1] === "actions://next");
     const handler = nextCall[2];
     const mockAction = { id: "123", data: { title: "Next Action" }, done: false, version: 1, createdAt: "now", updatedAt: "now" } as any;
+    const mockActionDetail = {
+      id: "123",
+      title: "Next Action",
+      description: undefined,
+      vision: undefined,
+      done: false,
+      version: 1,
+      created_at: "now",
+      updated_at: "now",
+      parent_id: undefined,
+      parent_chain: [],
+      children: [],
+      dependencies: [],
+      dependents: []
+    };
     mockedService.getNextAction.mockResolvedValue(mockAction);
+    mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
     const result = await handler(new URL("actions://next"));
     expect(mockedService.getNextAction).toHaveBeenCalled();
+    expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
     const data = JSON.parse(result.contents[0].text);
     expect(data).toBeDefined();
+    expect(data.id).toBe("123");
+    expect(data.title).toBe("Next Action");
+    expect(data.parent_chain).toEqual([]);
   });
 
 
