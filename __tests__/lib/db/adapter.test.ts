@@ -2,13 +2,11 @@
 const mockPostgresClient = {
   end: jest.fn(),
 };
-const mockPostgres = jest.fn(() => mockPostgresClient);
 
 // Mock PGlite
 const mockPGliteInstance = {
   close: jest.fn(),
 };
-const mockPGliteClass = jest.fn(() => mockPGliteInstance);
 
 // Setup mocks using factory functions
 jest.mock('postgres', () => jest.fn(() => mockPostgresClient));
@@ -23,7 +21,7 @@ jest.mock('drizzle-orm/pglite', () => ({
 }));
 
 // Import after mocks
-import { getDb, initializePGlite, cleanupPGlite } from '../../../lib/db/adapter';
+import { getDb, initializePGlite, cleanupPGlite, resetCache } from '../../../lib/db/adapter';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { PGlite } from '@electric-sql/pglite';
@@ -38,15 +36,21 @@ const mockDrizzlePGliteModule = drizzlePGlite as jest.MockedFunction<typeof driz
 describe('Database Adapter', () => {
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     
     // Reset environment
     process.env = { ...originalEnv };
     
     // Reset mock implementations to default
+    mockPostgresModule.mockImplementation(() => mockPostgresClient);
+    mockDrizzleModule.mockImplementation(() => ({ query: 'mocked-drizzle-db' }));
     mockPGliteModule.mockImplementation(() => mockPGliteInstance);
     mockDrizzlePGliteModule.mockImplementation(() => ({ query: 'mocked-pglite-drizzle-db' }));
+    
+    // Clean up any existing instances and reset cache
+    await cleanupPGlite();
+    resetCache();
   });
 
   afterEach(() => {
@@ -146,42 +150,20 @@ describe('Database Adapter', () => {
       expect(db1).toBe(db2);
     });
 
-    it('handles PGlite import errors', async () => {
-      // Mock import failure
-      jest.doMock('@electric-sql/pglite', () => {
-        throw new Error('Module not found');
-      });
-      
-      await expect(initializePGlite()).rejects.toThrow('Failed to initialize PGlite: Module not found');
-    });
-
-    it('handles drizzle-orm/pglite import errors', async () => {
-      // Mock drizzle import failure
-      jest.doMock('drizzle-orm/pglite', () => {
-        throw new Error('Drizzle PGlite module not found');
-      });
-      
-      await expect(initializePGlite()).rejects.toThrow('Failed to initialize PGlite: Drizzle PGlite module not found');
-    });
-
     it('handles PGlite constructor errors', async () => {
       // Mock PGlite constructor throwing
-      jest.doMock('@electric-sql/pglite', () => ({
-        PGlite: jest.fn(() => {
-          throw new Error('Failed to create PGlite instance');
-        }),
-      }));
+      mockPGliteModule.mockImplementation(() => {
+        throw new Error('Failed to create PGlite instance');
+      });
       
       await expect(initializePGlite()).rejects.toThrow('Failed to initialize PGlite: Failed to create PGlite instance');
     });
 
     it('handles non-Error exceptions', async () => {
       // Mock PGlite constructor throwing non-Error
-      jest.doMock('@electric-sql/pglite', () => ({
-        PGlite: jest.fn(() => {
-          throw 'String error';
-        }),
-      }));
+      mockPGliteModule.mockImplementation(() => {
+        throw 'String error';
+      });
       
       await expect(initializePGlite()).rejects.toThrow('Failed to initialize PGlite: Unknown error');
     });

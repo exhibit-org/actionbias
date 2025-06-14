@@ -32,29 +32,45 @@ function getDb() {
 
 // Store reference to the raw PGlite instance for cleanup
 let rawPgliteInstance: any = null;
+let initializationPromise: Promise<any> | null = null;
 
 // Initialize PGlite if needed (called during setup)
 export async function initializePGlite() {
+  // Return existing instance if available
   if (pgliteDb) return pgliteDb;
   
-  try {
-    const { PGlite } = await import('@electric-sql/pglite');
-    const { drizzle: drizzlePGlite } = await import('drizzle-orm/pglite');
-    
-    const dbPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
-    const pglite = new PGlite(dbPath);
-    rawPgliteInstance = pglite; // Store for cleanup
-    pgliteDb = drizzlePGlite(pglite);
-    
-    return pgliteDb;
-  } catch (error) {
-    throw new Error(`Failed to initialize PGlite: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+  // Return existing initialization promise to prevent race conditions
+  if (initializationPromise) return initializationPromise;
+  
+  initializationPromise = (async () => {
+    try {
+      const { PGlite } = await import('@electric-sql/pglite');
+      const { drizzle: drizzlePGlite } = await import('drizzle-orm/pglite');
+      
+      const dbPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
+      const pglite = new PGlite(dbPath);
+      rawPgliteInstance = pglite; // Store for cleanup
+      pgliteDb = drizzlePGlite(pglite);
+      
+      return pgliteDb;
+    } catch (error) {
+      // Reset promise on error so retry is possible
+      initializationPromise = null;
+      throw new Error(`Failed to initialize PGlite: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  })();
+  
+  return initializationPromise;
 }
 
 // Clean up PGlite instances (for tests and graceful shutdown)
 export async function cleanupPGlite() {
   try {
+    // Wait for any pending initialization
+    if (initializationPromise) {
+      await initializationPromise.catch(() => {}); // Ignore initialization errors during cleanup
+    }
+    
     if (rawPgliteInstance) {
       await rawPgliteInstance.close();
     }
@@ -64,7 +80,17 @@ export async function cleanupPGlite() {
   } finally {
     rawPgliteInstance = null;
     pgliteDb = null;
+    initializationPromise = null;
   }
+}
+
+// Test utility to reset cache (only for tests)
+export function resetCache() {
+  client = null;
+  db = null;
+  pgliteDb = null;
+  rawPgliteInstance = null;
+  initializationPromise = null;
 }
 
 export { getDb };

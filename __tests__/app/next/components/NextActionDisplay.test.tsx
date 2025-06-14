@@ -53,13 +53,18 @@ describe('NextActionDisplay Error Handling', () => {
     jest.clearAllMocks();
     mockFetch.mockClear();
     mockReload.mockClear();
-    jest.clearAllTimers();
+    
+    // Ensure clean timer state for each test
+    if (jest.isMockFunction(setTimeout)) {
+      jest.useRealTimers();
+    }
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
+    // Clean up timers completely
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
-    jest.useFakeTimers();
   });
 
   it('should handle HTTP errors during fetch', async () => {
@@ -80,9 +85,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        error: {
-          message: 'MCP server error'
-        }
+        success: false,
+        error: 'MCP server error'
       })
     });
 
@@ -97,13 +101,7 @@ describe('NextActionDisplay Error Handling', () => {
   it('should handle JSON parsing errors in fetch', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: 'invalid json{'
-          }]
-        }
-      })
+      json: jest.fn().mockRejectedValue(new Error('Unexpected token'))
     });
 
     render(<NextActionDisplay />);
@@ -158,11 +156,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: JSON.stringify(mockNextActionData)
-          }]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
@@ -190,21 +185,17 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: JSON.stringify(mockNextActionData)
-          }]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
-    // Second call returns MCP error
+    // Second call returns error
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        error: {
-          message: 'Action not found'
-        }
+        success: false,
+        error: 'Action not found'
       })
     });
 
@@ -226,11 +217,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: JSON.stringify(mockNextActionData)
-          }]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
@@ -255,11 +243,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: JSON.stringify(mockNextActionData)
-          }]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
@@ -284,11 +269,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{
-            text: JSON.stringify(mockNextActionData)
-          }]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
@@ -296,7 +278,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: { success: true }
+        success: true,
+        data: { ...mockNextActionData, done: true }
       })
     });
 
@@ -323,7 +306,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        error: {} // No message property
+        success: false,
+        error: null // No error message
       })
     });
 
@@ -339,7 +323,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {} // No contents
+        success: true,
+        data: null // No data
       })
     });
 
@@ -355,9 +340,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [] // Empty array
-        }
+        success: true,
+        data: null // No data (equivalent to empty)
       })
     });
 
@@ -372,9 +356,8 @@ describe('NextActionDisplay Error Handling', () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
-        result: {
-          contents: [{}] // No text property
-        }
+        success: true,
+        data: null // No data
       })
     });
 

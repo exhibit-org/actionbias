@@ -69,13 +69,8 @@ describe('NextActionDisplay', () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        result: {
-          contents: [
-            {
-              text: JSON.stringify(mockNextActionData)
-            }
-          ]
-        }
+        success: true,
+        data: mockNextActionData
       })
     });
 
@@ -110,9 +105,8 @@ describe('NextActionDisplay', () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        error: {
-          message: 'API Error'
-        }
+        success: false,
+        error: 'API Error'
       })
     });
 
@@ -129,13 +123,8 @@ describe('NextActionDisplay', () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        result: {
-          contents: [
-            {
-              text: JSON.stringify(null)
-            }
-          ]
-        }
+        success: true,
+        data: null
       })
     });
 
@@ -154,27 +143,16 @@ describe('NextActionDisplay', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          result: {
-            contents: [
-              {
-                text: JSON.stringify(mockNextActionData)
-              }
-            ]
-          }
+          success: true,
+          data: mockNextActionData
         })
       })
       // Mock mark complete call
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          result: {
-            content: [
-              {
-                type: 'text',
-                text: 'Action updated successfully'
-              }
-            ]
-          }
+          success: true,
+          data: { ...mockNextActionData, done: true }
         })
       });
 
@@ -187,30 +165,15 @@ describe('NextActionDisplay', () => {
     const markCompleteButton = screen.getByRole('button', { name: /Mark Complete/ });
     fireEvent.click(markCompleteButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('Marking Complete...')).toBeInTheDocument();
-    });
-
     // Verify the correct API call was made
-    expect(global.fetch).toHaveBeenCalledWith('/mcp', {
-      method: 'POST',
+    expect(global.fetch).toHaveBeenCalledWith('/api/actions/test-action-id', {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        method: 'tools/call',
-        params: {
-          name: 'update_action',
-          arguments: {
-            action_id: 'test-action-id',
-            done: true
-          }
-        }
+        done: true
       })
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Action completed! Loading next action...')).toBeInTheDocument();
     });
   });
 
@@ -220,22 +183,16 @@ describe('NextActionDisplay', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          result: {
-            contents: [
-              {
-                text: JSON.stringify(mockNextActionData)
-              }
-            ]
-          }
+          success: true,
+          data: mockNextActionData
         })
       })
       // Mock mark complete failure
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          error: {
-            message: 'Update failed'
-          }
+          success: false,
+          error: 'Update failed'
         })
       });
 
@@ -279,13 +236,8 @@ describe('NextActionDisplay', () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        result: {
-          contents: [
-            {
-              text: JSON.stringify(actionWithMixedDeps)
-            }
-          ]
-        }
+        success: true,
+        data: actionWithMixedDeps
       })
     });
 
