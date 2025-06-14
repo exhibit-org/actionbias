@@ -1,2 +1,2 @@
-pnpm test:ci
+pnpm test:pre-commit
 pnpm build

@@ -44,4 +44,9 @@ global.runDbCleanup = async () => {
 // Global teardown
 afterEach(async () => {
   await global.runDbCleanup();
+  
+  // Force garbage collection if available (helps with memory-related segfaults)
+  if (global.gc) {
+    global.gc();
+  }
 });
