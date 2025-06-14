@@ -517,4 +517,12 @@ describe("MCP Resources", () => {
     const result = await handler(new URL("actions://dependencies?includeCompleted=false"));
     expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
   });
+
+  it("list resource handles database errors", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    mockedService.getActionListResource.mockRejectedValue(new Error("Service error"));
+    
+    await expect(handler(new URL("actions://list"))).rejects.toThrow("Failed to fetch actions: Service error");
+  });
 });
