@@ -9,12 +9,39 @@ process.env.REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1'
 // Global test timeout
 jest.setTimeout(10000)
 
+// Setup testing-library for React tests
+import '@testing-library/jest-dom'
+
 // Mock console methods to reduce noise in test output
+const originalConsole = { ...console };
 global.console = {
   ...console,
   log: jest.fn(),
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
-  error: jest.fn(),
+  error: originalConsole.error, // Keep error for debugging
 }
+
+// Add global cleanup for database tests
+let dbCleanupFunctions = [];
+
+global.addDbCleanup = (fn) => {
+  dbCleanupFunctions.push(fn);
+};
+
+global.runDbCleanup = async () => {
+  for (const cleanup of dbCleanupFunctions) {
+    try {
+      await cleanup();
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  }
+  dbCleanupFunctions = [];
+};
+
+// Global teardown
+afterEach(async () => {
+  await global.runDbCleanup();
+});

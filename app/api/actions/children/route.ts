@@ -4,6 +4,8 @@ import { ActionsService } from "../../../../lib/services/actions";
 
 const addChildActionSchema = z.object({
   title: z.string().min(1),
+  description: z.string().optional(),
+  vision: z.string().optional(),
   parent_id: z.string().uuid(),
 });
 

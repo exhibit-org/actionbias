@@ -3,9 +3,17 @@ import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
 describe('Database Adapter', () => {
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     process.env = { ...originalEnv };
+    
+    // Clean up any existing PGlite instances before each test
+    await cleanupPGlite();
+  });
+
+  afterEach(async () => {
+    // Clean up after each test to ensure proper isolation
+    await cleanupPGlite();
   });
 
   afterAll(async () => {
@@ -20,10 +28,9 @@ describe('Database Adapter', () => {
       try {
         if (fs.existsSync(dir)) {
           fs.rmSync(dir, { recursive: true, force: true });
-          console.log(`Cleaned up test database directory: ${dir}`);
         }
       } catch (error) {
-        console.warn(`Failed to clean up test database directory ${dir}: ${error}`);
+        // Silently ignore cleanup errors in tests
       }
     }
     
@@ -68,7 +75,7 @@ describe('Database Adapter', () => {
       expect(typeof db.insert).toBe('function');
       expect(typeof db.update).toBe('function');
       expect(typeof db.delete).toBe('function');
-    });
+    }, 10000);
 
     it('should return the same instance on multiple calls', async () => {
       process.env.DATABASE_URL = 'pglite://.pglite-adapter-test-2';
@@ -77,21 +84,21 @@ describe('Database Adapter', () => {
       const db2 = await initializePGlite();
       
       expect(db1).toBe(db2);
-    });
+    }, 10000);
 
     it('should use custom path from DATABASE_URL', async () => {
       process.env.DATABASE_URL = 'pglite://custom-adapter-test';
       
       const db = await initializePGlite();
       expect(db).toBeDefined();
-    });
+    }, 10000);
 
     it('should use default path when DATABASE_URL has no path', async () => {
       process.env.DATABASE_URL = 'pglite://';
       
       const db = await initializePGlite();
       expect(db).toBeDefined();
-    });
+    }, 10000);
   });
 
   describe('URL parsing logic', () => {

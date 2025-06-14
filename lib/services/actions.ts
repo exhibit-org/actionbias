@@ -110,7 +110,10 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
     .select()
     .from(edges)
     .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
-  const childIds = childEdges
+  
+  // Ensure childEdges is an array
+  const edgesArray = Array.isArray(childEdges) ? childEdges : [];
+  const childIds = edgesArray
     .map((edge: any) => edge.dst)
     .filter((id: any): id is string => id !== null);
 

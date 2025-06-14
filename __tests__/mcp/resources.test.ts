@@ -296,4 +296,225 @@ describe("MCP Resources", () => {
     mockedService.getActionDependenciesResource.mockRejectedValue(new Error("Dependencies error"));
     await expect(handler(new URL("actions://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Dependencies error");
   });
+
+  // Test URL parsing error branches
+  it("list resource handles URL parsing errors gracefully", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    const expected = { total: 1, limit: 20, offset: 0, actions: [] } as any;
+    mockedService.getActionListResource.mockResolvedValue(expected);
+    
+    // Mock console.log to capture the error logging
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    // Create a malformed URI that will cause URL constructor to throw
+    const mockUri = {
+      toString: () => "not-a-valid-url?query=param"
+    };
+    
+    const result = await handler(mockUri);
+    // Should fall back to defaults when URL parsing fails
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
+      limit: 20, // Should use default
+      offset: 0, // Should use default
+      done: undefined, 
+      includeCompleted: false 
+    });
+    
+    // Should log the URL parsing error
+    expect(consoleSpy).toHaveBeenCalledWith('Could not parse URI parameters, using defaults:', expect.objectContaining({
+      name: 'TypeError',
+      message: 'Invalid URL'
+    }));
+    
+    consoleSpy.mockRestore();
+  });
+
+  it("tree resource handles URL parsing errors gracefully", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[1][2];
+    const expected = { rootActions: [] } as any;
+    mockedService.getActionTreeResource.mockResolvedValue(expected);
+    
+    // Mock console.log to verify error logging
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    // Create a malformed URI that will cause URL constructor to throw
+    const mockUri = {
+      toString: () => "not-valid-url?includeCompleted=true"
+    };
+    
+    const result = await handler(mockUri);
+    // Should use default when URL parsing fails
+    expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(false);
+    
+    // Should log the URL parsing error
+    expect(consoleSpy).toHaveBeenCalledWith('Could not parse URI parameters, using defaults:', expect.objectContaining({
+      name: 'TypeError',
+      message: 'Invalid URL'
+    }));
+    
+    consoleSpy.mockRestore();
+  });
+
+  it("dependencies resource handles URL parsing errors gracefully", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[2][2];
+    const expected = { dependencies: [] } as any;
+    mockedService.getActionDependenciesResource.mockResolvedValue(expected);
+    
+    // Mock console.log to verify error logging
+    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    // Create a malformed URI that will cause URL constructor to throw
+    const mockUri = {
+      toString: () => "invalid-url?includeCompleted=true"
+    };
+    
+    const result = await handler(mockUri);
+    // Should use default when URL parsing fails
+    expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
+    
+    // Should log the URL parsing error
+    expect(consoleSpy).toHaveBeenCalledWith('Could not parse URI parameters, using defaults:', expect.objectContaining({
+      name: 'TypeError',
+      message: 'Invalid URL'
+    }));
+    
+    consoleSpy.mockRestore();
+  });
+
+  it("list resource handles non-Error exceptions", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    mockedService.getActionListResource.mockRejectedValue("String error");
+    
+    await expect(handler(new URL("actions://list"))).rejects.toThrow("Failed to fetch actions: Unknown error");
+  });
+
+  it("tree resource handles non-Error exceptions", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[1][2];
+    mockedService.getActionTreeResource.mockRejectedValue("String error");
+    
+    await expect(handler(new URL("actions://tree"))).rejects.toThrow("Failed to fetch action tree: Unknown error");
+  });
+
+  it("dependencies resource handles non-Error exceptions", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[2][2];
+    mockedService.getActionDependenciesResource.mockRejectedValue("String error");
+    
+    await expect(handler(new URL("actions://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Unknown error");
+  });
+
+  it("detail resource handles non-Error exceptions", async () => {
+    registerResources(server);
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
+    mockedService.getActionDetailResource.mockRejectedValue("String error");
+    
+    await expect(handler(new URL("actions://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Unknown error");
+  });
+
+  it("next resource handles non-Error exceptions", async () => {
+    registerResources(server);
+    const nextCall = server.resource.mock.calls.find(call => call[1] === "actions://next");
+    const handler = nextCall[2];
+    mockedService.getNextAction.mockRejectedValue("String error");
+    
+    const result = await handler(new URL("actions://next"));
+    const data = JSON.parse(result.contents[0].text);
+    expect(data.error).toBe("Unknown error");
+  });
+
+  it("detail resource handles array id parameter", async () => {
+    registerResources(server);
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
+    const expected = { id: "first", title: "Test", children: [], dependencies: [], dependents: [], done: false } as any;
+    mockedService.getActionDetailResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://first"), { id: ["first", "second"] });
+    expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("first");
+  });
+
+  it("detail resource handles empty id parameter", async () => {
+    registerResources(server);
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
+    
+    await expect(handler(new URL("actions://"), { id: "" })).rejects.toThrow("Action ID is required");
+  });
+
+  it("list resource parses done=false parameter correctly", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    const expected = { total: 2, limit: 20, offset: 0, actions: [], filtered_by_done: false } as any;
+    mockedService.getActionListResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://list?done=false"));
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
+      limit: 20, 
+      offset: 0, 
+      done: false, 
+      includeCompleted: false 
+    });
+  });
+
+  it("list resource handles null done parameter", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    const expected = { total: 3, limit: 20, offset: 0, actions: [] } as any;
+    mockedService.getActionListResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://list?other=value"));
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
+      limit: 20, 
+      offset: 0, 
+      done: undefined, 
+      includeCompleted: false 
+    });
+  });
+
+  it("list resource parses includeCompleted=false parameter correctly", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[0][2];
+    const expected = { total: 1, limit: 20, offset: 0, actions: [] } as any;
+    mockedService.getActionListResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://list?includeCompleted=false"));
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
+      limit: 20, 
+      offset: 0, 
+      done: undefined, 
+      includeCompleted: false 
+    });
+  });
+
+  it("tree resource parses includeCompleted=false parameter correctly", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[1][2];
+    const expected = { rootActions: [] } as any;
+    mockedService.getActionTreeResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://tree?includeCompleted=false"));
+    expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(false);
+  });
+
+  it("dependencies resource parses includeCompleted=false parameter correctly", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[2][2];
+    const expected = { dependencies: [] } as any;
+    mockedService.getActionDependenciesResource.mockResolvedValue(expected);
+    
+    const result = await handler(new URL("actions://dependencies?includeCompleted=false"));
+    expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
+  });
 });

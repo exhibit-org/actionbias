@@ -54,11 +54,17 @@ export async function initializePGlite() {
 
 // Clean up PGlite instances (for tests and graceful shutdown)
 export async function cleanupPGlite() {
-  if (rawPgliteInstance) {
-    await rawPgliteInstance.close();
+  try {
+    if (rawPgliteInstance) {
+      await rawPgliteInstance.close();
+    }
+  } catch (error) {
+    // Silently handle cleanup errors in tests
+    console.warn('Error during PGlite cleanup:', error);
+  } finally {
     rawPgliteInstance = null;
+    pgliteDb = null;
   }
-  pgliteDb = null;
 }
 
 export { getDb };
