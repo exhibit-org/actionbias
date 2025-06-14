@@ -25,9 +25,10 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
     toProcess = [];
     
     for (const actionId of currentLevel) {
-      const childEdges = await getDb().select().from(edges).where(
+      const childEdgesResult = await getDb().select().from(edges).where(
         and(eq(edges.src, actionId), eq(edges.kind, "child"))
       );
+      const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
       
       for (const edge of childEdges) {
         if (edge.dst && !descendants.has(edge.dst)) {
@@ -45,10 +46,11 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
 // Helper function to check if parent dependencies are met recursively
 async function parentDependenciesMet(actionId: string): Promise<boolean> {
   // Get parent relationship
-  const parentEdges = await getDb()
+  const parentEdgesResult = await getDb()
     .select()
     .from(edges)
     .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
   
   if (parentEdges.length === 0) {
     // No parent, so parent dependencies are met
@@ -72,10 +74,11 @@ async function parentDependenciesMet(actionId: string): Promise<boolean> {
 
 // Helper function to check only direct dependencies (not parent dependencies)
 async function dependenciesMetDirectly(actionId: string): Promise<boolean> {
-  const dependencyEdges = await getDb()
+  const dependencyEdgesResult = await getDb()
     .select()
     .from(edges)
     .where(and(eq(edges.dst, actionId), eq(edges.kind, "depends_on")));
+  const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
   const dependencyIds = dependencyEdges
     .map((edge: any) => edge.src)
     .filter((id: any): id is string => id !== null);
@@ -106,14 +109,12 @@ async function dependenciesMet(actionId: string): Promise<boolean> {
 
 // Recursively find the next actionable child of a given action
 async function findNextActionInChildren(actionId: string): Promise<{ action: any | null; allDone: boolean }> {
-  const childEdges = await getDb()
+  const childEdgesResult = await getDb()
     .select()
     .from(edges)
     .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
-  
-  // Ensure childEdges is an array
-  const edgesArray = Array.isArray(childEdges) ? childEdges : [];
-  const childIds = edgesArray
+  const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+  const childIds = childEdges
     .map((edge: any) => edge.dst)
     .filter((id: any): id is string => id !== null);
 
@@ -365,10 +366,11 @@ export class ActionsService {
     }
 
     // Find all children (actions where this action is the parent)
-    const childEdges = await getDb().select().from(edges).where(
+    const childEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.src, action_id), eq(edges.kind, "child"))
     );
 
+    const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
     const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     
     // Handle children based on strategy
@@ -612,7 +614,8 @@ export class ActionsService {
   static async getActionTreeResource(includeCompleted: boolean = false): Promise<ActionTreeResource> {
     // Get all actions and edges
     const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
-    const allEdges = await getDb().select().from(edges).where(eq(edges.kind, "child"));
+    const allEdgesResult = await getDb().select().from(edges).where(eq(edges.kind, "child"));
+    const allEdges = Array.isArray(allEdgesResult) ? allEdgesResult : [];
 
     // Build lookup maps
     const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
@@ -631,7 +634,8 @@ export class ActionsService {
     }
 
     // Get dependency relationships for each action
-    const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
+    const dependencyEdgesResult = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
+    const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
     const dependenciesMap = new Map<string, string[]>();
     
     for (const edge of dependencyEdges) {
@@ -692,7 +696,8 @@ export class ActionsService {
       actionQuery = actionQuery.where(eq(actions.done, false));
     }
     const allActions = await actionQuery.orderBy(actions.createdAt);
-    const dependencyEdges = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
+    const dependencyEdgesResult = await getDb().select().from(edges).where(eq(edges.kind, "depends_on"));
+    const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
 
     const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
     const dependsOnMap = new Map<string, string[]>();
@@ -754,9 +759,10 @@ export class ActionsService {
     }
 
     // Get parent relationship
-    const parentEdges = await getDb().select().from(edges).where(
+    const parentEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "child"))
     );
+    const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
     const parentId = parentEdges.length > 0 ? parentEdges[0].src : undefined;
 
     // Build parent chain by walking up the hierarchy
@@ -771,34 +777,38 @@ export class ActionsService {
       parentChain.unshift(toActionMetadata(parentAction[0])); // Add to front to maintain order from root
       
       // Find the next parent
-      const nextParentEdges = await getDb().select().from(edges).where(
+      const nextParentEdgesResult = await getDb().select().from(edges).where(
         and(eq(edges.dst, currentParentId), eq(edges.kind, "child"))
       );
+      const nextParentEdges = Array.isArray(nextParentEdgesResult) ? nextParentEdgesResult : [];
       currentParentId = nextParentEdges.length > 0 ? nextParentEdges[0].src : undefined;
     }
 
     // Get children
-    const childEdges = await getDb().select().from(edges).where(
+    const childEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "child"))
     );
+    const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
     const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     const children = childIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, childIds))
       : [];
 
     // Get dependencies (actions this depends on)
-    const dependencyEdges = await getDb().select().from(edges).where(
+    const dependencyEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "depends_on"))
     );
+    const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
     const dependencyIds = dependencyEdges.map((edge: any) => edge.src).filter((id: any): id is string => id !== null);
     const dependencies = dependencyIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, dependencyIds))
       : [];
 
     // Get dependents (actions that depend on this)
-    const dependentEdges = await getDb().select().from(edges).where(
+    const dependentEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.src, actionId), eq(edges.kind, "depends_on"))
     );
+    const dependentEdges = Array.isArray(dependentEdgesResult) ? dependentEdgesResult : [];
     const dependentIds = dependentEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     const dependents = dependentIds.length > 0 
       ? await getDb().select().from(actions).where(inArray(actions.id, dependentIds))
