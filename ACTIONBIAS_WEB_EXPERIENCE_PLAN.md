@@ -118,7 +118,7 @@ Chat Features:
 **Goal**: Basic action-taking interface that validates core concept
 
 **Deliverables**:
-- `/dashboard` route with Next Action display
+- `/next` route with Next Action display
 - Action completion functionality
 - Basic action list view
 - Simple responsive design
