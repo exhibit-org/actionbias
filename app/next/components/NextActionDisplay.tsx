@@ -42,19 +42,8 @@ export default function NextActionDisplay() {
         setLoading(true);
         setError(null);
         
-        // Fetch from the MCP server endpoint
-        const response = await fetch('/mcp', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            method: 'resources/read',
-            params: {
-              uri: 'actions://next'
-            }
-          })
-        });
+        // Fetch from the REST API endpoint
+        const response = await fetch('/api/actions/next');
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -62,17 +51,11 @@ export default function NextActionDisplay() {
 
         const data = await response.json();
         
-        if (data.error) {
-          throw new Error(data.error.message || 'Failed to fetch next action');
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to fetch next action');
         }
 
-        // Parse the response - MCP returns the data in contents array
-        if (data.result?.contents?.[0]?.text) {
-          const actionData = JSON.parse(data.result.contents[0].text);
-          setNextAction(actionData);
-        } else {
-          setNextAction(null);
-        }
+        setNextAction(data.data);
       } catch (err) {
         console.error('Error fetching next action:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch next action');
@@ -91,21 +74,14 @@ export default function NextActionDisplay() {
       setCompleting(true);
       setError(null);
       
-      // Call the MCP update_action tool
-      const response = await fetch('/mcp', {
-        method: 'POST',
+      // Call the REST API to update the action
+      const response = await fetch(`/api/actions/${nextAction.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          method: 'tools/call',
-          params: {
-            name: 'update_action',
-            arguments: {
-              action_id: nextAction.id,
-              done: true
-            }
-          }
+          done: true
         })
       });
 
@@ -115,8 +91,8 @@ export default function NextActionDisplay() {
 
       const data = await response.json();
       
-      if (data.error) {
-        throw new Error(data.error.message || 'Failed to mark action as complete');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to mark action as complete');
       }
 
       // Mark as completed and refresh after a short delay

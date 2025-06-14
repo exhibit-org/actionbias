@@ -10,6 +10,39 @@ export function validateAuth(request: Request): boolean {
   return token.startsWith('access_') || token === 'test-token';
 }
 
+// Check if request is from the web interface (same origin)
+export function isWebInterfaceRequest(request: Request): boolean {
+  const url = new URL(request.url);
+  const referer = request.headers.get('referer');
+  const origin = request.headers.get('origin');
+  
+  // Check if request comes from the same domain (web interface)
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      if (refererUrl.host === url.host) {
+        return true;
+      }
+    } catch (e) {
+      // Invalid referer URL, ignore
+    }
+  }
+  
+  // Check origin header
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      if (originUrl.host === url.host) {
+        return true;
+      }
+    } catch (e) {
+      // Invalid origin URL, ignore
+    }
+  }
+  
+  return false;
+}
+
 export async function authenticatedHandler(method: string, request: Request, handler: (request: Request) => Promise<Response>) {
   const url = new URL(request.url);
   const transport = url.pathname.substring(1); // Remove leading slash
