@@ -42,7 +42,36 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
 }
 
 // Check if all dependencies for an action have been completed
-async function dependenciesMet(actionId: string): Promise<boolean> {
+// Helper function to check if parent dependencies are met recursively
+async function parentDependenciesMet(actionId: string): Promise<boolean> {
+  // Get parent relationship
+  const parentEdges = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+  
+  if (parentEdges.length === 0) {
+    // No parent, so parent dependencies are met
+    return true;
+  }
+  
+  const parentId = parentEdges[0].src;
+  if (!parentId) {
+    return true;
+  }
+  
+  // Check if parent's direct dependencies are met
+  const parentDepsOk = await dependenciesMetDirectly(parentId);
+  if (!parentDepsOk) {
+    return false;
+  }
+  
+  // Recursively check parent's parent dependencies
+  return await parentDependenciesMet(parentId);
+}
+
+// Helper function to check only direct dependencies (not parent dependencies)
+async function dependenciesMetDirectly(actionId: string): Promise<boolean> {
   const dependencyEdges = await getDb()
     .select()
     .from(edges)
@@ -62,6 +91,17 @@ async function dependenciesMet(actionId: string): Promise<boolean> {
     }
   }
   return true;
+}
+
+async function dependenciesMet(actionId: string): Promise<boolean> {
+  // Check both direct dependencies and parent dependencies
+  const directDepsOk = await dependenciesMetDirectly(actionId);
+  if (!directDepsOk) {
+    return false;
+  }
+  
+  const parentDepsOk = await parentDependenciesMet(actionId);
+  return parentDepsOk;
 }
 
 // Recursively find the next actionable child of a given action
