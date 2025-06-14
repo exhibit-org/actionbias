@@ -155,6 +155,11 @@ export interface UpdateActionParams {
   done?: boolean;
 }
 
+export interface UpdateParentParams {
+  action_id: string;
+  new_parent_id?: string; // undefined means remove parent (make it a root action)
+}
+
 export class ActionsService {
   static async createAction(params: CreateActionParams) {
     const { title, description, vision, parent_id, depends_on_ids } = params;
@@ -462,6 +467,56 @@ export class ActionsService {
       .returning();
 
     return updatedAction[0];
+  }
+
+  static async updateParent(params: UpdateParentParams) {
+    const { action_id, new_parent_id } = params;
+    
+    // Check that action exists
+    const existingAction = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    if (existingAction.length === 0) {
+      throw new Error(`Action with ID ${action_id} not found`);
+    }
+
+    // Check that new parent exists if provided
+    if (new_parent_id) {
+      const newParentAction = await getDb().select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
+      if (newParentAction.length === 0) {
+        throw new Error(`New parent action with ID ${new_parent_id} not found`);
+      }
+
+      // Check for circular reference - new parent cannot be a descendant of this action
+      const descendants = await getAllDescendants([action_id]);
+      if (descendants.includes(new_parent_id)) {
+        throw new Error(`Cannot set ${new_parent_id} as parent of ${action_id} - this would create a circular reference`);
+      }
+    }
+
+    // Remove existing parent relationship
+    await getDb().delete(edges).where(
+      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+    );
+
+    // Add new parent relationship if provided
+    if (new_parent_id) {
+      await getDb().insert(edges).values({
+        src: new_parent_id,
+        dst: action_id,
+        kind: "child",
+      });
+    }
+
+    // Update the action's timestamp
+    await getDb()
+      .update(actions)
+      .set({ updatedAt: new Date() })
+      .where(eq(actions.id, action_id));
+
+    return {
+      action_id,
+      old_parent_id: undefined, // We could track this if needed
+      new_parent_id,
+    };
   }
 
   // Resource methods for MCP resources

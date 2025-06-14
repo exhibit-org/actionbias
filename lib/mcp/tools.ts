@@ -306,6 +306,53 @@ export function registerTools(server: any) {
     },
   );
 
+  // update_parent - Update an action's parent relationship
+  server.tool(
+    "update_parent",
+    "Update an action's parent relationship by moving it under a new parent or making it a root action",
+    {
+      action_id: z.string().uuid().describe("The ID of the action to reparent"),
+      new_parent_id: z.string().uuid().optional().describe("The ID of the new parent action, or omit to make this a root action"),
+    },
+    async ({ action_id, new_parent_id }: { action_id: string; new_parent_id?: string }, extra: any) => {
+      try {
+        console.log(`Updating parent for action ${action_id} to parent ${new_parent_id || 'none (root action)'}`);
+        
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const result = await ActionsService.updateParent({
+          action_id,
+          new_parent_id
+        });
+        
+        let message = `Updated parent relationship for action: ${action_id}`;
+        if (new_parent_id) {
+          message += `\nNew parent: ${new_parent_id}`;
+        } else {
+          message += `\nAction is now a root action (no parent)`;
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error updating parent:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error updating parent: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 }
 
 export const toolCapabilities = {
@@ -323,5 +370,8 @@ export const toolCapabilities = {
   },
   update_action: {
     description: "Update an existing action's properties including title and completion status",
+  },
+  update_parent: {
+    description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
   },
 };

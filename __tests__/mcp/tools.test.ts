@@ -47,13 +47,14 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(5);
+    expect(server.tool).toHaveBeenCalledTimes(6);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
       "delete_action",
       "remove_dependency",
       "update_action",
+      "update_parent",
     ]);
   });
 
