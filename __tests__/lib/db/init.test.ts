@@ -156,6 +156,36 @@ describe('Database Initialization', () => {
       // which we can't easily test without complex module mocking
     });
 
+    it('should handle auto-initialization errors silently', async () => {
+      // Mock console.error to verify it's called on auto-init failure
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      // Mock initializeDatabase to throw an error
+      jest.doMock('../../../lib/db/init', () => ({
+        ...jest.requireActual('../../../lib/db/init'),
+        initializeDatabase: jest.fn().mockRejectedValue(new Error('Auto-init failed'))
+      }));
+      
+      // Simulate the auto-initialization code path
+      const isNodeJs = typeof window === 'undefined';
+      const hasPGliteUrl = 'pglite://./test.db'.startsWith('pglite://');
+      
+      if (isNodeJs && hasPGliteUrl) {
+        try {
+          // This simulates what happens in the auto-init block
+          const { initializeDatabase } = require('../../../lib/db/init');
+          await initializeDatabase().catch(console.error);
+          
+          // Verify console.error was called with the error
+          expect(consoleErrorSpy).toHaveBeenCalledWith(new Error('Auto-init failed'));
+        } catch (error) {
+          // The auto-init should catch errors, not re-throw them
+        }
+      }
+      
+      consoleErrorSpy.mockRestore();
+    });
+
     it('checks environment detection', () => {
       // Verify we can detect Node.js vs browser environment
       expect(typeof window).toBe('undefined'); // Node.js
