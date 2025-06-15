@@ -612,8 +612,10 @@ export class ActionsService {
   }
 
   static async getActionTreeResource(includeCompleted: boolean = false): Promise<ActionTreeResource> {
+    console.log('[SERVICE] Starting database queries for tree resource');
     // Get all actions and edges
     const allActions = await getDb().select().from(actions).orderBy(actions.createdAt);
+    console.log('[SERVICE] Got actions:', allActions.length);
     const allEdgesResult = await getDb().select().from(edges).where(eq(edges.kind, "child"));
     const allEdges = Array.isArray(allEdgesResult) ? allEdgesResult : [];
 

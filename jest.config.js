@@ -33,8 +33,7 @@ const customJestConfig = {
     },
   },
   testTimeout: 30000,
-  workerThreads: false,
-  maxWorkers: 1,
+  // Remove parallelism restrictions for speed - fix race conditions instead
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

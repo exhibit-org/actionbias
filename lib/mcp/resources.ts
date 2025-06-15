@@ -118,7 +118,9 @@ export function registerResources(server: any) {
           };
         }
         
+        console.log('[RESOURCE] Starting getActionTreeResource', { includeCompleted });
         const result = await ActionsService.getActionTreeResource(includeCompleted);
+        console.log('[RESOURCE] Completed getActionTreeResource');
         
         return {
           contents: [

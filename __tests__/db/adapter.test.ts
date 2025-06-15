@@ -2,6 +2,7 @@ import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
 
 describe('Database Adapter', () => {
   const originalEnv = process.env;
+  const testId = Math.random().toString(36).substring(7); // Unique test run ID
 
   beforeEach(async () => {
     jest.resetModules();
@@ -66,7 +67,7 @@ describe('Database Adapter', () => {
 
   describe('PGlite initialization', () => {
     it('should initialize PGlite successfully', async () => {
-      process.env.DATABASE_URL = 'pglite://.pglite-adapter-test';
+      process.env.DATABASE_URL = `pglite://.pglite-adapter-test-${testId}-1`;
       
       const db = await initializePGlite();
       
@@ -78,7 +79,7 @@ describe('Database Adapter', () => {
     }, 10000);
 
     it('should return the same instance on multiple calls', async () => {
-      process.env.DATABASE_URL = 'pglite://.pglite-adapter-test-2';
+      process.env.DATABASE_URL = `pglite://.pglite-adapter-test-${testId}-2`;
       
       const db1 = await initializePGlite();
       const db2 = await initializePGlite();
@@ -87,7 +88,7 @@ describe('Database Adapter', () => {
     }, 10000);
 
     it('should use custom path from DATABASE_URL', async () => {
-      process.env.DATABASE_URL = 'pglite://custom-adapter-test';
+      process.env.DATABASE_URL = `pglite://custom-adapter-test-${testId}`;
       
       const db = await initializePGlite();
       expect(db).toBeDefined();
