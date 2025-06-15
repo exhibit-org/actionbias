@@ -119,7 +119,18 @@ export function registerResources(server: any) {
         }
         
         console.log('[RESOURCE] Starting getActionTreeResource', { includeCompleted });
-        const result = await ActionsService.getActionTreeResource(includeCompleted);
+        
+        // Add timeout protection for the tree resource
+        const timeoutMs = 45000; // 45 seconds, leaving buffer for the 60s maxDuration
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Tree resource timed out after 45 seconds')), timeoutMs);
+        });
+        
+        const result = await Promise.race([
+          ActionsService.getActionTreeResource(includeCompleted),
+          timeoutPromise
+        ]) as any;
+        
         console.log('[RESOURCE] Completed getActionTreeResource');
         
         return {
