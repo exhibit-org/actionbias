@@ -62,6 +62,7 @@ export default function NextActionDisplay({ colors }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   useEffect(() => {
     const fetchNextAction = async () => {
@@ -93,6 +94,61 @@ export default function NextActionDisplay({ colors }: Props) {
 
     fetchNextAction();
   }, []);
+
+  const generateClaudeCodePrompt = (action: NextActionData): string => {
+    let prompt = `I'm working on: ${action.title}\n\n`;
+
+    // Add parent context if available
+    if (action.parent_chain.length > 0) {
+      prompt += `Context (from parent goals):\n`;
+      // Reverse to show from root to immediate parent
+      action.parent_chain.slice().reverse().forEach((parent, index) => {
+        prompt += `${index + 1}. ${parent.title}`;
+        if (parent.description) {
+          prompt += `: ${parent.description}`;
+        }
+        if (parent.vision) {
+          prompt += ` (Success criteria: ${parent.vision})`;
+        }
+        prompt += `\n`;
+      });
+      prompt += `\n`;
+    }
+
+    // Add current task details
+    prompt += `Current task:\n`;
+    prompt += `${action.title}\n`;
+    if (action.description) {
+      prompt += `${action.description}\n`;
+    }
+
+    if (action.vision) {
+      prompt += `\nSuccess criteria: ${action.vision}\n`;
+    }
+
+    prompt += `\nPlease help me complete this task.`;
+
+    return prompt;
+  };
+
+  const copyPromptToClipboard = async () => {
+    if (!nextAction) return;
+    
+    try {
+      setCopying(true);
+      const prompt = generateClaudeCodePrompt(nextAction);
+      await navigator.clipboard.writeText(prompt);
+      
+      // Brief success feedback
+      setTimeout(() => {
+        setCopying(false);
+      }, 1000);
+      
+    } catch (err) {
+      console.error('Failed to copy prompt:', err);
+      setCopying(false);
+    }
+  };
 
   const markComplete = async () => {
     if (!nextAction) return;
@@ -343,6 +399,62 @@ export default function NextActionDisplay({ colors }: Props) {
             }}>
               {nextAction.title}
             </h1>
+            <button
+              onClick={copyPromptToClipboard}
+              disabled={copying}
+              style={{
+                width: '24px',
+                height: '24px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '0.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: copying ? 'not-allowed' : 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (!copying) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!copying) {
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                }
+              }}
+              title="Copy prompt for Claude Code"
+            >
+              {copying ? (
+                <svg 
+                  style={{
+                    width: '14px', 
+                    height: '14px',
+                    color: colors.textMuted
+                  }} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg 
+                  style={{
+                    width: '14px', 
+                    height: '14px',
+                    color: colors.textSubtle
+                  }} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
           </div>
           
           {nextAction.description && (
