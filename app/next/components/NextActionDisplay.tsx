@@ -175,7 +175,7 @@ export default function NextActionDisplay() {
         {nextAction.vision && (
           <div className="ml-6 bg-blue-50 border-l-4 border-blue-400 rounded-r p-4 mb-4">
             <div className="flex items-start space-x-3">
-              <svg className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '16px', height: '16px', minWidth: '16px', maxWidth: '16px'}}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
@@ -194,7 +194,7 @@ export default function NextActionDisplay() {
       {nextAction.parent_chain.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center space-x-2 mb-3">
-            <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '16px', height: '16px', minWidth: '16px', maxWidth: '16px'}}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Context</h3>
@@ -204,7 +204,7 @@ export default function NextActionDisplay() {
               {nextAction.parent_chain.map((parent, index) => (
                 <div key={parent.id} className="flex items-center">
                   {index > 0 && (
-                    <svg className="h-3 w-3 text-gray-400 mx-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 text-gray-400 mx-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   )}
@@ -222,7 +222,7 @@ export default function NextActionDisplay() {
       {nextAction.dependencies.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center space-x-2 mb-3">
-            <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '16px', height: '16px', minWidth: '16px', maxWidth: '16px'}}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16l-4-4m0 0l4-4m-4 4h18" />
             </svg>
             <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Dependencies</h3>
@@ -241,11 +241,11 @@ export default function NextActionDisplay() {
                   dep.done ? 'bg-green-500' : 'bg-yellow-500'
                 }`}>
                   {dep.done ? (
-                    <svg className="h-3 w-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   ) : (
-                    <svg className="h-3 w-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-3 w-3 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   )}
@@ -264,7 +264,7 @@ export default function NextActionDisplay() {
             <div className="flex items-center justify-center space-x-4">
               <div className="flex-shrink-0">
                 <div className="h-8 w-8 bg-green-500 rounded-full flex items-center justify-center">
-                  <svg className="h-5 w-5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '20px', height: '20px', minWidth: '20px', maxWidth: '20px'}}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -292,7 +292,7 @@ export default function NextActionDisplay() {
             <div className="flex justify-center items-center">
               {completing ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style={{width: '20px', height: '20px', minWidth: '20px', maxWidth: '20px'}}>
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -300,7 +300,7 @@ export default function NextActionDisplay() {
                 </>
               ) : (
                 <>
-                  <svg className="mr-3 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="mr-3 h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '20px', height: '20px', minWidth: '20px', maxWidth: '20px'}}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>Mark Complete</span>
@@ -315,13 +315,13 @@ export default function NextActionDisplay() {
       <div className="mt-6 pt-4 border-t border-gray-200">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-xs text-gray-500">
           <div className="flex items-center space-x-2">
-            <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
             </svg>
             <span className="font-mono">ID: {nextAction.id.slice(0, 8)}...</span>
           </div>
           <div className="flex items-center space-x-2">
-            <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-3 w-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Created: {new Date(nextAction.created_at).toLocaleDateString()}</span>
