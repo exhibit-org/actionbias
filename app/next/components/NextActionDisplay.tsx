@@ -96,14 +96,14 @@ export default function NextActionDisplay({ colors }: Props) {
   }, []);
 
   const generateClaudeCodePrompt = (action: NextActionData): string => {
-    let prompt = `I'm working on: ${action.title}\n\n`;
+    let prompt = `I'm working on: ${action.title}\nMCP URI: actions://${action.id}\n\n`;
 
     // Add parent context if available
     if (action.parent_chain.length > 0) {
       prompt += `Context (from parent goals):\n`;
       // Reverse to show from root to immediate parent
       action.parent_chain.slice().reverse().forEach((parent, index) => {
-        prompt += `${index + 1}. ${parent.title}`;
+        prompt += `${index + 1}. ${parent.title} (actions://${parent.id})`;
         if (parent.description) {
           prompt += `: ${parent.description}`;
         }
@@ -117,7 +117,7 @@ export default function NextActionDisplay({ colors }: Props) {
 
     // Add current task details
     prompt += `Current task:\n`;
-    prompt += `${action.title}\n`;
+    prompt += `${action.title} (actions://${action.id})\n`;
     if (action.description) {
       prompt += `${action.description}\n`;
     }
@@ -126,7 +126,31 @@ export default function NextActionDisplay({ colors }: Props) {
       prompt += `\nSuccess criteria: ${action.vision}\n`;
     }
 
-    prompt += `\nPlease help me complete this task.`;
+    // Add dependencies and children if available
+    if (action.dependencies.length > 0) {
+      prompt += `\nDependencies (must be completed first):\n`;
+      action.dependencies.forEach((dep, index) => {
+        prompt += `${index + 1}. ${dep.title} (actions://${dep.id})\n`;
+      });
+    }
+
+    if (action.children.length > 0) {
+      prompt += `\nSubtasks:\n`;
+      action.children.forEach((child, index) => {
+        prompt += `${index + 1}. ${child.title} (actions://${child.id})`;
+        if (child.done) {
+          prompt += ` ✓ COMPLETED`;
+        }
+        prompt += `\n`;
+      });
+    }
+
+    prompt += `\nMCP Resources Available:\n`;
+    prompt += `- actions://tree (full action hierarchy)\n`;
+    prompt += `- actions://next (current priority action)\n`;
+    prompt += `- actions://${action.id} (this action's details)\n`;
+
+    prompt += `\nPlease help me complete this task. You can use the MCP URIs above to access the ActionBias system for context and updates.`;
 
     return prompt;
   };
