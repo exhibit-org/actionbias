@@ -513,32 +513,14 @@ export default function NextActionDisplay() {
                   borderLeft: index === 0 ? '4px solid #3b82f6' : '4px solid #d1d5db'
                 }}
               >
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
-                  marginBottom: '0.5rem' 
+                <h4 style={{ 
+                  fontSize: '1rem', 
+                  fontWeight: '600', 
+                  color: '#111827',
+                  margin: '0 0 0.5rem 0'
                 }}>
-                  <span style={{
-                    fontSize: '0.75rem',
-                    color: '#6b7280',
-                    backgroundColor: '#e5e7eb',
-                    padding: '0.125rem 0.5rem',
-                    borderRadius: '0.25rem',
-                    fontWeight: '500'
-                  }}>
-                    Level {index + 1}
-                  </span>
-                  <h4 style={{ 
-                    fontSize: '1rem', 
-                    fontWeight: '600', 
-                    color: '#111827',
-                    margin: 0,
-                    flex: 1
-                  }}>
-                    {parent.title}
-                  </h4>
-                </div>
+                  {parent.title}
+                </h4>
                 
                 {parent.description && (
                   <p style={{ 
