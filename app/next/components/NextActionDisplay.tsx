@@ -253,8 +253,80 @@ export default function NextActionDisplay({ colors }: Props) {
           padding: '1.5rem',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
-          {/* Mark Complete Button inside card */}
-          <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ 
+            fontSize: '1.25rem', 
+            fontWeight: '700', 
+            color: colors.text,
+            margin: '0 0 0.75rem 0'
+          }}>
+            {nextAction.title}
+          </h1>
+          
+          {nextAction.description && (
+            <p style={{ 
+              fontSize: '1rem', 
+              color: colors.textMuted, 
+              margin: '0 0 1rem 0',
+              lineHeight: '1.6' 
+            }}>
+              {nextAction.description}
+            </p>
+          )}
+          
+          {nextAction.vision && (
+            <div style={{ 
+              backgroundColor: colors.surface, 
+              borderLeft: `4px solid ${colors.borderAccent}`, 
+              borderTopRightRadius: '0.25rem',
+              borderBottomRightRadius: '0.25rem',
+              padding: '1rem', 
+              marginTop: '0.75rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '0.5rem' 
+              }}>
+                <svg 
+                  style={{
+                    width: '16px', 
+                    height: '16px', 
+                    minWidth: '16px', 
+                    maxWidth: '16px',
+                    color: colors.borderAccent,
+                    marginTop: '0.125rem',
+                    flexShrink: 0
+                  }} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <span style={{ 
+                    fontWeight: '600', 
+                    color: colors.text, 
+                    fontSize: '0.875rem' 
+                  }}>Vision:</span>
+                  <p style={{ 
+                    color: colors.textMuted, 
+                    fontSize: '0.875rem', 
+                    marginTop: '0.25rem', 
+                    lineHeight: '1.5',
+                    margin: '0.25rem 0 0 0'
+                  }}>
+                    {nextAction.vision}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mark Complete Button at bottom of card */}
+          <div>
             {completed ? (
               <div style={{
                 backgroundColor: colors.surface,
@@ -322,17 +394,17 @@ export default function NextActionDisplay({ colors }: Props) {
                 disabled={completing}
                 style={{
                   width: '100%',
-                  borderRadius: '0.5rem',
-                  padding: '1rem 1.5rem',
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
+                  borderRadius: '0.375rem',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
                   color: 'white',
                   transition: 'opacity 0.2s ease',
                   backgroundColor: completing ? colors.textFaint : colors.borderAccent,
-                  backgroundImage: completing ? 'none' : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
+                  backgroundImage: completing ? 'none' : 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.1) 8px, rgba(255,255,255,0.1) 16px)',
                   border: 'none',
                   cursor: completing ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                 }}
                 onMouseEnter={(e) => {
                   if (!completing) {
@@ -349,16 +421,16 @@ export default function NextActionDisplay({ colors }: Props) {
                   display: 'flex', 
                   justifyContent: 'center', 
                   alignItems: 'center',
-                  gap: '0.75rem'
+                  gap: '0.5rem'
                 }}>
                   {completing ? (
                     <>
                       <svg 
                         style={{
-                          width: '20px', 
-                          height: '20px', 
-                          minWidth: '20px', 
-                          maxWidth: '20px',
+                          width: '16px', 
+                          height: '16px', 
+                          minWidth: '16px', 
+                          maxWidth: '16px',
                           flexShrink: 0,
                           animation: 'spin 1s linear infinite'
                         }} 
@@ -375,10 +447,10 @@ export default function NextActionDisplay({ colors }: Props) {
                     <>
                       <svg 
                         style={{
-                          width: '20px', 
-                          height: '20px', 
-                          minWidth: '20px', 
-                          maxWidth: '20px',
+                          width: '16px', 
+                          height: '16px', 
+                          minWidth: '16px', 
+                          maxWidth: '16px',
                           flexShrink: 0
                         }} 
                         fill="none" 
@@ -394,76 +466,6 @@ export default function NextActionDisplay({ colors }: Props) {
               </button>
             )}
           </div>
-          <h1 style={{ 
-            fontSize: '1.25rem', 
-            fontWeight: '700', 
-            color: colors.text,
-            margin: '0 0 0.75rem 0'
-          }}>
-            {nextAction.title}
-          </h1>
-          
-          {nextAction.description && (
-            <p style={{ 
-              fontSize: '1rem', 
-              color: colors.textMuted, 
-              margin: '0 0 1rem 0',
-              lineHeight: '1.6' 
-            }}>
-              {nextAction.description}
-            </p>
-          )}
-          
-          {nextAction.vision && (
-            <div style={{ 
-              backgroundColor: colors.surface, 
-              borderLeft: `4px solid ${colors.borderAccent}`, 
-              borderTopRightRadius: '0.25rem',
-              borderBottomRightRadius: '0.25rem',
-              padding: '1rem', 
-              marginTop: '0.75rem' 
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: '0.5rem' 
-              }}>
-                <svg 
-                  style={{
-                    width: '16px', 
-                    height: '16px', 
-                    minWidth: '16px', 
-                    maxWidth: '16px',
-                    color: colors.borderAccent,
-                    marginTop: '0.125rem',
-                    flexShrink: 0
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <div style={{ flex: 1 }}>
-                  <span style={{ 
-                    fontWeight: '600', 
-                    color: colors.text, 
-                    fontSize: '0.875rem' 
-                  }}>Vision:</span>
-                  <p style={{ 
-                    color: colors.textMuted, 
-                    fontSize: '0.875rem', 
-                    marginTop: '0.25rem', 
-                    lineHeight: '1.5',
-                    margin: '0.25rem 0 0 0'
-                  }}>
-                    {nextAction.vision}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
