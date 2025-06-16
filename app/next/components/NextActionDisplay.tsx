@@ -314,28 +314,144 @@ export default function NextActionDisplay() {
 
       {/* Parent Context */}
       {nextAction.parent_chain.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 mb-3">
-            <svg className="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '16px', height: '16px', minWidth: '16px', maxWidth: '16px'}}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            marginBottom: '1rem' 
+          }}>
+            <svg 
+              style={{
+                width: '16px', 
+                height: '16px', 
+                minWidth: '16px', 
+                maxWidth: '16px',
+                color: '#6b7280',
+                flexShrink: 0
+              }} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Context</h3>
+            <h3 style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: '#374151', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.05em',
+              margin: 0
+            }}>Context</h3>
           </div>
-          <div className="bg-gray-50 rounded p-4 border border-gray-200">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-              {nextAction.parent_chain.map((parent, index) => (
-                <div key={parent.id} className="flex items-center">
-                  {index > 0 && (
-                    <svg className="h-3 w-3 text-gray-400 mx-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '12px', height: '12px', minWidth: '12px', maxWidth: '12px'}}>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                  <span className="bg-white px-3 py-1 rounded border border-gray-200 font-medium">
-                    {parent.title}
+          
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '1rem' 
+          }}>
+            {nextAction.parent_chain.map((parent, index) => (
+              <div 
+                key={parent.id} 
+                style={{
+                  backgroundColor: index === nextAction.parent_chain.length - 1 ? '#f3f4f6' : '#f9fafb',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                  borderLeft: index === nextAction.parent_chain.length - 1 ? '4px solid #3b82f6' : '4px solid #d1d5db'
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  marginBottom: '0.5rem' 
+                }}>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
+                    backgroundColor: '#e5e7eb',
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '0.25rem',
+                    fontWeight: '500'
+                  }}>
+                    Level {nextAction.parent_chain.length - index}
                   </span>
+                  <h4 style={{ 
+                    fontSize: '1rem', 
+                    fontWeight: '600', 
+                    color: '#111827',
+                    margin: 0,
+                    flex: 1
+                  }}>
+                    {parent.title}
+                  </h4>
                 </div>
-              ))}
-            </div>
+                
+                {parent.description && (
+                  <p style={{ 
+                    fontSize: '0.875rem', 
+                    color: '#4b5563', 
+                    margin: '0 0 0.75rem 0',
+                    lineHeight: '1.5' 
+                  }}>
+                    {parent.description}
+                  </p>
+                )}
+                
+                {parent.vision && (
+                  <div style={{ 
+                    backgroundColor: '#eff6ff', 
+                    borderLeft: '3px solid #60a5fa', 
+                    borderTopRightRadius: '0.25rem',
+                    borderBottomRightRadius: '0.25rem',
+                    padding: '0.75rem', 
+                    marginTop: '0.5rem' 
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: '0.5rem' 
+                    }}>
+                      <svg 
+                        style={{
+                          width: '14px', 
+                          height: '14px', 
+                          minWidth: '14px', 
+                          maxWidth: '14px',
+                          color: '#2563eb',
+                          marginTop: '0.125rem',
+                          flexShrink: 0
+                        }} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ 
+                          fontWeight: '600', 
+                          color: '#1e3a8a', 
+                          fontSize: '0.75rem' 
+                        }}>Vision:</span>
+                        <p style={{ 
+                          color: '#1e40af', 
+                          fontSize: '0.75rem', 
+                          marginTop: '0.25rem', 
+                          lineHeight: '1.5',
+                          margin: '0.25rem 0 0 0'
+                        }}>
+                          {parent.vision}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
