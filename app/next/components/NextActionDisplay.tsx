@@ -174,8 +174,8 @@ export default function NextActionDisplay() {
             cursor: 'pointer',
             fontSize: '0.875rem'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+          onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#b91c1c'}
+          onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#dc2626'}
         >
           Retry
         </button>
@@ -214,7 +214,7 @@ export default function NextActionDisplay() {
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
       borderRadius: '0.5rem',
       padding: '1.5rem'
-    }}>'
+    }}>
       {/* Main Action Content */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ 
