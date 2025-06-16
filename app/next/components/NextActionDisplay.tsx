@@ -506,11 +506,11 @@ export default function NextActionDisplay() {
               <div 
                 key={parent.id} 
                 style={{
-                  backgroundColor: index === 0 ? '#f3f4f6' : '#f9fafb',
+                  backgroundColor: '#f9fafb',
                   border: '1px solid #e5e7eb',
                   borderRadius: '0.5rem',
                   padding: '1rem',
-                  borderLeft: index === 0 ? '4px solid #3b82f6' : '4px solid #d1d5db'
+                  borderLeft: '4px solid #d1d5db'
                 }}
               >
                 <h4 style={{ 
