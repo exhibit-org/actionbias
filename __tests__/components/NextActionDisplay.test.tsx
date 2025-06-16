@@ -84,7 +84,7 @@ describe('NextActionDisplay', () => {
     expect(screen.getByText('Vision:')).toBeInTheDocument();
     expect(screen.getByText('Test action vision')).toBeInTheDocument();
     expect(screen.getByText('Parent Action')).toBeInTheDocument();
-    expect(screen.getByText('✓ Dependency Action')).toBeInTheDocument();
+    expect(screen.getByText('Dependency Action')).toBeInTheDocument();
     expect(screen.getByText('Mark Complete')).toBeInTheDocument();
   });
 
@@ -247,7 +247,7 @@ describe('NextActionDisplay', () => {
       expect(screen.getByText('Test Action Title')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('✓ Completed Dependency')).toBeInTheDocument();
-    expect(screen.getByText('⏳ Pending Dependency')).toBeInTheDocument();
+    expect(screen.getByText('Completed Dependency')).toBeInTheDocument();
+    expect(screen.getByText('Pending Dependency')).toBeInTheDocument();
   });
 });

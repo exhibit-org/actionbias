@@ -292,14 +292,16 @@ describe('NextActionDisplay Error Handling', () => {
     fireEvent.click(screen.getByText('Mark Complete'));
 
     await waitFor(() => {
-      expect(screen.getByText('Action completed! Loading next action...')).toBeInTheDocument();
+      expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
+      expect(screen.getByText('Loading next action...')).toBeInTheDocument();
     });
 
     // Fast-forward timers to trigger the reload (timeout is tested even if reload itself can't be)
     jest.advanceTimersByTime(1500);
     
     // Verify the completion message is still shown
-    expect(screen.getByText('Action completed! Loading next action...')).toBeInTheDocument();
+    expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
+    expect(screen.getByText('Loading next action...')).toBeInTheDocument();
   });
 
   it('should handle missing MCP error message gracefully', async () => {
