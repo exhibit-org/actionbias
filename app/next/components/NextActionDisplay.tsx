@@ -265,6 +265,7 @@ export default function NextActionDisplay({ colors }: Props) {
                 height: '2rem',
                 width: '2rem',
                 backgroundColor: colors.borderAccent,
+                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -319,6 +320,7 @@ export default function NextActionDisplay({ colors }: Props) {
               color: 'white',
               transition: 'opacity 0.2s ease',
               backgroundColor: completing ? colors.textFaint : colors.borderAccent,
+              backgroundImage: completing ? 'none' : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
               border: 'none',
               cursor: completing ? 'not-allowed' : 'pointer',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
@@ -384,30 +386,30 @@ export default function NextActionDisplay({ colors }: Props) {
         )}
       </div>
 
-      {/* Main Action Content */}
+      {/* Main Action Content - Enhanced for importance */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{
-          backgroundColor: colors.surface,
-          border: `1px solid ${colors.border}`,
+          backgroundColor: 'white',
+          border: `2px solid ${colors.borderAccent}`,
           borderRadius: '0.5rem',
-          padding: '1rem',
-          borderLeft: `4px solid ${colors.borderAccent}`
+          padding: '1.5rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
           <h1 style={{ 
-            fontSize: '1rem', 
-            fontWeight: '600', 
+            fontSize: '1.25rem', 
+            fontWeight: '700', 
             color: colors.text,
-            margin: '0 0 0.5rem 0'
+            margin: '0 0 0.75rem 0'
           }}>
             {nextAction.title}
           </h1>
           
           {nextAction.description && (
             <p style={{ 
-              fontSize: '0.875rem', 
+              fontSize: '1rem', 
               color: colors.textMuted, 
-              margin: '0 0 0.75rem 0',
-              lineHeight: '1.5' 
+              margin: '0 0 1rem 0',
+              lineHeight: '1.6' 
             }}>
               {nextAction.description}
             </p>
@@ -415,12 +417,12 @@ export default function NextActionDisplay({ colors }: Props) {
           
           {nextAction.vision && (
             <div style={{ 
-              backgroundColor: colors.bg, 
-              borderLeft: `3px solid ${colors.borderAccent}`, 
+              backgroundColor: colors.surface, 
+              borderLeft: `4px solid ${colors.borderAccent}`, 
               borderTopRightRadius: '0.25rem',
               borderBottomRightRadius: '0.25rem',
-              padding: '0.75rem', 
-              marginTop: '0.5rem' 
+              padding: '1rem', 
+              marginTop: '0.75rem' 
             }}>
               <div style={{ 
                 display: 'flex', 
@@ -429,10 +431,10 @@ export default function NextActionDisplay({ colors }: Props) {
               }}>
                 <svg 
                   style={{
-                    width: '14px', 
-                    height: '14px', 
-                    minWidth: '14px', 
-                    maxWidth: '14px',
+                    width: '16px', 
+                    height: '16px', 
+                    minWidth: '16px', 
+                    maxWidth: '16px',
                     color: colors.borderAccent,
                     marginTop: '0.125rem',
                     flexShrink: 0
@@ -448,11 +450,11 @@ export default function NextActionDisplay({ colors }: Props) {
                   <span style={{ 
                     fontWeight: '600', 
                     color: colors.text, 
-                    fontSize: '0.75rem' 
+                    fontSize: '0.875rem' 
                   }}>Vision:</span>
                   <p style={{ 
                     color: colors.textMuted, 
-                    fontSize: '0.75rem', 
+                    fontSize: '0.875rem', 
                     marginTop: '0.25rem', 
                     lineHeight: '1.5',
                     margin: '0.25rem 0 0 0'
@@ -466,22 +468,22 @@ export default function NextActionDisplay({ colors }: Props) {
         </div>
       </div>
 
-      {/* Parent Context */}
+      {/* Parent Context - Reduced visual prominence */}
       {nextAction.parent_chain.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ 
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.5rem', 
-            marginBottom: '1rem' 
+            marginBottom: '0.75rem' 
           }}>
             <svg 
               style={{
-                width: '16px', 
-                height: '16px', 
-                minWidth: '16px', 
-                maxWidth: '16px',
-                color: colors.textSubtle,
+                width: '14px', 
+                height: '14px', 
+                minWidth: '14px', 
+                maxWidth: '14px',
+                color: colors.textFaint,
                 flexShrink: 0
               }} 
               fill="none" 
@@ -491,11 +493,11 @@ export default function NextActionDisplay({ colors }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <h3 style={{ 
-              fontSize: '0.875rem', 
-              fontWeight: '600', 
-              color: colors.textMuted, 
+              fontSize: '0.75rem', 
+              fontWeight: '500', 
+              color: colors.textSubtle, 
               textTransform: 'uppercase', 
-              letterSpacing: '0.05em',
+              letterSpacing: '0.1em',
               margin: 0
             }}>Context</h3>
           </div>
@@ -509,28 +511,28 @@ export default function NextActionDisplay({ colors }: Props) {
               <div 
                 key={parent.id} 
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: colors.bg,
                   border: `1px solid ${colors.border}`,
-                  borderRadius: '0.5rem',
-                  padding: '1rem',
-                  borderLeft: `4px solid ${colors.textFaint}`
+                  borderRadius: '0.375rem',
+                  padding: '0.75rem',
+                  borderLeft: `2px solid ${colors.textFaint}`
                 }}
               >
                 <h4 style={{ 
-                  fontSize: '1rem', 
-                  fontWeight: '600', 
-                  color: colors.text,
-                  margin: '0 0 0.5rem 0'
+                  fontSize: '0.875rem', 
+                  fontWeight: '500', 
+                  color: colors.textMuted,
+                  margin: '0 0 0.375rem 0'
                 }}>
                   {parent.title}
                 </h4>
                 
                 {parent.description && (
                   <p style={{ 
-                    fontSize: '0.875rem', 
-                    color: colors.textMuted, 
-                    margin: '0 0 0.75rem 0',
-                    lineHeight: '1.5' 
+                    fontSize: '0.75rem', 
+                    color: colors.textSubtle, 
+                    margin: '0 0 0.5rem 0',
+                    lineHeight: '1.4' 
                   }}>
                     {parent.description}
                   </p>
@@ -538,12 +540,12 @@ export default function NextActionDisplay({ colors }: Props) {
                 
                 {parent.vision && (
                   <div style={{ 
-                    backgroundColor: colors.bg, 
-                    borderLeft: `3px solid ${colors.textSubtle}`, 
+                    backgroundColor: colors.surface, 
+                    borderLeft: `2px solid ${colors.textFaint}`, 
                     borderTopRightRadius: '0.25rem',
                     borderBottomRightRadius: '0.25rem',
-                    padding: '0.75rem', 
-                    marginTop: '0.5rem' 
+                    padding: '0.5rem', 
+                    marginTop: '0.375rem' 
                   }}>
                     <div style={{ 
                       display: 'flex', 
@@ -552,11 +554,11 @@ export default function NextActionDisplay({ colors }: Props) {
                     }}>
                       <svg 
                         style={{
-                          width: '14px', 
-                          height: '14px', 
-                          minWidth: '14px', 
-                          maxWidth: '14px',
-                          color: colors.textSubtle,
+                          width: '12px', 
+                          height: '12px', 
+                          minWidth: '12px', 
+                          maxWidth: '12px',
+                          color: colors.textFaint,
                           marginTop: '0.125rem',
                           flexShrink: 0
                         }} 
@@ -569,15 +571,15 @@ export default function NextActionDisplay({ colors }: Props) {
                       </svg>
                       <div style={{ flex: 1 }}>
                         <span style={{ 
-                          fontWeight: '600', 
-                          color: colors.text, 
-                          fontSize: '0.75rem' 
+                          fontWeight: '500', 
+                          color: colors.textSubtle, 
+                          fontSize: '0.6875rem' 
                         }}>Vision:</span>
                         <p style={{ 
-                          color: colors.textMuted, 
-                          fontSize: '0.75rem', 
+                          color: colors.textSubtle, 
+                          fontSize: '0.6875rem', 
                           marginTop: '0.25rem', 
-                          lineHeight: '1.5',
+                          lineHeight: '1.4',
                           margin: '0.25rem 0 0 0'
                         }}>
                           {parent.vision}

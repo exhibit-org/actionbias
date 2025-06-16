@@ -6,16 +6,16 @@ export const metadata = {
 };
 
 export default function NextPage() {
-  // Monochromatic blue color scheme
+  // Full grayscale color scheme with enhanced visual hierarchy (no colors)
   const colors = {
-    bg: '#f8fafc',           // Very light blue-gray
-    surface: '#f1f5f9',      // Light blue-gray  
-    border: '#e2e8f0',       // Medium blue-gray
-    borderAccent: '#3b82f6', // Base blue
-    text: '#0f172a',         // Very dark blue
-    textMuted: '#475569',    // Medium dark blue
-    textSubtle: '#64748b',   // Medium blue
-    textFaint: '#94a3b8'     // Light blue
+    bg: '#f9fafb',           // Very light gray background
+    surface: '#f3f4f6',      // Light gray surface  
+    border: '#e5e7eb',       // Medium gray border
+    borderAccent: '#1f2937', // Very dark gray accent (no color, maximum contrast)
+    text: '#111827',         // Very dark gray (black) for primary text
+    textMuted: '#4b5563',    // Medium dark gray for secondary text
+    textSubtle: '#6b7280',   // Medium gray for tertiary text
+    textFaint: '#9ca3af'     // Light gray for faint text/metadata
   };
 
   return (
