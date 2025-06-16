@@ -368,99 +368,84 @@ export default function NextActionDisplay() {
 
       {/* Main Action Content */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'flex-start', 
-          gap: '0.75rem', 
-          marginBottom: '1rem' 
+        <div style={{
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          borderLeft: '4px solid #3b82f6'
         }}>
-          <div style={{ 
-            flexShrink: 0, 
-            marginTop: '0.25rem' 
-          }}>
-            <div style={{ 
-              height: '0.75rem', 
-              width: '0.75rem', 
-              backgroundColor: '#3b82f6', 
-              borderRadius: '50%' 
-            }}></div>
-          </div>
           <h1 style={{ 
-            fontSize: '1.5rem', 
-            fontWeight: 'bold', 
-            color: '#111827', 
-            lineHeight: '1.25',
-            margin: 0
+            fontSize: '1rem', 
+            fontWeight: '600', 
+            color: '#111827',
+            margin: '0 0 0.5rem 0'
           }}>
             {nextAction.title}
           </h1>
-        </div>
-        
-        {nextAction.description && (
-          <div style={{ 
-            marginLeft: '1.5rem', 
-            marginBottom: '1rem' 
-          }}>
+          
+          {nextAction.description && (
             <p style={{ 
-              color: '#374151', 
-              fontSize: '1rem', 
-              lineHeight: '1.625' 
+              fontSize: '0.875rem', 
+              color: '#4b5563', 
+              margin: '0 0 0.75rem 0',
+              lineHeight: '1.5' 
             }}>
               {nextAction.description}
             </p>
-          </div>
-        )}
-        
-        {nextAction.vision && (
-          <div style={{ 
-            marginLeft: '1.5rem', 
-            backgroundColor: '#eff6ff', 
-            borderLeft: '4px solid #60a5fa', 
-            borderTopRightRadius: '0.5rem',
-            borderBottomRightRadius: '0.5rem',
-            padding: '1rem', 
-            marginBottom: '1rem' 
-          }}>
+          )}
+          
+          {nextAction.vision && (
             <div style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '0.75rem' 
+              backgroundColor: '#eff6ff', 
+              borderLeft: '3px solid #60a5fa', 
+              borderTopRightRadius: '0.25rem',
+              borderBottomRightRadius: '0.25rem',
+              padding: '0.75rem', 
+              marginTop: '0.5rem' 
             }}>
-              <svg 
-                style={{
-                  width: '16px', 
-                  height: '16px', 
-                  minWidth: '16px', 
-                  maxWidth: '16px',
-                  color: '#2563eb',
-                  marginTop: '0.125rem',
-                  flexShrink: 0
-                }} 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ 
-                  fontWeight: '600', 
-                  color: '#1e3a8a', 
-                  fontSize: '0.875rem' 
-                }}>Vision:</span>
-                <p style={{ 
-                  color: '#1e40af', 
-                  fontSize: '0.875rem', 
-                  marginTop: '0.25rem', 
-                  lineHeight: '1.625' 
-                }}>
-                  {nextAction.vision}
-                </p>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                gap: '0.5rem' 
+              }}>
+                <svg 
+                  style={{
+                    width: '14px', 
+                    height: '14px', 
+                    minWidth: '14px', 
+                    maxWidth: '14px',
+                    color: '#2563eb',
+                    marginTop: '0.125rem',
+                    flexShrink: 0
+                  }} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <span style={{ 
+                    fontWeight: '600', 
+                    color: '#1e3a8a', 
+                    fontSize: '0.75rem' 
+                  }}>Vision:</span>
+                  <p style={{ 
+                    color: '#1e40af', 
+                    fontSize: '0.75rem', 
+                    marginTop: '0.25rem', 
+                    lineHeight: '1.5',
+                    margin: '0.25rem 0 0 0'
+                  }}>
+                    {nextAction.vision}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Parent Context */}
