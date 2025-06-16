@@ -244,149 +244,7 @@ export default function NextActionDisplay({ colors }: Props) {
       borderRadius: '0.5rem',
       padding: '1.5rem'
     }}>
-      {/* Mark Complete Button */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        {completed ? (
-          <div style={{
-            backgroundColor: colors.surface,
-            border: `1px solid ${colors.border}`,
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            textAlign: 'center',
-            borderLeft: `4px solid ${colors.borderAccent}`
-          }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center', 
-              gap: '0.75rem' 
-            }}>
-              <div style={{
-                height: '2rem',
-                width: '2rem',
-                backgroundColor: colors.borderAccent,
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <svg 
-                  style={{
-                    width: '20px', 
-                    height: '20px', 
-                    minWidth: '20px', 
-                    maxWidth: '20px',
-                    color: 'white',
-                    flexShrink: 0
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p style={{
-                  fontSize: '1.125rem',
-                  fontWeight: '600',
-                  color: colors.text,
-                  margin: '0 0 0.25rem 0'
-                }}>
-                  Action Completed! 🎉
-                </p>
-                <p style={{
-                  fontSize: '0.875rem',
-                  color: colors.textMuted,
-                  margin: 0
-                }}>
-                  Loading next action...
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={markComplete}
-            disabled={completing}
-            style={{
-              width: '100%',
-              borderRadius: '0.5rem',
-              padding: '1rem 1.5rem',
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              color: 'white',
-              transition: 'opacity 0.2s ease',
-              backgroundColor: completing ? colors.textFaint : colors.borderAccent,
-              backgroundImage: completing ? 'none' : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
-              border: 'none',
-              cursor: completing ? 'not-allowed' : 'pointer',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-            }}
-            onMouseEnter={(e) => {
-              if (!completing) {
-                (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!completing) {
-                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
-              }
-            }}
-          >
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              gap: '0.75rem'
-            }}>
-              {completing ? (
-                <>
-                  <svg 
-                    style={{
-                      width: '20px', 
-                      height: '20px', 
-                      minWidth: '20px', 
-                      maxWidth: '20px',
-                      flexShrink: 0,
-                      animation: 'spin 1s linear infinite'
-                    }} 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
-                    viewBox="0 0 24 24"
-                  >
-                    <circle style={{opacity: 0.25}} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path style={{opacity: 0.75}} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Marking Complete...</span>
-                </>
-              ) : (
-                <>
-                  <svg 
-                    style={{
-                      width: '20px', 
-                      height: '20px', 
-                      minWidth: '20px', 
-                      maxWidth: '20px',
-                      flexShrink: 0
-                    }} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Mark Complete</span>
-                </>
-              )}
-            </div>
-          </button>
-        )}
-      </div>
-
-      {/* Main Action Content - Enhanced for importance */}
+      {/* Main Action Content with integrated Mark Complete button */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{
           backgroundColor: 'white',
@@ -395,6 +253,147 @@ export default function NextActionDisplay({ colors }: Props) {
           padding: '1.5rem',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}>
+          {/* Mark Complete Button inside card */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            {completed ? (
+              <div style={{
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '0.5rem',
+                padding: '1rem',
+                textAlign: 'center',
+                borderLeft: `4px solid ${colors.borderAccent}`
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '0.75rem' 
+                }}>
+                  <div style={{
+                    height: '2rem',
+                    width: '2rem',
+                    backgroundColor: colors.borderAccent,
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <svg 
+                      style={{
+                        width: '20px', 
+                        height: '20px', 
+                        minWidth: '20px', 
+                        maxWidth: '20px',
+                        color: 'white',
+                        flexShrink: 0
+                      }} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p style={{
+                      fontSize: '1.125rem',
+                      fontWeight: '600',
+                      color: colors.text,
+                      margin: '0 0 0.25rem 0'
+                    }}>
+                      Action Completed! 🎉
+                    </p>
+                    <p style={{
+                      fontSize: '0.875rem',
+                      color: colors.textMuted,
+                      margin: 0
+                    }}>
+                      Loading next action...
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={markComplete}
+                disabled={completing}
+                style={{
+                  width: '100%',
+                  borderRadius: '0.5rem',
+                  padding: '1rem 1.5rem',
+                  fontSize: '1.125rem',
+                  fontWeight: '600',
+                  color: 'white',
+                  transition: 'opacity 0.2s ease',
+                  backgroundColor: completing ? colors.textFaint : colors.borderAccent,
+                  backgroundImage: completing ? 'none' : 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)',
+                  border: 'none',
+                  cursor: completing ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!completing) {
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!completing) {
+                    (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+                  }
+                }}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  {completing ? (
+                    <>
+                      <svg 
+                        style={{
+                          width: '20px', 
+                          height: '20px', 
+                          minWidth: '20px', 
+                          maxWidth: '20px',
+                          flexShrink: 0,
+                          animation: 'spin 1s linear infinite'
+                        }} 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        fill="none" 
+                        viewBox="0 0 24 24"
+                      >
+                        <circle style={{opacity: 0.25}} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path style={{opacity: 0.75}} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Marking Complete...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg 
+                        style={{
+                          width: '20px', 
+                          height: '20px', 
+                          minWidth: '20px', 
+                          maxWidth: '20px',
+                          flexShrink: 0
+                        }} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>Mark Complete</span>
+                    </>
+                  )}
+                </div>
+              </button>
+            )}
+          </div>
           <h1 style={{ 
             fontSize: '1.25rem', 
             fontWeight: '700', 
