@@ -41,7 +41,22 @@ interface NextActionData {
   dependents: ActionMetadata[];
 }
 
-export default function NextActionDisplay() {
+interface ColorScheme {
+  bg: string;
+  surface: string;
+  border: string;
+  borderAccent: string;
+  text: string;
+  textMuted: string;
+  textSubtle: string;
+  textFaint: string;
+}
+
+interface Props {
+  colors: ColorScheme;
+}
+
+export default function NextActionDisplay({ colors }: Props) {
   const [nextAction, setNextAction] = useState<NextActionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,21 +147,21 @@ export default function NextActionDisplay() {
         <div data-testid="loading-skeleton">
           <div style={{
             height: '1.5rem',
-            backgroundColor: '#e5e7eb',
+            backgroundColor: colors.border,
             borderRadius: '0.25rem',
             width: '25%',
             marginBottom: '1rem'
           }}></div>
           <div style={{
             height: '1rem',
-            backgroundColor: '#e5e7eb',
+            backgroundColor: colors.border,
             borderRadius: '0.25rem',
             width: '75%',
             marginBottom: '0.5rem'
           }}></div>
           <div style={{
             height: '1rem',
-            backgroundColor: '#e5e7eb',
+            backgroundColor: colors.border,
             borderRadius: '0.25rem',
             width: '50%'
           }}></div>
@@ -158,36 +173,37 @@ export default function NextActionDisplay() {
   if (error) {
     return (
       <div style={{
-        backgroundColor: '#fef2f2',
-        border: '1px solid #fecaca',
+        backgroundColor: colors.surface,
+        border: `1px solid ${colors.border}`,
         borderRadius: '0.5rem',
-        padding: '1.5rem'
+        padding: '1.5rem',
+        borderLeft: `4px solid ${colors.borderAccent}`
       }}>
         <h2 style={{
           fontSize: '1.125rem',
           fontWeight: '600',
-          color: '#991b1b',
+          color: colors.text,
           marginBottom: '0.5rem'
         }}>
           Error Loading Next Action
         </h2>
         <p style={{
-          color: '#dc2626',
+          color: colors.textMuted,
           marginBottom: '1rem'
         }}>{error}</p>
         <button 
           onClick={() => window.location.reload()}
           style={{
             padding: '0.5rem 1rem',
-            backgroundColor: '#dc2626',
+            backgroundColor: colors.borderAccent,
             color: 'white',
             borderRadius: '0.25rem',
             border: 'none',
             cursor: 'pointer',
             fontSize: '0.875rem'
           }}
-          onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#b91c1c'}
-          onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#dc2626'}
+          onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.opacity = '0.8'}
+          onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
         >
           Retry
         </button>
@@ -198,21 +214,22 @@ export default function NextActionDisplay() {
   if (!nextAction) {
     return (
       <div style={{
-        backgroundColor: '#f0fdf4',
-        border: '1px solid #bbf7d0',
+        backgroundColor: colors.surface,
+        border: `1px solid ${colors.border}`,
         borderRadius: '0.5rem',
-        padding: '1.5rem'
+        padding: '1.5rem',
+        borderLeft: `4px solid ${colors.borderAccent}`
       }}>
         <h2 style={{
           fontSize: '1.125rem',
           fontWeight: '600',
-          color: '#166534',
+          color: colors.text,
           marginBottom: '0.5rem'
         }}>
           🎉 All Done!
         </h2>
         <p style={{
-          color: '#16a34a'
+          color: colors.textMuted
         }}>
           No next action found. You're all caught up!
         </p>
@@ -231,11 +248,12 @@ export default function NextActionDisplay() {
       <div style={{ marginBottom: '1.5rem' }}>
         {completed ? (
           <div style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #bbf7d0',
+            backgroundColor: colors.surface,
+            border: `1px solid ${colors.border}`,
             borderRadius: '0.5rem',
             padding: '1rem',
-            textAlign: 'center'
+            textAlign: 'center',
+            borderLeft: `4px solid ${colors.borderAccent}`
           }}>
             <div style={{ 
               display: 'flex', 
@@ -246,7 +264,7 @@ export default function NextActionDisplay() {
               <div style={{
                 height: '2rem',
                 width: '2rem',
-                backgroundColor: '#22c55e',
+                backgroundColor: colors.borderAccent,
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -273,14 +291,14 @@ export default function NextActionDisplay() {
                 <p style={{
                   fontSize: '1.125rem',
                   fontWeight: '600',
-                  color: '#166534',
+                  color: colors.text,
                   margin: '0 0 0.25rem 0'
                 }}>
                   Action Completed! 🎉
                 </p>
                 <p style={{
                   fontSize: '0.875rem',
-                  color: '#16a34a',
+                  color: colors.textMuted,
                   margin: 0
                 }}>
                   Loading next action...
@@ -299,20 +317,20 @@ export default function NextActionDisplay() {
               fontSize: '1.125rem',
               fontWeight: '600',
               color: 'white',
-              transition: 'background-color 0.2s ease',
-              backgroundColor: completing ? '#9ca3af' : '#16a34a',
+              transition: 'opacity 0.2s ease',
+              backgroundColor: completing ? colors.textFaint : colors.borderAccent,
               border: 'none',
               cursor: completing ? 'not-allowed' : 'pointer',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
             }}
             onMouseEnter={(e) => {
               if (!completing) {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#15803d';
+                (e.currentTarget as HTMLButtonElement).style.opacity = '0.8';
               }
             }}
             onMouseLeave={(e) => {
               if (!completing) {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#16a34a';
+                (e.currentTarget as HTMLButtonElement).style.opacity = '1';
               }
             }}
           >

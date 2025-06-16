@@ -6,10 +6,22 @@ export const metadata = {
 };
 
 export default function NextPage() {
+  // Monochromatic blue color scheme
+  const colors = {
+    bg: '#f8fafc',           // Very light blue-gray
+    surface: '#f1f5f9',      // Light blue-gray  
+    border: '#e2e8f0',       // Medium blue-gray
+    borderAccent: '#3b82f6', // Base blue
+    text: '#0f172a',         // Very dark blue
+    textMuted: '#475569',    // Medium dark blue
+    textSubtle: '#64748b',   // Medium blue
+    textFaint: '#94a3b8'     // Light blue
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f9fafb',
+      backgroundColor: colors.bg,
       fontFamily: 'system-ui, -apple-system, sans-serif',
       display: 'flex',
       flexDirection: 'column'
@@ -24,14 +36,14 @@ export default function NextPage() {
           maxWidth: '48rem',
           margin: '0 auto'
         }}>
-          <NextActionDisplay />
+          <NextActionDisplay colors={colors} />
         </div>
       </div>
       
       {/* Persistent Footer */}
       <footer style={{
         backgroundColor: '#ffffff',
-        borderTop: '1px solid #e5e7eb',
+        borderTop: `1px solid ${colors.border}`,
         padding: '1.5rem 1rem',
         marginTop: 'auto'
       }}>
@@ -46,14 +58,14 @@ export default function NextPage() {
             <h3 style={{
               fontSize: '1.125rem',
               fontWeight: '600',
-              color: '#111827',
+              color: colors.text,
               margin: '0 0 0.5rem 0'
             }}>
               ActionBias
             </h3>
             <p style={{
               fontSize: '0.875rem',
-              color: '#6b7280',
+              color: colors.textMuted,
               margin: '0 0 0.75rem 0',
               lineHeight: '1.5'
             }}>
@@ -61,7 +73,7 @@ export default function NextPage() {
             </p>
             <p style={{
               fontSize: '0.75rem',
-              color: '#9ca3af',
+              color: colors.textSubtle,
               margin: 0,
               lineHeight: '1.4'
             }}>
@@ -72,11 +84,11 @@ export default function NextPage() {
           {/* Future: User info section will go here when multi-tenancy is implemented */}
           <div style={{
             fontSize: '0.75rem',
-            color: '#d1d5db',
-            borderTop: '1px solid #f3f4f6',
+            color: colors.textFaint,
+            borderTop: `1px solid ${colors.border}`,
             paddingTop: '0.75rem'
           }}>
-            Single-user instance • <a href="https://github.com/exhibit-org/actionbias" style={{ color: '#6b7280', textDecoration: 'none' }}>Open Source</a>
+            Single-user instance • <a href="https://github.com/exhibit-org/actionbias" style={{ color: colors.textSubtle, textDecoration: 'none' }}>Open Source</a>
           </div>
         </div>
       </footer>
