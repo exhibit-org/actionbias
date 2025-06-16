@@ -7,13 +7,32 @@ export const metadata = {
 
 export default function NextPage() {
   return (
-    <div className="antialiased min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f9fafb',
+      padding: '2rem 0',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        maxWidth: '48rem',
+        margin: '0 auto',
+        padding: '0 1rem'
+      }}>
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '2rem'
+        }}>
+          <h1 style={{
+            fontSize: '1.875rem',
+            fontWeight: 'bold',
+            color: '#111827',
+            marginBottom: '0.5rem'
+          }}>
             Next Action
           </h1>
-          <p className="text-gray-600">
+          <p style={{
+            color: '#6b7280'
+          }}>
             Stay focused on what matters most right now
           </p>
         </div>

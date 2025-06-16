@@ -111,11 +111,33 @@ export default function NextActionDisplay() {
 
   if (loading) {
     return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="animate-pulse" data-testid="loading-skeleton">
-          <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+      <div style={{
+        backgroundColor: 'white',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        borderRadius: '0.5rem',
+        padding: '1.5rem'
+      }}>
+        <div data-testid="loading-skeleton">
+          <div style={{
+            height: '1.5rem',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '0.25rem',
+            width: '25%',
+            marginBottom: '1rem'
+          }}></div>
+          <div style={{
+            height: '1rem',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '0.25rem',
+            width: '75%',
+            marginBottom: '0.5rem'
+          }}></div>
+          <div style={{
+            height: '1rem',
+            backgroundColor: '#e5e7eb',
+            borderRadius: '0.25rem',
+            width: '50%'
+          }}></div>
         </div>
       </div>
     );
@@ -123,14 +145,37 @@ export default function NextActionDisplay() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-red-800 mb-2">
+      <div style={{
+        backgroundColor: '#fef2f2',
+        border: '1px solid #fecaca',
+        borderRadius: '0.5rem',
+        padding: '1.5rem'
+      }}>
+        <h2 style={{
+          fontSize: '1.125rem',
+          fontWeight: '600',
+          color: '#991b1b',
+          marginBottom: '0.5rem'
+        }}>
           Error Loading Next Action
         </h2>
-        <p className="text-red-600 mb-4">{error}</p>
+        <p style={{
+          color: '#dc2626',
+          marginBottom: '1rem'
+        }}>{error}</p>
         <button 
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#dc2626',
+            color: 'white',
+            borderRadius: '0.25rem',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '0.875rem'
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
         >
           Retry
         </button>
@@ -140,11 +185,23 @@ export default function NextActionDisplay() {
 
   if (!nextAction) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-green-800 mb-2">
+      <div style={{
+        backgroundColor: '#f0fdf4',
+        border: '1px solid #bbf7d0',
+        borderRadius: '0.5rem',
+        padding: '1.5rem'
+      }}>
+        <h2 style={{
+          fontSize: '1.125rem',
+          fontWeight: '600',
+          color: '#166534',
+          marginBottom: '0.5rem'
+        }}>
           🎉 All Done!
         </h2>
-        <p className="text-green-600">
+        <p style={{
+          color: '#16a34a'
+        }}>
           No next action found. You're all caught up!
         </p>
       </div>
@@ -152,36 +209,101 @@ export default function NextActionDisplay() {
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6">
+    <div style={{
+      backgroundColor: 'white',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+      borderRadius: '0.5rem',
+      padding: '1.5rem'
+    }}>'
       {/* Main Action Content */}
-      <div className="mb-6">
-        <div className="flex items-start space-x-3 mb-4">
-          <div className="flex-shrink-0 mt-1">
-            <div className="h-3 w-3 bg-blue-500 rounded-full"></div>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'flex-start', 
+          gap: '0.75rem', 
+          marginBottom: '1rem' 
+        }}>
+          <div style={{ 
+            flexShrink: 0, 
+            marginTop: '0.25rem' 
+          }}>
+            <div style={{ 
+              height: '0.75rem', 
+              width: '0.75rem', 
+              backgroundColor: '#3b82f6', 
+              borderRadius: '50%' 
+            }}></div>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+          <h1 style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 'bold', 
+            color: '#111827', 
+            lineHeight: '1.25',
+            margin: 0
+          }}>
             {nextAction.title}
           </h1>
         </div>
         
         {nextAction.description && (
-          <div className="ml-6 mb-4">
-            <p className="text-gray-700 text-base leading-relaxed">
+          <div style={{ 
+            marginLeft: '1.5rem', 
+            marginBottom: '1rem' 
+          }}>
+            <p style={{ 
+              color: '#374151', 
+              fontSize: '1rem', 
+              lineHeight: '1.625' 
+            }}>
               {nextAction.description}
             </p>
           </div>
         )}
         
         {nextAction.vision && (
-          <div className="ml-6 bg-blue-50 border-l-4 border-blue-400 rounded-r p-4 mb-4">
-            <div className="flex items-start space-x-3">
-              <svg className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{width: '16px', height: '16px', minWidth: '16px', maxWidth: '16px'}}>
+          <div style={{ 
+            marginLeft: '1.5rem', 
+            backgroundColor: '#eff6ff', 
+            borderLeft: '4px solid #60a5fa', 
+            borderTopRightRadius: '0.5rem',
+            borderBottomRightRadius: '0.5rem',
+            padding: '1rem', 
+            marginBottom: '1rem' 
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '0.75rem' 
+            }}>
+              <svg 
+                style={{
+                  width: '16px', 
+                  height: '16px', 
+                  minWidth: '16px', 
+                  maxWidth: '16px',
+                  color: '#2563eb',
+                  marginTop: '0.125rem',
+                  flexShrink: 0
+                }} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
-              <div className="flex-1 min-w-0">
-                <span className="font-semibold text-blue-900 text-sm">Vision:</span>
-                <p className="text-blue-800 text-sm mt-1 leading-relaxed">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ 
+                  fontWeight: '600', 
+                  color: '#1e3a8a', 
+                  fontSize: '0.875rem' 
+                }}>Vision:</span>
+                <p style={{ 
+                  color: '#1e40af', 
+                  fontSize: '0.875rem', 
+                  marginTop: '0.25rem', 
+                  lineHeight: '1.625' 
+                }}>
                   {nextAction.vision}
                 </p>
               </div>
