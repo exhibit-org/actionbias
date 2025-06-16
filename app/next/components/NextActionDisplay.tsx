@@ -387,16 +387,16 @@ export default function NextActionDisplay({ colors }: Props) {
       {/* Main Action Content */}
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{
-          backgroundColor: '#f9fafb',
-          border: '1px solid #e5e7eb',
+          backgroundColor: colors.surface,
+          border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
           padding: '1rem',
-          borderLeft: '4px solid #3b82f6'
+          borderLeft: `4px solid ${colors.borderAccent}`
         }}>
           <h1 style={{ 
             fontSize: '1rem', 
             fontWeight: '600', 
-            color: '#111827',
+            color: colors.text,
             margin: '0 0 0.5rem 0'
           }}>
             {nextAction.title}
@@ -405,7 +405,7 @@ export default function NextActionDisplay({ colors }: Props) {
           {nextAction.description && (
             <p style={{ 
               fontSize: '0.875rem', 
-              color: '#4b5563', 
+              color: colors.textMuted, 
               margin: '0 0 0.75rem 0',
               lineHeight: '1.5' 
             }}>
@@ -415,8 +415,8 @@ export default function NextActionDisplay({ colors }: Props) {
           
           {nextAction.vision && (
             <div style={{ 
-              backgroundColor: '#eff6ff', 
-              borderLeft: '3px solid #60a5fa', 
+              backgroundColor: colors.bg, 
+              borderLeft: `3px solid ${colors.borderAccent}`, 
               borderTopRightRadius: '0.25rem',
               borderBottomRightRadius: '0.25rem',
               padding: '0.75rem', 
@@ -433,7 +433,7 @@ export default function NextActionDisplay({ colors }: Props) {
                     height: '14px', 
                     minWidth: '14px', 
                     maxWidth: '14px',
-                    color: '#2563eb',
+                    color: colors.borderAccent,
                     marginTop: '0.125rem',
                     flexShrink: 0
                   }} 
@@ -447,11 +447,11 @@ export default function NextActionDisplay({ colors }: Props) {
                 <div style={{ flex: 1 }}>
                   <span style={{ 
                     fontWeight: '600', 
-                    color: '#1e3a8a', 
+                    color: colors.text, 
                     fontSize: '0.75rem' 
                   }}>Vision:</span>
                   <p style={{ 
-                    color: '#1e40af', 
+                    color: colors.textMuted, 
                     fontSize: '0.75rem', 
                     marginTop: '0.25rem', 
                     lineHeight: '1.5',
@@ -481,7 +481,7 @@ export default function NextActionDisplay({ colors }: Props) {
                 height: '16px', 
                 minWidth: '16px', 
                 maxWidth: '16px',
-                color: '#6b7280',
+                color: colors.textSubtle,
                 flexShrink: 0
               }} 
               fill="none" 
@@ -493,7 +493,7 @@ export default function NextActionDisplay({ colors }: Props) {
             <h3 style={{ 
               fontSize: '0.875rem', 
               fontWeight: '600', 
-              color: '#374151', 
+              color: colors.textMuted, 
               textTransform: 'uppercase', 
               letterSpacing: '0.05em',
               margin: 0
@@ -509,17 +509,17 @@ export default function NextActionDisplay({ colors }: Props) {
               <div 
                 key={parent.id} 
                 style={{
-                  backgroundColor: '#f9fafb',
-                  border: '1px solid #e5e7eb',
+                  backgroundColor: colors.surface,
+                  border: `1px solid ${colors.border}`,
                   borderRadius: '0.5rem',
                   padding: '1rem',
-                  borderLeft: '4px solid #d1d5db'
+                  borderLeft: `4px solid ${colors.textFaint}`
                 }}
               >
                 <h4 style={{ 
                   fontSize: '1rem', 
                   fontWeight: '600', 
-                  color: '#111827',
+                  color: colors.text,
                   margin: '0 0 0.5rem 0'
                 }}>
                   {parent.title}
@@ -528,7 +528,7 @@ export default function NextActionDisplay({ colors }: Props) {
                 {parent.description && (
                   <p style={{ 
                     fontSize: '0.875rem', 
-                    color: '#4b5563', 
+                    color: colors.textMuted, 
                     margin: '0 0 0.75rem 0',
                     lineHeight: '1.5' 
                   }}>
@@ -538,8 +538,8 @@ export default function NextActionDisplay({ colors }: Props) {
                 
                 {parent.vision && (
                   <div style={{ 
-                    backgroundColor: '#eff6ff', 
-                    borderLeft: '3px solid #60a5fa', 
+                    backgroundColor: colors.bg, 
+                    borderLeft: `3px solid ${colors.textSubtle}`, 
                     borderTopRightRadius: '0.25rem',
                     borderBottomRightRadius: '0.25rem',
                     padding: '0.75rem', 
@@ -556,7 +556,7 @@ export default function NextActionDisplay({ colors }: Props) {
                           height: '14px', 
                           minWidth: '14px', 
                           maxWidth: '14px',
-                          color: '#2563eb',
+                          color: colors.textSubtle,
                           marginTop: '0.125rem',
                           flexShrink: 0
                         }} 
@@ -570,11 +570,11 @@ export default function NextActionDisplay({ colors }: Props) {
                       <div style={{ flex: 1 }}>
                         <span style={{ 
                           fontWeight: '600', 
-                          color: '#1e3a8a', 
+                          color: colors.text, 
                           fontSize: '0.75rem' 
                         }}>Vision:</span>
                         <p style={{ 
-                          color: '#1e40af', 
+                          color: colors.textMuted, 
                           fontSize: '0.75rem', 
                           marginTop: '0.25rem', 
                           lineHeight: '1.5',
@@ -597,14 +597,14 @@ export default function NextActionDisplay({ colors }: Props) {
       <div style={{
         marginTop: '1.5rem',
         paddingTop: '1rem',
-        borderTop: '1px solid #e5e7eb'
+        borderTop: `1px solid ${colors.border}`
       }}>
         <div style={{
           display: 'flex',
           flexDirection: 'column',
           gap: '0.75rem',
           fontSize: '0.75rem',
-          color: '#6b7280'
+          color: colors.textFaint
         }}>
           <div style={{ 
             display: 'flex', 
@@ -617,7 +617,8 @@ export default function NextActionDisplay({ colors }: Props) {
                 height: '12px', 
                 minWidth: '12px', 
                 maxWidth: '12px',
-                flexShrink: 0
+                flexShrink: 0,
+                color: colors.textFaint
               }} 
               fill="none" 
               stroke="currentColor" 
@@ -638,13 +639,14 @@ export default function NextActionDisplay({ colors }: Props) {
                 height: '12px', 
                 minWidth: '12px', 
                 maxWidth: '12px',
-                flexShrink: 0
+                flexShrink: 0,
+                color: colors.textFaint
               }} 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Created: {new Date(nextAction.created_at).toLocaleDateString()}</span>
           </div>
