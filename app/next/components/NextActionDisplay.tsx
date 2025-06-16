@@ -299,20 +299,20 @@ export default function NextActionDisplay() {
               fontSize: '1.125rem',
               fontWeight: '600',
               color: 'white',
-              transition: 'all 0.2s',
+              transition: 'background-color 0.2s ease',
               backgroundColor: completing ? '#9ca3af' : '#16a34a',
               border: 'none',
               cursor: completing ? 'not-allowed' : 'pointer',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
             }}
-            onMouseOver={(e) => {
+            onMouseEnter={(e) => {
               if (!completing) {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#15803d';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#15803d';
               }
             }}
-            onMouseOut={(e) => {
+            onMouseLeave={(e) => {
               if (!completing) {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#16a34a';
+                (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#16a34a';
               }
             }}
           >
