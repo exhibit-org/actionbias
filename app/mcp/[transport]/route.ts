@@ -16,20 +16,23 @@ const handler = createMcpHandler(
   },
   {
     redisUrl: process.env.REDIS_URL,
-    basePath: "",
+    basePath: "/mcp",
     verboseLogs: true,
     maxDuration: 60,
   },
 );
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: Promise<{ transport: string }> }) {
+  await params;
   return authenticatedHandler('GET', request, handler);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request, { params }: { params: Promise<{ transport: string }> }) {
+  await params;
   return authenticatedHandler('POST', request, handler);
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ transport: string }> }) {
+  await params;
   return authenticatedHandler('DELETE', request, handler);
 }
