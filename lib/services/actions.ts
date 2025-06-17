@@ -930,10 +930,16 @@ export class ActionsService {
     // Reverse the array so we go from closest to furthest parent
     const reversedDescriptions = [...parentDescriptions].reverse();
     
-    let prompt = "Summarize the hierarchical context for this action, moving from the immediate parent context to the broader project context.\n\n";
+    let prompt = `You are creating a contextual summary to help someone understand how the current action "${detail.title}" fits into the broader project context.\n\n`;
+    prompt += "CURRENT ACTION:\n";
+    prompt += `${detail.title}`;
+    if (detail.description) {
+      prompt += `: ${detail.description}`;
+    }
+    prompt += "\n\n";
     prompt += "PARENT CONTEXTS (from closest to furthest):\n";
     prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
-    prompt += "\n\nWrite a concise summary that explains the hierarchical goals and context that this action fits within, starting with the most immediate parent goal and expanding to the broader project vision.";
+    prompt += `\n\nWrite a concise summary that explains how "${detail.title}" connects to and supports the broader project goals. Focus on the relationship between this specific action and the larger context it serves. Make it clear why this action matters in the bigger picture.`;
 
     const { generateText } = await import("ai");
     const { createOpenAI } = await import("@ai-sdk/openai");
@@ -966,10 +972,19 @@ export class ActionsService {
     // Reverse the array so we go from closest to furthest parent
     const reversedVisions = [...parentVisions].reverse();
     
-    let prompt = "Summarize the hierarchical vision for this action, moving from the immediate parent vision to the broader project vision.\n\n";
+    let prompt = `You are creating a vision summary to help someone understand how completing the current action "${detail.title}" contributes to the broader project outcomes.\n\n`;
+    prompt += "CURRENT ACTION:\n";
+    prompt += `${detail.title}`;
+    if (detail.description) {
+      prompt += `: ${detail.description}`;
+    }
+    if (detail.vision) {
+      prompt += ` (Success criteria: ${detail.vision})`;
+    }
+    prompt += "\n\n";
     prompt += "PARENT VISIONS (from closest to furthest):\n";
     prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
-    prompt += "\n\nWrite a concise summary that explains the hierarchical desired outcomes and future state that this action contributes to, starting with the most immediate parent vision and expanding to the broader project vision.";
+    prompt += `\n\nWrite a concise summary that explains how completing "${detail.title}" moves the project toward these broader visions. Focus on the connection between this specific action's success and the larger outcomes it enables. Make it clear what bigger picture this action serves.`;
 
     const { generateText } = await import("ai");
     const { createOpenAI } = await import("@ai-sdk/openai");

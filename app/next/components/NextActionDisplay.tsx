@@ -600,7 +600,7 @@ export default function NextActionDisplay({ colors }: Props) {
             color: colors.textMuted,
             margin: '0 0 0.75rem 0'
           }}>
-            Project Context
+            Broader Context
           </h3>
           <p style={{ 
             fontSize: '0.8rem', 
@@ -648,7 +648,7 @@ export default function NextActionDisplay({ colors }: Props) {
               color: colors.textMuted, 
               fontSize: '0.875rem',
               margin: 0
-            }}>Project Vision</h3>
+            }}>Broader Vision</h3>
           </div>
           
           <p style={{ 
