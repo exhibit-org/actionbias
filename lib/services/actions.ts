@@ -925,9 +925,19 @@ export class ActionsService {
       descriptions.push(detail.description);
     }
 
-    const prompt =
-      "Synthesize a concise master description for an action based on these descriptions:\n" +
-      descriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+    const parentDescriptions = descriptions.slice(0, -1);
+    const actionDescription = descriptions[descriptions.length - 1];
+    
+    let prompt = "Create a concise description that explains what this specific action accomplishes, using the provided context for background understanding.\n\n";
+    
+    if (parentDescriptions.length > 0) {
+      prompt += "CONTEXT (parent project descriptions):\n";
+      prompt += parentDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+      prompt += "\n\n";
+    }
+    
+    prompt += `SPECIFIC ACTION TO DESCRIBE:\n${actionDescription}\n\n`;
+    prompt += "Write a clear, concise description that focuses on what this specific action does, incorporating the context to explain why it's important.";
 
     const { generateText } = await import("ai");
     const { createOpenAI } = await import("@ai-sdk/openai");
