@@ -326,14 +326,84 @@ export default function NextActionDisplay({ colors }: Props) {
       borderRadius: '0.5rem',
       padding: '1.5rem'
     }}>
-      {/* Main Action Content with integrated Mark Complete button */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      {/* Copy Prompt Button - positioned at top right */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        marginBottom: '1rem'
+      }}>
+        <button
+          onClick={copyPromptToClipboard}
+          disabled={copying}
+          style={{
+            width: '24px',
+            height: '24px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            borderRadius: '0.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: copying ? 'not-allowed' : 'pointer',
+            flexShrink: 0,
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!copying) {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!copying) {
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+            }
+          }}
+          title="Copy prompt for Claude Code"
+        >
+          {copying ? (
+            <svg 
+              style={{
+                width: '14px', 
+                height: '14px',
+                color: colors.textMuted
+              }} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg 
+              style={{
+                width: '14px', 
+                height: '14px',
+                color: colors.textSubtle
+              }} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* 4 Quadrant Layout */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: 'auto auto',
+        gap: '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        {/* Top Left: Checkbox, Title, Description */}
         <div style={{
-          backgroundColor: 'white',
-          border: `2px solid ${colors.borderAccent}`,
+          backgroundColor: colors.surface,
+          border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
-          padding: '1.5rem',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          padding: '1rem'
         }}>
           <div style={{
             display: 'flex',
@@ -416,140 +486,32 @@ export default function NextActionDisplay({ colors }: Props) {
                 )}
               </button>
             )}
-            <h1 style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: '700', 
+            <h2 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: '600', 
               color: colors.text,
               margin: 0,
               flex: 1
             }}>
               {nextAction.title}
-            </h1>
-            <button
-              onClick={copyPromptToClipboard}
-              disabled={copying}
-              style={{
-                width: '24px',
-                height: '24px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderRadius: '0.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: copying ? 'not-allowed' : 'pointer',
-                flexShrink: 0,
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                if (!copying) {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!copying) {
-                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-                }
-              }}
-              title="Copy prompt for Claude Code"
-            >
-              {copying ? (
-                <svg 
-                  style={{
-                    width: '14px', 
-                    height: '14px',
-                    color: colors.textMuted
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                <svg 
-                  style={{
-                    width: '14px', 
-                    height: '14px',
-                    color: colors.textSubtle
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              )}
-            </button>
+            </h2>
           </div>
           
           {nextAction.description && (
             <p style={{ 
-              fontSize: '1rem', 
+              fontSize: '0.875rem', 
               color: colors.textMuted, 
-              margin: '0 0 1rem 0',
-              lineHeight: '1.6' 
+              margin: 0,
+              lineHeight: '1.5' 
             }}>
               {nextAction.description}
             </p>
-          )}
-          
-          {nextAction.vision && (
-            <div style={{ 
-              backgroundColor: colors.surface, 
-              borderLeft: `4px solid ${colors.borderAccent}`, 
-              borderTopRightRadius: '0.25rem',
-              borderBottomRightRadius: '0.25rem',
-              padding: '1rem', 
-              marginTop: '0.75rem',
-              marginBottom: '1.5rem'
-            }}>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'flex-start', 
-                gap: '0.5rem' 
-              }}>
-                <svg 
-                  style={{
-                    width: '16px', 
-                    height: '16px', 
-                    minWidth: '16px', 
-                    maxWidth: '16px',
-                    color: colors.borderAccent,
-                    marginTop: '0.125rem',
-                    flexShrink: 0
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <div style={{ flex: 1 }}>
-                  <span style={{ 
-                    fontWeight: '600', 
-                    color: colors.text, 
-                    fontSize: '0.875rem' 
-                  }}>Vision:</span>
-                  <p style={{ 
-                    color: colors.textMuted, 
-                    fontSize: '0.875rem', 
-                    marginTop: '0.25rem', 
-                    lineHeight: '1.5',
-                    margin: '0.25rem 0 0 0'
-                  }}>
-                    {nextAction.vision}
-                  </p>
-                </div>
-              </div>
-            </div>
           )}
 
           {/* Completion message */}
           {completed && (
             <div style={{
-              backgroundColor: colors.surface,
+              backgroundColor: colors.bg,
               border: `1px solid ${colors.border}`,
               borderRadius: '0.375rem',
               padding: '0.75rem',
@@ -574,16 +536,95 @@ export default function NextActionDisplay({ colors }: Props) {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Parent Context Summary */}
-      {(nextAction.parent_context_summary || nextAction.parent_vision_summary) && (
-        <div style={{ marginBottom: '1.5rem' }}>
+        {/* Top Right: Action Vision */}
+        <div style={{
+          backgroundColor: colors.surface,
+          border: `1px solid ${colors.border}`,
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          borderLeft: `4px solid ${colors.borderAccent}`
+        }}>
           <div style={{ 
             display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            marginBottom: '0.75rem' 
+            alignItems: 'flex-start', 
+            gap: '0.5rem',
+            marginBottom: '0.75rem'
+          }}>
+            <svg 
+              style={{
+                width: '16px', 
+                height: '16px', 
+                minWidth: '16px', 
+                maxWidth: '16px',
+                color: colors.borderAccent,
+                marginTop: '0.125rem',
+                flexShrink: 0
+              }} 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <h3 style={{ 
+              fontWeight: '600', 
+              color: colors.text, 
+              fontSize: '0.875rem',
+              margin: 0
+            }}>Vision</h3>
+          </div>
+          
+          <p style={{ 
+            color: colors.textMuted, 
+            fontSize: '0.875rem', 
+            margin: 0,
+            lineHeight: '1.5'
+          }}>
+            {nextAction.vision || 'No vision defined for this action.'}
+          </p>
+        </div>
+
+        {/* Bottom Left: Parent Context Summary */}
+        <div style={{
+          backgroundColor: colors.bg,
+          border: `1px solid ${colors.border}`,
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          borderLeft: `4px solid ${colors.textFaint}`
+        }}>
+          <h3 style={{ 
+            fontSize: '0.875rem', 
+            fontWeight: '500', 
+            color: colors.textMuted,
+            margin: '0 0 0.75rem 0'
+          }}>
+            Project Context
+          </h3>
+          <p style={{ 
+            fontSize: '0.8rem', 
+            color: colors.textSubtle, 
+            margin: 0,
+            lineHeight: '1.5' 
+          }}>
+            {nextAction.parent_context_summary || 'This action has no parent context.'}
+          </p>
+        </div>
+
+        {/* Bottom Right: Parent Vision Summary */}
+        <div style={{ 
+          backgroundColor: colors.surface, 
+          border: `1px solid ${colors.border}`,
+          borderRadius: '0.5rem',
+          padding: '1rem',
+          borderLeft: `4px solid ${colors.textFaint}`
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'flex-start', 
+            gap: '0.5rem',
+            marginBottom: '0.75rem'
           }}>
             <svg 
               style={{
@@ -592,109 +633,34 @@ export default function NextActionDisplay({ colors }: Props) {
                 minWidth: '14px', 
                 maxWidth: '14px',
                 color: colors.textFaint,
+                marginTop: '0.125rem',
                 flexShrink: 0
               }} 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
             <h3 style={{ 
-              fontSize: '0.75rem', 
               fontWeight: '500', 
-              color: colors.textSubtle, 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.1em',
+              color: colors.textMuted, 
+              fontSize: '0.875rem',
               margin: 0
-            }}>Context</h3>
+            }}>Project Vision</h3>
           </div>
           
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '1rem' 
+          <p style={{ 
+            color: colors.textSubtle, 
+            fontSize: '0.8rem', 
+            margin: 0,
+            lineHeight: '1.5'
           }}>
-            {nextAction.parent_context_summary && (
-              <div style={{
-                backgroundColor: colors.bg,
-                border: `1px solid ${colors.border}`,
-                borderRadius: '0.375rem',
-                padding: '0.75rem',
-                borderLeft: `2px solid ${colors.textFaint}`
-              }}>
-                <h4 style={{ 
-                  fontSize: '0.875rem', 
-                  fontWeight: '500', 
-                  color: colors.textMuted,
-                  margin: '0 0 0.5rem 0'
-                }}>
-                  Project Context
-                </h4>
-                <p style={{ 
-                  fontSize: '0.8rem', 
-                  color: colors.textSubtle, 
-                  margin: 0,
-                  lineHeight: '1.5' 
-                }}>
-                  {nextAction.parent_context_summary}
-                </p>
-              </div>
-            )}
-            
-            {nextAction.parent_vision_summary && (
-              <div style={{ 
-                backgroundColor: colors.surface, 
-                borderLeft: `2px solid ${colors.textFaint}`, 
-                borderTopRightRadius: '0.25rem',
-                borderBottomRightRadius: '0.25rem',
-                padding: '0.75rem'
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'flex-start', 
-                  gap: '0.5rem' 
-                }}>
-                  <svg 
-                    style={{
-                      width: '14px', 
-                      height: '14px', 
-                      minWidth: '14px', 
-                      maxWidth: '14px',
-                      color: colors.textFaint,
-                      marginTop: '0.125rem',
-                      flexShrink: 0
-                    }} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ 
-                      fontWeight: '500', 
-                      color: colors.textMuted, 
-                      fontSize: '0.875rem' 
-                    }}>Project Vision:</span>
-                    <p style={{ 
-                      color: colors.textSubtle, 
-                      fontSize: '0.8rem', 
-                      marginTop: '0.5rem', 
-                      lineHeight: '1.5',
-                      margin: '0.5rem 0 0 0'
-                    }}>
-                      {nextAction.parent_vision_summary}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+            {nextAction.parent_vision_summary || 'This action has no parent vision context.'}
+          </p>
         </div>
-      )}
-
+      </div>
 
       {/* Metadata */}
       <div style={{
