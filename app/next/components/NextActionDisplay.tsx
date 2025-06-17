@@ -39,6 +39,8 @@ interface NextActionData {
   children: ActionMetadata[];
   dependencies: ActionMetadata[];
   dependents: ActionMetadata[];
+  parent_context_summary?: string;
+  parent_vision_summary?: string;
 }
 
 interface ColorScheme {
@@ -574,8 +576,8 @@ export default function NextActionDisplay({ colors }: Props) {
         </div>
       </div>
 
-      {/* Parent Context - Reduced visual prominence */}
-      {nextAction.parent_chain.length > 0 && (
+      {/* Parent Context Summary */}
+      {(nextAction.parent_context_summary || nextAction.parent_vision_summary) && (
         <div style={{ marginBottom: '1.5rem' }}>
           <div style={{ 
             display: 'flex', 
@@ -613,89 +615,82 @@ export default function NextActionDisplay({ colors }: Props) {
             flexDirection: 'column', 
             gap: '1rem' 
           }}>
-            {nextAction.parent_chain.slice().reverse().map((parent, index) => (
-              <div 
-                key={parent.id} 
-                style={{
-                  backgroundColor: colors.bg,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '0.375rem',
-                  padding: '0.75rem',
-                  borderLeft: `2px solid ${colors.textFaint}`
-                }}
-              >
+            {nextAction.parent_context_summary && (
+              <div style={{
+                backgroundColor: colors.bg,
+                border: `1px solid ${colors.border}`,
+                borderRadius: '0.375rem',
+                padding: '0.75rem',
+                borderLeft: `2px solid ${colors.textFaint}`
+              }}>
                 <h4 style={{ 
                   fontSize: '0.875rem', 
                   fontWeight: '500', 
                   color: colors.textMuted,
-                  margin: '0 0 0.375rem 0'
+                  margin: '0 0 0.5rem 0'
                 }}>
-                  {parent.title}
+                  Project Context
                 </h4>
-                
-                {parent.description && (
-                  <p style={{ 
-                    fontSize: '0.75rem', 
-                    color: colors.textSubtle, 
-                    margin: '0 0 0.5rem 0',
-                    lineHeight: '1.4' 
-                  }}>
-                    {parent.description}
-                  </p>
-                )}
-                
-                {parent.vision && (
-                  <div style={{ 
-                    backgroundColor: colors.surface, 
-                    borderLeft: `2px solid ${colors.textFaint}`, 
-                    borderTopRightRadius: '0.25rem',
-                    borderBottomRightRadius: '0.25rem',
-                    padding: '0.5rem', 
-                    marginTop: '0.375rem' 
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'flex-start', 
-                      gap: '0.5rem' 
-                    }}>
-                      <svg 
-                        style={{
-                          width: '12px', 
-                          height: '12px', 
-                          minWidth: '12px', 
-                          maxWidth: '12px',
-                          color: colors.textFaint,
-                          marginTop: '0.125rem',
-                          flexShrink: 0
-                        }} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      <div style={{ flex: 1 }}>
-                        <span style={{ 
-                          fontWeight: '500', 
-                          color: colors.textSubtle, 
-                          fontSize: '0.6875rem' 
-                        }}>Vision:</span>
-                        <p style={{ 
-                          color: colors.textSubtle, 
-                          fontSize: '0.6875rem', 
-                          marginTop: '0.25rem', 
-                          lineHeight: '1.4',
-                          margin: '0.25rem 0 0 0'
-                        }}>
-                          {parent.vision}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <p style={{ 
+                  fontSize: '0.8rem', 
+                  color: colors.textSubtle, 
+                  margin: 0,
+                  lineHeight: '1.5' 
+                }}>
+                  {nextAction.parent_context_summary}
+                </p>
               </div>
-            ))}
+            )}
+            
+            {nextAction.parent_vision_summary && (
+              <div style={{ 
+                backgroundColor: colors.surface, 
+                borderLeft: `2px solid ${colors.textFaint}`, 
+                borderTopRightRadius: '0.25rem',
+                borderBottomRightRadius: '0.25rem',
+                padding: '0.75rem'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-start', 
+                  gap: '0.5rem' 
+                }}>
+                  <svg 
+                    style={{
+                      width: '14px', 
+                      height: '14px', 
+                      minWidth: '14px', 
+                      maxWidth: '14px',
+                      color: colors.textFaint,
+                      marginTop: '0.125rem',
+                      flexShrink: 0
+                    }} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ 
+                      fontWeight: '500', 
+                      color: colors.textMuted, 
+                      fontSize: '0.875rem' 
+                    }}>Project Vision:</span>
+                    <p style={{ 
+                      color: colors.textSubtle, 
+                      fontSize: '0.8rem', 
+                      marginTop: '0.5rem', 
+                      lineHeight: '1.5',
+                      margin: '0.5rem 0 0 0'
+                    }}>
+                      {nextAction.parent_vision_summary}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -946,4 +946,40 @@ export class ActionsService {
 
     return result.text;
   }
+
+  static async getParentVisionSummary(actionId: string): Promise<string> {
+    const detail = await this.getActionDetailResource(actionId);
+    
+    // Get only parent visions, excluding the current action
+    const parentVisions: string[] = [];
+    for (const parent of detail.parent_chain) {
+      if (parent.vision) {
+        parentVisions.push(parent.vision);
+      }
+    }
+    
+    // If no parent visions, return empty summary
+    if (parentVisions.length === 0) {
+      return "This action has no parent vision context.";
+    }
+    
+    // Reverse the array so we go from closest to furthest parent
+    const reversedVisions = [...parentVisions].reverse();
+    
+    let prompt = "Summarize the hierarchical vision for this action, moving from the immediate parent vision to the broader project vision.\n\n";
+    prompt += "PARENT VISIONS (from closest to furthest):\n";
+    prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
+    prompt += "\n\nWrite a concise summary that explains the hierarchical desired outcomes and future state that this action contributes to, starting with the most immediate parent vision and expanding to the broader project vision.";
+
+    const { generateText } = await import("ai");
+    const { createOpenAI } = await import("@ai-sdk/openai");
+
+    const provider = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const result = await generateText({
+      model: provider('gpt-3.5-turbo'),
+      prompt,
+    });
+
+    return result.text;
+  }
 }

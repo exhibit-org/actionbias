@@ -244,11 +244,22 @@ export function registerResources(server: any) {
         
         const result = await ActionsService.getActionDetailResource(actionId);
         
+        // Get parent context and vision summaries
+        const parentContextSummary = await ActionsService.getParentContextSummary(actionId);
+        const parentVisionSummary = await ActionsService.getParentVisionSummary(actionId);
+        
+        // Enhance the action details with summaries
+        const enhancedResult = {
+          ...result,
+          parent_context_summary: parentContextSummary,
+          parent_vision_summary: parentVisionSummary
+        };
+        
         return {
           contents: [
             {
               uri: uri.toString(),
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify(enhancedResult, null, 2),
               mimeType: "application/json",
             },
           ],
@@ -299,11 +310,22 @@ export function registerResources(server: any) {
         // Get complete action details with metadata for action and all parents
         const actionDetails = await ActionsService.getActionDetailResource(action.id);
         
+        // Get parent context and vision summaries
+        const parentContextSummary = await ActionsService.getParentContextSummary(action.id);
+        const parentVisionSummary = await ActionsService.getParentVisionSummary(action.id);
+        
+        // Enhance the action details with summaries
+        const enhancedActionDetails = {
+          ...actionDetails,
+          parent_context_summary: parentContextSummary,
+          parent_vision_summary: parentVisionSummary
+        };
+        
         return {
           contents: [
             {
               uri: uri.toString(),
-              text: JSON.stringify(actionDetails, null, 2),
+              text: JSON.stringify(enhancedActionDetails, null, 2),
               mimeType: "application/json",
             },
           ],

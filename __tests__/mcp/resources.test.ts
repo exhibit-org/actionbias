@@ -9,6 +9,8 @@ jest.mock("../../lib/services/actions", () => ({
     getActionDependenciesResource: jest.fn(),
     getActionDetailResource: jest.fn(),
     getNextAction: jest.fn(),
+    getParentContextSummary: jest.fn(),
+    getParentVisionSummary: jest.fn(),
   },
 }));
 
@@ -168,6 +170,8 @@ describe("MCP Resources", () => {
     };
     mockedService.getNextAction.mockResolvedValue(mockAction);
     mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
+    mockedService.getParentContextSummary.mockResolvedValue("test context summary");
+    mockedService.getParentVisionSummary.mockResolvedValue("test vision summary");
     const result = await handler(new URL("actions://next"));
     expect(mockedService.getNextAction).toHaveBeenCalled();
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
@@ -176,6 +180,8 @@ describe("MCP Resources", () => {
     expect(data.id).toBe("123");
     expect(data.title).toBe("Next Action");
     expect(data.parent_chain).toEqual([]);
+    expect(data.parent_context_summary).toBe("test context summary");
+    expect(data.parent_vision_summary).toBe("test vision summary");
   });
 
 
@@ -222,10 +228,13 @@ describe("MCP Resources", () => {
     );
     const handler = detailCall[2];
     const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now" } as any;
+    const expectedWithSummaries = { ...expected, parent_context_summary: "test context", parent_vision_summary: "test vision" };
     mockedService.getActionDetailResource.mockResolvedValue(expected);
+    mockedService.getParentContextSummary.mockResolvedValue("test context");
+    mockedService.getParentVisionSummary.mockResolvedValue("test vision");
     const result = await handler(new URL("actions://123"), { id: "123" });
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
-    expect(JSON.parse(result.contents[0].text)).toEqual(expected);
+    expect(JSON.parse(result.contents[0].text)).toEqual(expectedWithSummaries);
   });
 
   it("detail resource rejects missing id", async () => {
@@ -438,6 +447,8 @@ describe("MCP Resources", () => {
     const handler = detailCall[2];
     const expected = { id: "first", title: "Test", children: [], dependencies: [], dependents: [], done: false } as any;
     mockedService.getActionDetailResource.mockResolvedValue(expected);
+    mockedService.getParentContextSummary.mockResolvedValue("test context");
+    mockedService.getParentVisionSummary.mockResolvedValue("test vision");
     
     const result = await handler(new URL("actions://first"), { id: ["first", "second"] });
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("first");
