@@ -7,14 +7,14 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const description = await ActionsService.getFullContextDescription(resolvedParams.id);
+    const description = await ActionsService.getParentContextSummary(resolvedParams.id);
 
     return NextResponse.json({
       success: true,
       data: { description }
     });
   } catch (error) {
-    console.error('Error generating full-context description:', error);
+    console.error('Error generating parent-context summary:', error);
     return NextResponse.json(
       {
         success: false,

@@ -911,33 +911,29 @@ export class ActionsService {
     return null;
   }
 
-  static async getFullContextDescription(actionId: string): Promise<string> {
+  static async getParentContextSummary(actionId: string): Promise<string> {
     const detail = await this.getActionDetailResource(actionId);
-    const descriptions: string[] = [];
-
+    
+    // Get only parent descriptions, excluding the current action
+    const parentDescriptions: string[] = [];
     for (const parent of detail.parent_chain) {
       if (parent.description) {
-        descriptions.push(parent.description);
+        parentDescriptions.push(parent.description);
       }
     }
-
-    if (detail.description) {
-      descriptions.push(detail.description);
-    }
-
-    const parentDescriptions = descriptions.slice(0, -1);
-    const actionDescription = descriptions[descriptions.length - 1];
     
-    let prompt = "Create a concise description that explains what this specific action accomplishes, using the provided context for background understanding.\n\n";
-    
-    if (parentDescriptions.length > 0) {
-      prompt += "CONTEXT (parent project descriptions):\n";
-      prompt += parentDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
-      prompt += "\n\n";
+    // If no parent descriptions, return empty summary
+    if (parentDescriptions.length === 0) {
+      return "This action has no parent context.";
     }
     
-    prompt += `SPECIFIC ACTION TO DESCRIBE:\n${actionDescription}\n\n`;
-    prompt += "Write a clear, concise description that focuses on what this specific action does, incorporating the context to explain why it's important.";
+    // Reverse the array so we go from closest to furthest parent
+    const reversedDescriptions = [...parentDescriptions].reverse();
+    
+    let prompt = "Summarize the hierarchical context for this action, moving from the immediate parent context to the broader project context.\n\n";
+    prompt += "PARENT CONTEXTS (from closest to furthest):\n";
+    prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+    prompt += "\n\nWrite a concise summary that explains the hierarchical goals and context that this action fits within, starting with the most immediate parent goal and expanding to the broader project vision.";
 
     const { generateText } = await import("ai");
     const { createOpenAI } = await import("@ai-sdk/openai");
