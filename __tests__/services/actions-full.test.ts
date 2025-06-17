@@ -1,8 +1,19 @@
 import { ActionsService } from "../../lib/services/actions";
 
-// Mock the database adapter
+// Mock the database adapter with proper drizzle ORM chaining
+const createMutableQueryBuilder = (resolvedValue: any) => {
+  const builder: any = {
+    from: jest.fn(() => builder),
+    where: jest.fn(() => builder),
+    limit: jest.fn(() => builder),
+    orderBy: jest.fn(() => Promise.resolve(resolvedValue)),
+    then: (resolve: any) => Promise.resolve(resolvedValue).then(resolve), // Make it thenable
+  };
+  return builder;
+};
+
 const mockDb = {
-  select: jest.fn(),
+  select: jest.fn(() => createMutableQueryBuilder([])),
   insert: jest.fn(),
   update: jest.fn(),
   delete: jest.fn(),
@@ -977,22 +988,11 @@ describe("ActionsService - Full Coverage", () => {
       ];
 
       it("should return hierarchical tree structure", async () => {
+        // Mock for the action query
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              orderBy: jest.fn().mockResolvedValue(mockActions),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue(mockEdges),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue(mockDependencyEdges),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder(mockActions))
+          .mockReturnValueOnce(createMutableQueryBuilder(mockEdges))
+          .mockReturnValueOnce(createMutableQueryBuilder(mockDependencyEdges));
 
         const result = await ActionsService.getActionTreeResource();
         
@@ -1016,16 +1016,8 @@ describe("ActionsService - Full Coverage", () => {
 
       it("should return dependency mapping", async () => {
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              orderBy: jest.fn().mockResolvedValue(mockActions),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue(mockDependencyEdges),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder(mockActions))
+          .mockReturnValueOnce(createMutableQueryBuilder(mockDependencyEdges));
 
         const result = await ActionsService.getActionDependenciesResource(true);
         
@@ -1049,18 +1041,8 @@ describe("ActionsService - Full Coverage", () => {
 
       it("should return detailed action information", async () => {
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
-          })
-          .mockReturnValue({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([mockAction]))
+          .mockReturnValue(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getActionDetailResource('action-id');
         
@@ -1076,13 +1058,7 @@ describe("ActionsService - Full Coverage", () => {
       });
 
       it("should throw error if action not found", async () => {
-        mockDb.select.mockReturnValue({
-          from: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              limit: jest.fn().mockResolvedValue([]),
-            }),
-          }),
-        });
+        mockDb.select.mockReturnValue(createMutableQueryBuilder([]));
 
         await expect(ActionsService.getActionDetailResource('non-existent'))
           .rejects.toThrow("Action with ID non-existent not found");
@@ -1100,35 +1076,11 @@ describe("ActionsService - Full Coverage", () => {
         };
 
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([parentEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([parentAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]), // No more parents
-            }),
-          })
-          .mockReturnValue({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([mockAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([parentEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([parentAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
+          .mockReturnValue(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getActionDetailResource('action-id');
         
@@ -1169,47 +1121,13 @@ describe("ActionsService - Full Coverage", () => {
         };
 
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([parentEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([parentAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([grandparentEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([grandparentAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]), // No more parents
-            }),
-          })
-          .mockReturnValue({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([mockAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([parentEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([parentAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([grandparentEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([grandparentAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
+          .mockReturnValue(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getActionDetailResource('action-id');
         
@@ -1248,33 +1166,11 @@ describe("ActionsService - Full Coverage", () => {
         };
 
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([childEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([childAction]),
-            }),
-          })
-          .mockReturnValue({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([mockAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
+          .mockReturnValueOnce(createMutableQueryBuilder([childEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([childAction]))
+          .mockReturnValue(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getActionDetailResource('action-id');
         
@@ -1303,43 +1199,13 @@ describe("ActionsService - Full Coverage", () => {
         };
 
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                limit: jest.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([depEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([depAction]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([dependentEdge]),
-            }),
-          })
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([dependentAction]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([mockAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
+          .mockReturnValueOnce(createMutableQueryBuilder([depEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([depAction]))
+          .mockReturnValueOnce(createMutableQueryBuilder([dependentEdge]))
+          .mockReturnValueOnce(createMutableQueryBuilder([dependentAction]));
 
         const result = await ActionsService.getActionDetailResource('action-id');
         
@@ -1352,13 +1218,7 @@ describe("ActionsService - Full Coverage", () => {
 
     describe("getNextAction", () => {
       it("should return null when no open actions", async () => {
-        mockDb.select.mockReturnValue({
-          from: jest.fn().mockReturnValue({
-            where: jest.fn().mockReturnValue({
-              orderBy: jest.fn().mockResolvedValue([]),
-            }),
-          }),
-        });
+        mockDb.select.mockReturnValue(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getNextAction();
         expect(result).toBeNull();
@@ -1376,25 +1236,11 @@ describe("ActionsService - Full Coverage", () => {
 
         // Mock open actions
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                orderBy: jest.fn().mockResolvedValue([openAction]),
-              }),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([openAction]))
           // Mock dependenciesMet check - no dependencies
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
           // Mock findNextActionInChildren - no children
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getNextAction();
         
@@ -1429,37 +1275,15 @@ describe("ActionsService - Full Coverage", () => {
 
         // Mock open actions
         mockDb.select
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockReturnValue({
-                orderBy: jest.fn().mockResolvedValue([blockedAction, openAction]),
-              }),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([blockedAction, openAction]))
           // Mock first action has dependencies
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([{ src: 'unmet-dep', dst: 'blocked-action' }]),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([{ src: 'unmet-dep', dst: 'blocked-action' }]))
           // Mock dependency is not done
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([unmetDependency]),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([unmetDependency]))
           // Mock second action has no dependencies
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          })
+          .mockReturnValueOnce(createMutableQueryBuilder([]))
           // Mock findNextActionInChildren for second action
-          .mockReturnValueOnce({
-            from: jest.fn().mockReturnValue({
-              where: jest.fn().mockResolvedValue([]),
-            }),
-          });
+          .mockReturnValueOnce(createMutableQueryBuilder([]));
 
         const result = await ActionsService.getNextAction();
         

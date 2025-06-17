@@ -9,6 +9,18 @@ import NextActionDisplay from '../../app/next/components/NextActionDisplay';
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock color scheme for tests
+const mockColors = {
+  bg: '#ffffff',
+  surface: '#f8f9fa',
+  border: '#e5e7eb',
+  borderAccent: '#3b82f6',
+  text: '#111827',
+  textMuted: '#6b7280',
+  textSubtle: '#9ca3af',
+  textFaint: '#d1d5db',
+};
+
 const mockNextActionData = {
   id: 'test-action-id',
   title: 'Test Action Title',
@@ -60,7 +72,7 @@ describe('NextActionDisplay', () => {
       new Promise(() => {}) // Never resolves to keep loading state
     );
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
     
     expect(screen.getByTestId('loading-skeleton')).toBeInTheDocument();
   });
@@ -74,7 +86,7 @@ describe('NextActionDisplay', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Action Title')).toBeInTheDocument();
@@ -91,7 +103,7 @@ describe('NextActionDisplay', () => {
   it('should display error state when fetch fails', async () => {
     (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -110,7 +122,7 @@ describe('NextActionDisplay', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -128,7 +140,7 @@ describe('NextActionDisplay', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('🎉 All Done!')).toBeInTheDocument();
@@ -156,7 +168,7 @@ describe('NextActionDisplay', () => {
         })
       });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Action Title')).toBeInTheDocument();
@@ -196,7 +208,7 @@ describe('NextActionDisplay', () => {
         })
       });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Action Title')).toBeInTheDocument();
@@ -241,7 +253,7 @@ describe('NextActionDisplay', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Test Action Title')).toBeInTheDocument();
