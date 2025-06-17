@@ -910,4 +910,33 @@ export class ActionsService {
 
     return null;
   }
+
+  static async getFullContextDescription(actionId: string): Promise<string> {
+    const detail = await this.getActionDetailResource(actionId);
+    const descriptions: string[] = [];
+
+    for (const parent of detail.parent_chain) {
+      if (parent.description) {
+        descriptions.push(parent.description);
+      }
+    }
+
+    if (detail.description) {
+      descriptions.push(detail.description);
+    }
+
+    const prompt =
+      "Synthesize a concise master description for an action based on these descriptions:\n" +
+      descriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+
+    const { generateText } = await import("ai");
+    const { openai } = await import("@ai-sdk/openai");
+
+    const result = await generateText({
+      model: openai({ apiKey: process.env.OPENAI_API_KEY }),
+      prompt,
+    });
+
+    return result.text;
+  }
 }
