@@ -20,13 +20,19 @@ describe('NextPage', () => {
     expect(screen.getByTestId('next-action-display')).toBeInTheDocument();
   });
 
-  it('should have proper responsive layout classes', () => {
+  it('should have proper responsive layout structure', () => {
     const { container } = render(<NextPage />);
     
-    const outerDiv = container.querySelector('.min-h-screen.bg-gray-50.py-8');
+    // Check for main container with inline styles
+    const outerDiv = container.querySelector('div[style*="min-height: 100vh"]');
     expect(outerDiv).toBeInTheDocument();
     
-    const innerDiv = container.querySelector('.max-w-2xl.mx-auto.px-4.sm\\:px-6.lg\\:px-8');
-    expect(innerDiv).toBeInTheDocument();
+    // Check for content wrapper
+    const contentDiv = container.querySelector('div[style*="max-width: 48rem"]');
+    expect(contentDiv).toBeInTheDocument();
+    
+    // Check for footer
+    const footer = container.querySelector('footer');
+    expect(footer).toBeInTheDocument();
   });
 });

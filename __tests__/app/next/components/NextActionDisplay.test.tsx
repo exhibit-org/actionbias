@@ -14,6 +14,18 @@ const mockReload = jest.fn();
 // Mock setTimeout
 jest.useFakeTimers();
 
+// Mock color scheme for tests
+const mockColors = {
+  bg: '#ffffff',
+  surface: '#f8f9fa',
+  border: '#e5e7eb',
+  borderAccent: '#3b82f6',
+  text: '#111827',
+  textMuted: '#6b7280',
+  textSubtle: '#9ca3af',
+  textFaint: '#d1d5db',
+};
+
 const mockNextActionData = {
   id: 'test-action-id',
   title: 'Test Action',
@@ -73,7 +85,7 @@ describe('NextActionDisplay Error Handling', () => {
       status: 500,
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -90,7 +102,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -104,7 +116,7 @@ describe('NextActionDisplay Error Handling', () => {
       json: jest.fn().mockRejectedValue(new Error('Unexpected token'))
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -114,7 +126,7 @@ describe('NextActionDisplay Error Handling', () => {
   it('should handle network errors during fetch', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -125,7 +137,7 @@ describe('NextActionDisplay Error Handling', () => {
   it('should handle non-Error exceptions during fetch', async () => {
     mockFetch.mockRejectedValueOnce('String error');
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -136,7 +148,7 @@ describe('NextActionDisplay Error Handling', () => {
   it('should call window.location.reload when retry button is clicked', async () => {
     mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Retry')).toBeInTheDocument();
@@ -167,7 +179,7 @@ describe('NextActionDisplay Error Handling', () => {
       status: 403,
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Mark Complete')).toBeInTheDocument();
@@ -199,7 +211,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Mark Complete')).toBeInTheDocument();
@@ -225,7 +237,7 @@ describe('NextActionDisplay Error Handling', () => {
     // Second call fails with network error
     mockFetch.mockRejectedValueOnce(new Error('Network timeout'));
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Mark Complete')).toBeInTheDocument();
@@ -251,7 +263,7 @@ describe('NextActionDisplay Error Handling', () => {
     // Second call fails with string error
     mockFetch.mockRejectedValueOnce('Unknown error type');
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Mark Complete')).toBeInTheDocument();
@@ -283,7 +295,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Mark Complete')).toBeInTheDocument();
@@ -313,7 +325,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Next Action')).toBeInTheDocument();
@@ -330,7 +342,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('🎉 All Done!')).toBeInTheDocument();
@@ -347,7 +359,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('🎉 All Done!')).toBeInTheDocument();
@@ -363,7 +375,7 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    render(<NextActionDisplay />);
+    render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
       expect(screen.getByText('🎉 All Done!')).toBeInTheDocument();

@@ -930,10 +930,11 @@ export class ActionsService {
       descriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
 
     const { generateText } = await import("ai");
-    const { openai } = await import("@ai-sdk/openai");
+    const { createOpenAI } = await import("@ai-sdk/openai");
 
+    const provider = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const result = await generateText({
-      model: openai({ apiKey: process.env.OPENAI_API_KEY }),
+      model: provider('gpt-3.5-turbo'),
       prompt,
     });
 
