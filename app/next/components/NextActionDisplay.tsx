@@ -335,7 +335,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         }}>
           <div style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: '0.75rem',
             marginBottom: '0.75rem'
           }}>
@@ -349,8 +349,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0,
-                marginTop: '0.125rem'
+                flexShrink: 0
               }}>
                 <svg 
                   style={{
