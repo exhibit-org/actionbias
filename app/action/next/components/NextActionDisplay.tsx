@@ -56,10 +56,11 @@ interface ColorScheme {
 
 interface Props {
   colors: ColorScheme;
+  actionId?: string; // If provided, fetch this specific action instead of next action
 }
 
-export default function NextActionDisplay({ colors }: Props) {
-  const [nextAction, setNextAction] = useState<NextActionData | null>(null);
+export default function NextActionDisplay({ colors, actionId }: Props) {
+  const [actionData, setActionData] = useState<NextActionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
@@ -68,13 +69,14 @@ export default function NextActionDisplay({ colors }: Props) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const fetchNextAction = async () => {
+    const fetchAction = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch from the REST API endpoint
-        const response = await fetch('/api/actions/next');
+        // Choose endpoint based on whether actionId is provided
+        const endpoint = actionId ? `/api/actions/${actionId}` : '/api/actions/next';
+        const response = await fetch(endpoint);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -83,20 +85,20 @@ export default function NextActionDisplay({ colors }: Props) {
         const data = await response.json();
         
         if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch next action');
+          throw new Error(data.error || `Failed to fetch ${actionId ? 'action' : 'next action'}`);
         }
 
-        setNextAction(data.data);
+        setActionData(data.data);
       } catch (err) {
-        console.error('Error fetching next action:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch next action');
+        console.error(`Error fetching ${actionId ? 'action' : 'next action'}:`, err);
+        setError(err instanceof Error ? err.message : `Failed to fetch ${actionId ? 'action' : 'next action'}`);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNextAction();
-  }, []);
+    fetchAction();
+  }, [actionId]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -147,11 +149,11 @@ export default function NextActionDisplay({ colors }: Props) {
   };
 
   const copyPromptToClipboard = async () => {
-    if (!nextAction) return;
+    if (!actionData) return;
     
     try {
       setCopying(true);
-      const prompt = generateClaudeCodePrompt(nextAction);
+      const prompt = generateClaudeCodePrompt(actionData);
       await navigator.clipboard.writeText(prompt);
       
       // Brief success feedback
@@ -166,14 +168,14 @@ export default function NextActionDisplay({ colors }: Props) {
   };
 
   const markComplete = async () => {
-    if (!nextAction) return;
+    if (!actionData) return;
     
     try {
       setCompleting(true);
       setError(null);
       
       // Call the REST API to update the action
-      const response = await fetch(`/api/actions/${nextAction.id}`, {
+      const response = await fetch(`/api/actions/${actionData.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -282,7 +284,7 @@ export default function NextActionDisplay({ colors }: Props) {
     );
   }
 
-  if (!nextAction) {
+  if (!actionData) {
     return (
       <div style={{
         backgroundColor: colors.surface,
@@ -419,18 +421,18 @@ export default function NextActionDisplay({ colors }: Props) {
               margin: 0,
               flex: 1
             }}>
-              {nextAction.title}
+              {actionData.title}
             </h2>
           </div>
           
-          {nextAction.description && (
+          {actionData.description && (
             <p style={{ 
               fontSize: '0.875rem', 
               color: colors.textMuted, 
               margin: 0,
               lineHeight: '1.5' 
             }}>
-              {nextAction.description}
+              {actionData.description}
             </p>
           )}
 
@@ -509,7 +511,7 @@ export default function NextActionDisplay({ colors }: Props) {
             margin: 0,
             lineHeight: '1.5'
           }}>
-            {nextAction.vision || 'No vision defined for this action.'}
+            {actionData.vision || 'No vision defined for this action.'}
           </p>
         </div>
 
@@ -536,7 +538,7 @@ export default function NextActionDisplay({ colors }: Props) {
             margin: 0,
             lineHeight: '1.5' 
           }}>
-            {nextAction.parent_context_summary || 'This action has no parent context.'}
+            {actionData.parent_context_summary || 'This action has no parent context.'}
           </p>
         </div>
 
@@ -586,7 +588,7 @@ export default function NextActionDisplay({ colors }: Props) {
             margin: 0,
             lineHeight: '1.5'
           }}>
-            {nextAction.parent_vision_summary || 'This action has no parent vision context.'}
+            {actionData.parent_vision_summary || 'This action has no parent vision context.'}
           </p>
         </div>
       </div>
@@ -697,7 +699,7 @@ export default function NextActionDisplay({ colors }: Props) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
             </svg>
-            <span style={{ fontFamily: 'monospace' }}>ID: {nextAction.id}</span>
+            <span style={{ fontFamily: 'monospace' }}>ID: {actionData.id}</span>
           </div>
           <div style={{ 
             display: 'flex', 
@@ -719,7 +721,7 @@ export default function NextActionDisplay({ colors }: Props) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>Created: {new Date(nextAction.created_at).toLocaleDateString()}</span>
+            <span>Created: {new Date(actionData.created_at).toLocaleDateString()}</span>
           </div>
         </div>
       </div>

@@ -17,6 +17,43 @@ const updateActionSchema = actionDataSchema.partial().extend({
   }
 );
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    
+    // Get the detailed action data with relationships
+    const actionDetails = await ActionsService.getActionDetailResource(resolvedParams.id);
+    
+    // Get parent context and vision summaries
+    const parentContextSummary = await ActionsService.getParentContextSummary(resolvedParams.id);
+    const parentVisionSummary = await ActionsService.getParentVisionSummary(resolvedParams.id);
+    
+    // Enhance the action details with summaries
+    const enhancedActionDetails = {
+      ...actionDetails,
+      parent_context_summary: parentContextSummary,
+      parent_vision_summary: parentVisionSummary
+    };
+    
+    return NextResponse.json({
+      success: true,
+      data: enhancedActionDetails
+    });
+  } catch (error) {
+    console.error('Error getting action details:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
