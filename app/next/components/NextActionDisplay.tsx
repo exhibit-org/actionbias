@@ -100,59 +100,32 @@ export default function NextActionDisplay({ colors }: Props) {
   const generateClaudeCodePrompt = (action: NextActionData): string => {
     let prompt = `I'm working on: ${action.title}\nMCP URI: actions://${action.id}\n\n`;
 
-    // Add parent context if available
-    if (action.parent_chain.length > 0) {
-      prompt += `Context (from parent goals):\n`;
-      // Reverse to show from root to immediate parent
-      action.parent_chain.slice().reverse().forEach((parent, index) => {
-        prompt += `${index + 1}. ${parent.title} (actions://${parent.id})`;
-        if (parent.description) {
-          prompt += `: ${parent.description}`;
-        }
-        if (parent.vision) {
-          prompt += ` (Success criteria: ${parent.vision})`;
-        }
-        prompt += `\n`;
-      });
-      prompt += `\n`;
-    }
-
-    // Add current task details
-    prompt += `Current task:\n`;
-    prompt += `${action.title} (actions://${action.id})\n`;
+    // Top Left Quadrant: Task Details
+    prompt += `## Current Task\n`;
+    prompt += `**${action.title}**\n`;
     if (action.description) {
       prompt += `${action.description}\n`;
     }
+    prompt += `\n`;
 
-    if (action.vision) {
-      prompt += `\nSuccess criteria: ${action.vision}\n`;
-    }
+    // Top Right Quadrant: Vision
+    prompt += `## Vision\n`;
+    prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
 
-    // Add dependencies and children if available
-    if (action.dependencies.length > 0) {
-      prompt += `\nDependencies (must be completed first):\n`;
-      action.dependencies.forEach((dep, index) => {
-        prompt += `${index + 1}. ${dep.title} (actions://${dep.id})\n`;
-      });
-    }
+    // Bottom Left Quadrant: Broader Context
+    prompt += `## Broader Context\n`;
+    prompt += `${action.parent_context_summary || 'This action has no parent context.'}\n\n`;
 
-    if (action.children.length > 0) {
-      prompt += `\nSubtasks:\n`;
-      action.children.forEach((child, index) => {
-        prompt += `${index + 1}. ${child.title} (actions://${child.id})`;
-        if (child.done) {
-          prompt += ` ✓ COMPLETED`;
-        }
-        prompt += `\n`;
-      });
-    }
+    // Bottom Right Quadrant: Broader Vision
+    prompt += `## Broader Vision\n`;
+    prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
 
-    prompt += `\nMCP Resources Available:\n`;
+    prompt += `## MCP Resources Available\n`;
     prompt += `- actions://tree (full action hierarchy)\n`;
     prompt += `- actions://next (current priority action)\n`;
-    prompt += `- actions://${action.id} (this action's details)\n`;
+    prompt += `- actions://${action.id} (this action's details)\n\n`;
 
-    prompt += `\nPlease help me complete this task. You can use the MCP URIs above to access the ActionBias system for context and updates.`;
+    prompt += `Please help me complete this task. You can use the MCP URIs above to access the ActionBias system for context and updates.`;
 
     return prompt;
   };
@@ -326,70 +299,6 @@ export default function NextActionDisplay({ colors }: Props) {
       borderRadius: '0.5rem',
       padding: '1.5rem'
     }}>
-      {/* Copy Prompt Button - positioned at top right */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        marginBottom: '1rem'
-      }}>
-        <button
-          onClick={copyPromptToClipboard}
-          disabled={copying}
-          style={{
-            width: '24px',
-            height: '24px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            borderRadius: '0.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: copying ? 'not-allowed' : 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (!copying) {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!copying) {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
-            }
-          }}
-          title="Copy prompt for Claude Code"
-        >
-          {copying ? (
-            <svg 
-              style={{
-                width: '14px', 
-                height: '14px',
-                color: colors.textMuted
-              }} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg 
-              style={{
-                width: '14px', 
-                height: '14px',
-                color: colors.textSubtle
-              }} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          )}
-        </button>
-      </div>
-
       {/* 4 Quadrant Layout */}
       <div style={{
         display: 'grid',
@@ -660,6 +569,79 @@ export default function NextActionDisplay({ colors }: Props) {
             {nextAction.parent_vision_summary || 'This action has no parent vision context.'}
           </p>
         </div>
+      </div>
+
+      {/* Copy Prompt Button */}
+      <div style={{
+        marginTop: '1.5rem',
+        marginBottom: '1.5rem',
+        paddingTop: '1rem',
+        borderTop: `1px solid ${colors.border}`,
+        display: 'flex',
+        justifyContent: 'center'
+      }}>
+        <button
+          onClick={copyPromptToClipboard}
+          disabled={copying}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: copying ? colors.surface : colors.borderAccent,
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: copying ? 'not-allowed' : 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!copying) {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!copying) {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+            }
+          }}
+        >
+          {copying ? (
+            <>
+              <svg 
+                style={{
+                  width: '16px', 
+                  height: '16px',
+                  color: 'white'
+                }} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg 
+                style={{
+                  width: '16px', 
+                  height: '16px',
+                  color: 'white'
+                }} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Full Context for Claude Code
+            </>
+          )}
+        </button>
       </div>
 
       {/* Metadata */}
