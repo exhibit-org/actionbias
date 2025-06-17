@@ -372,27 +372,30 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 style={{
                   width: '20px',
                   height: '20px',
-                  backgroundColor: completing ? colors.textFaint : 'transparent',
-                  border: `2px solid ${completing ? colors.textFaint : colors.border}`,
-                  borderRadius: '0.25rem',
+                  backgroundColor: completing ? colors.textFaint : colors.surface,
+                  border: `2px solid ${completing ? colors.textFaint : colors.borderAccent}`,
+                  borderRadius: '0.375rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: completing ? 'not-allowed' : 'pointer',
                   flexShrink: 0,
                   marginTop: '0.125rem',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                 }}
                 onMouseEnter={(e) => {
                   if (!completing) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.borderAccent;
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.text;
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.bg;
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!completing) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border;
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.borderAccent;
+                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
                   }
                 }}
               >
