@@ -45,7 +45,8 @@ export function isWebInterfaceRequest(request: Request): boolean {
 
 export async function authenticatedHandler(method: string, request: Request, handler: (request: Request) => Promise<Response>) {
   const url = new URL(request.url);
-  const transport = url.pathname.substring(1); // Remove leading slash
+  const pathParts = url.pathname.split('/').filter(Boolean);
+  const transport = pathParts[pathParts.length - 1]; // Get the last part (transport)
   
   console.log(`[MCP Auth] ${method} ${url.pathname} received`);
   
