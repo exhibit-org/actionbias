@@ -697,7 +697,7 @@ export default function NextActionDisplay({ colors }: Props) {
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
             </svg>
-            <span style={{ fontFamily: 'monospace' }}>ID: {nextAction.id.slice(0, 8)}...</span>
+            <span style={{ fontFamily: 'monospace' }}>ID: {nextAction.id}</span>
           </div>
           <div style={{ 
             display: 'flex', 
