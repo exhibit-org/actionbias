@@ -65,6 +65,7 @@ export default function NextActionDisplay({ colors }: Props) {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const fetchNextAction = async () => {
@@ -95,6 +96,21 @@ export default function NextActionDisplay({ colors }: Props) {
     };
 
     fetchNextAction();
+  }, []);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Add event listener for resize
+    window.addEventListener('resize', checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const generateClaudeCodePrompt = (action: NextActionData): string => {
@@ -302,8 +318,8 @@ export default function NextActionDisplay({ colors }: Props) {
       {/* 4 Quadrant Layout */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: 'auto auto',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gridTemplateRows: isMobile ? 'auto auto auto auto' : 'auto auto',
         gap: '1rem',
         marginBottom: '1.5rem'
       }}>
@@ -312,7 +328,8 @@ export default function NextActionDisplay({ colors }: Props) {
           backgroundColor: colors.surface,
           border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
-          padding: '1rem'
+          padding: '1rem',
+          order: isMobile ? 1 : 'unset'
         }}>
           <div style={{
             display: 'flex',
@@ -452,7 +469,8 @@ export default function NextActionDisplay({ colors }: Props) {
           border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
           padding: '1rem',
-          borderLeft: `4px solid ${colors.borderAccent}`
+          borderLeft: `4px solid ${colors.borderAccent}`,
+          order: isMobile ? 2 : 'unset'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -501,7 +519,8 @@ export default function NextActionDisplay({ colors }: Props) {
           border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
           padding: '1rem',
-          borderLeft: `4px solid ${colors.textFaint}`
+          borderLeft: `4px solid ${colors.textFaint}`,
+          order: isMobile ? 3 : 'unset'
         }}>
           <h3 style={{ 
             fontSize: '0.875rem', 
@@ -527,7 +546,8 @@ export default function NextActionDisplay({ colors }: Props) {
           border: `1px solid ${colors.border}`,
           borderRadius: '0.5rem',
           padding: '1rem',
-          borderLeft: `4px solid ${colors.textFaint}`
+          borderLeft: `4px solid ${colors.textFaint}`,
+          order: isMobile ? 4 : 'unset'
         }}>
           <div style={{ 
             display: 'flex', 
