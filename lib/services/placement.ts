@@ -18,6 +18,7 @@ export interface PlacementResult {
   confidence: number;
   reasoning: string;
   analysis: any;
+  suggestedNewParent?: { title: string; description: string; reasoning: string };
 }
 
 export interface ActionHierarchyItem {
@@ -69,7 +70,8 @@ export class PlacementService {
       bestParent: placement.bestParent,
       confidence: placement.confidence,
       reasoning: placement.reasoning,
-      analysis: newActionAnalysis
+      analysis: newActionAnalysis,
+      suggestedNewParent: placement.suggestedNewParent
     };
   }
 
@@ -132,16 +134,21 @@ export class PlacementService {
     bestParent: { id: string; title: string } | null;
     confidence: number;
     reasoning: string;
+    suggestedNewParent?: { title: string; description: string; reasoning: string };
   }> {
     try {
       // Build the prompt for the LLM
       const prompt = this.buildPlacementPrompt(newAction, parentContexts);
       
-      // Define the response schema
+      // Define the response schema with new parent suggestion capability
       const placementSchema = z.object({
         bestParentId: z.string().nullable().describe('The ID of the best parent category, or null if no good match'),
         confidence: z.number().min(0).max(1).describe('Confidence score between 0 and 1'),
-        reasoning: z.string().describe('Explanation of why this placement was chosen')
+        reasoning: z.string().describe('Explanation of why this placement was chosen'),
+        suggestNewParent: z.boolean().describe('Whether to suggest creating a new parent category'),
+        newParentTitle: z.string().optional().describe('Title for the suggested new parent category'),
+        newParentDescription: z.string().optional().describe('Description for the suggested new parent category'),
+        newParentReasoning: z.string().optional().describe('Why this new parent category should be created')
       });
 
       // Make the LLM call
@@ -164,10 +171,21 @@ export class PlacementService {
         }
       }
 
+      // Handle new parent suggestion
+      let suggestedNewParent = undefined;
+      if (result.object.suggestNewParent && result.object.newParentTitle && result.object.newParentDescription) {
+        suggestedNewParent = {
+          title: result.object.newParentTitle,
+          description: result.object.newParentDescription,
+          reasoning: result.object.newParentReasoning || 'New category needed for better organization'
+        };
+      }
+
       return {
         bestParent,
         confidence: result.object.confidence,
-        reasoning: result.object.reasoning
+        reasoning: result.object.reasoning,
+        suggestedNewParent
       };
 
     } catch (error) {
@@ -221,7 +239,14 @@ ${categoryDescriptions}
 3. Look at existing children to understand each category's scope
 4. Consider the hierarchy path - deeper nesting often indicates more specific functional areas
 5. Prioritize semantic similarity over superficial keyword matching
-6. If no category is a good fit (confidence < 0.3), return null for bestParentId
+6. If no category is a good fit (confidence < 0.3), consider suggesting a new parent category
+
+**When to Suggest New Parent Categories:**
+- The new action represents a distinct functional domain not covered by existing categories
+- Multiple related actions might benefit from a new organizational structure
+- The action would be forced into an unnatural parent that doesn't semantically fit
+- A new category would improve the overall hierarchy organization and workflow efficiency
+- Examples: Analytics/Reporting, Testing/QA, Documentation, DevOps/CI-CD, etc.
 
 **Domain Knowledge Patterns:**
 - **Payment/Billing**: Usually belongs with organization management, user accounts, or subscription features
@@ -234,6 +259,16 @@ ${categoryDescriptions}
 - bestParentId: The ID of the most appropriate parent category, or null if no good match
 - confidence: A score from 0 to 1 indicating how confident you are in this placement
 - reasoning: A clear explanation considering functional domain, architecture, and business context
+- suggestNewParent: Set to true if a new parent category should be created instead
+- newParentTitle: If suggesting new parent, provide a clear, descriptive title
+- newParentDescription: If suggesting new parent, provide a detailed description of its purpose
+- newParentReasoning: If suggesting new parent, explain why this new category improves organization
+
+**Decision Logic:**
+1. First, try to find a good existing parent (confidence >= 0.3)
+2. If no good existing parent, consider if a new parent category would be beneficial
+3. Only suggest new parents for actions that represent clear functional domains
+4. Prefer existing parents unless new category significantly improves organization
 
 Be thoughtful about semantic relationships. Examples:
 - "Integrate polar.sh for payment" belongs with organization/billing management, not technical API categories
@@ -241,7 +276,7 @@ Be thoughtful about semantic relationships. Examples:
 - "Database Schema" clearly belongs with database categories
 - "User Settings UI" could be UI or user management, but user management is more semantically core
 
-Only suggest a placement if you are reasonably confident. Return null if uncertain.`;
+Return null for bestParentId only if no existing parent fits AND no new parent should be suggested.`;
   }
 
 }

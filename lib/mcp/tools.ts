@@ -398,7 +398,16 @@ export function registerTools(server: any) {
           message += `❌ **No suitable parent found**\n`;
           message += `   Confidence: ${(placementResult.confidence * 100).toFixed(1)}%\n`;
           message += `   Reasoning: ${placementResult.reasoning}\n\n`;
-          message += `💡 **Suggestion:** This action should be created as a root-level action.\n\n`;
+          
+          if (placementResult.suggestedNewParent) {
+            message += `🆕 **Suggested New Parent Category:**\n`;
+            message += `   Title: ${placementResult.suggestedNewParent.title}\n`;
+            message += `   Description: ${placementResult.suggestedNewParent.description}\n`;
+            message += `   Why Create This: ${placementResult.suggestedNewParent.reasoning}\n\n`;
+            message += `💡 **Next Steps:** Consider creating this new parent category first, then placing the action under it.\n\n`;
+          } else {
+            message += `💡 **Suggestion:** This action should be created as a root-level action.\n\n`;
+          }
         }
         
         // Add analysis details if available
