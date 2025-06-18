@@ -76,6 +76,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [descriptionSaveTimeout, setDescriptionSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [visionContent, setVisionContent] = useState('');
   const [descriptionContent, setDescriptionContent] = useState('');
+  const [isEditingVision, setIsEditingVision] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -159,14 +161,40 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
 
   const handleVisionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const newVision = e.currentTarget.textContent || '';
-    setVisionContent(newVision);
     saveVisionWithDelay(newVision);
   };
 
   const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const newDescription = e.currentTarget.textContent || '';
-    setDescriptionContent(newDescription);
     saveDescriptionWithDelay(newDescription);
+  };
+
+  const handleVisionFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    setIsEditingVision(true);
+    e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
+    e.currentTarget.style.backgroundColor = colors.bg;
+  };
+
+  const handleVisionBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    setIsEditingVision(false);
+    const newVision = e.currentTarget.textContent || '';
+    setVisionContent(newVision);
+    e.currentTarget.style.border = '1px solid transparent';
+    e.currentTarget.style.backgroundColor = 'transparent';
+  };
+
+  const handleDescriptionFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    setIsEditingDescription(true);
+    e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
+    e.currentTarget.style.backgroundColor = colors.bg;
+  };
+
+  const handleDescriptionBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    setIsEditingDescription(false);
+    const newDescription = e.currentTarget.textContent || '';
+    setDescriptionContent(newDescription);
+    e.currentTarget.style.border = '1px solid transparent';
+    e.currentTarget.style.backgroundColor = 'transparent';
   };
 
   const saveVision = async (newVision: string) => {
@@ -1058,24 +1086,12 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 transition: 'all 0.2s ease',
                 cursor: 'text'
               }}
-              onFocus={(e) => {
-                e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
-                e.currentTarget.style.backgroundColor = colors.bg;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.border = '1px solid transparent';
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              {descriptionContent || (
-                <span style={{
-                  color: '#9CA3AF',
-                  fontStyle: 'italic'
-                }}>
-                  Click to add description...
-                </span>
-              )}
-            </div>
+              onFocus={handleDescriptionFocus}
+              onBlur={handleDescriptionBlur}
+              dangerouslySetInnerHTML={!isEditingDescription ? {
+                __html: descriptionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add description...</span>'
+              } : undefined}
+            />
             {savingDescription && (
               <div style={{
                 position: 'absolute',
@@ -1182,24 +1198,12 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 transition: 'all 0.2s ease',
                 cursor: 'text'
               }}
-              onFocus={(e) => {
-                e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
-                e.currentTarget.style.backgroundColor = colors.bg;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.border = '1px solid transparent';
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              {visionContent || (
-                <span style={{
-                  color: '#9CA3AF',
-                  fontStyle: 'italic'
-                }}>
-                  Click to add vision...
-                </span>
-              )}
-            </div>
+              onFocus={handleVisionFocus}
+              onBlur={handleVisionBlur}
+              dangerouslySetInnerHTML={!isEditingVision ? {
+                __html: visionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add vision...</span>'
+              } : undefined}
+            />
             {savingVision && (
               <div style={{
                 position: 'absolute',
