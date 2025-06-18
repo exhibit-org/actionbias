@@ -3,7 +3,8 @@
  * 
  * This service determines the optimal parent for new actions using semantic reasoning.
  * It builds context about existing action hierarchies and uses LLM calls via the 
- * Vercel AI SDK to make intelligent placement decisions.
+ * Vercel AI SDK to make intelligent placement decisions. If the LLM call fails,
+ * no placement suggestion is provided.
  */
 
 import { generateObject } from 'ai';
@@ -148,8 +149,12 @@ export class PlacementService {
     } catch (error) {
       console.error('Error in LLM placement call:', error);
       
-      // Fallback to heuristic approach if LLM fails
-      return this.fallbackPlacement(newAction, parentContexts);
+      // Return no placement suggestion if LLM fails
+      return {
+        bestParent: null,
+        confidence: 0,
+        reasoning: `LLM placement failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
     }
   }
 
@@ -199,55 +204,9 @@ Be thoughtful about semantic relationships. For example:
 - "OAuth Integration" belongs with authentication, not UI, despite containing "integration"
 - "Password Reset API" could go with either auth or API, but auth is more semantically core
 - "Database Schema" clearly belongs with database categories
-- Unrelated concepts should get low confidence scores`;
+- Unrelated concepts should get low confidence scores
+
+Only suggest a placement if you are reasonably confident. Return null if uncertain.`;
   }
 
-  /**
-   * Fallback heuristic placement if LLM fails
-   */
-  private static fallbackPlacement(
-    newAction: ActionContent,
-    parentContexts: Array<{ parent: ActionHierarchyItem; children: ActionHierarchyItem[]; context: string }>
-  ): { bestParent: { id: string; title: string } | null; confidence: number; reasoning: string } {
-    // Simple keyword-based fallback
-    const newActionText = this.normalizeText(`${newAction.title} ${newAction.description || ''} ${newAction.vision || ''}`);
-    
-    const scores = parentContexts.map(({ parent }) => {
-      const parentText = this.normalizeText(`${parent.title} ${parent.description || ''} ${parent.vision || ''}`);
-      
-      let score = 0;
-      if (newActionText.includes('auth') && parentText.includes('auth')) score = 0.8;
-      else if (newActionText.includes('database') && parentText.includes('database')) score = 0.8;
-      else if (newActionText.includes('api') && parentText.includes('api')) score = 0.6;
-      else if (newActionText.includes('ui') && parentText.includes('ui')) score = 0.6;
-      
-      return { parent: { id: parent.id, title: parent.title }, score };
-    });
-    
-    const bestMatch = scores.reduce((best, current) => 
-      current.score > best.score ? current : best
-    );
-    
-    if (bestMatch.score === 0) {
-      return {
-        bestParent: null,
-        confidence: 0.2,
-        reasoning: 'LLM unavailable and no clear heuristic match found'
-      };
-    }
-    
-    return {
-      bestParent: bestMatch.parent,
-      confidence: bestMatch.score * 0.6, // Lower confidence for heuristic
-      reasoning: `Fallback heuristic placement in ${bestMatch.parent.title} (LLM unavailable)`
-    };
-  }
-
-
-  /**
-   * Normalize text for consistent comparison
-   */
-  private static normalizeText(text: string): string {
-    return text.toLowerCase().trim();
-  }
 }

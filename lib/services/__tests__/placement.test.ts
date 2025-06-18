@@ -268,7 +268,7 @@ describe('PlacementService', () => {
   });
 
   describe('LLM error handling', () => {
-    it('should fall back to heuristics when LLM fails', async () => {
+    it('should handle LLM failures gracefully without suggesting placement', async () => {
       mockGenerateObject.mockRejectedValueOnce(new Error('API Error'));
 
       const newAction: ActionContent = {
@@ -279,9 +279,9 @@ describe('PlacementService', () => {
 
       const result = await PlacementService.findBestParent(newAction, mockExistingActions);
 
-      expect(result.bestParent?.id).toBe('db-root');
-      expect(result.reasoning).toContain('Fallback heuristic');
-      expect(result.confidence).toBeLessThan(0.6); // Lower confidence for fallback
+      expect(result.bestParent).toBeNull();
+      expect(result.confidence).toBe(0);
+      expect(result.reasoning).toContain('LLM placement failed');
     });
   });
 });
