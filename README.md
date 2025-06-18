@@ -87,10 +87,10 @@ The server provides these MCP tools for AI assistants:
 
 ## MCP Resources
 
-- **`actions://list`** - List all actions with pagination and filtering
-- **`actions://tree`** - Hierarchical view of actions and relationships
-- **`actions://dependencies`** - Dependency graph view
-- **`actions://{id}`** - Individual action details with relationships
+- **`action://list`** - List all actions with pagination and filtering
+- **`action://tree`** - Hierarchical view of actions and relationships
+- **`action://dependencies`** - Dependency graph view
+- **`action://{id}`** - Individual action details with relationships
 
 ## API Endpoints
 

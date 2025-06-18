@@ -359,7 +359,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   }, [visionSaveTimeout, descriptionSaveTimeout]);
 
   const generateClaudeCodePrompt = (action: NextActionData): string => {
-    let prompt = `I'm working on: ${action.title}\nMCP URI: actions://${action.id}\n\n`;
+    let prompt = `I'm working on: ${action.title}\nMCP URI: action://${action.id}\n\n`;
 
     // Top Left Quadrant: Task Details
     prompt += `## Current Task\n`;
@@ -382,9 +382,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
 
     prompt += `## MCP Resources Available\n`;
-    prompt += `- actions://tree (full action hierarchy)\n`;
-    prompt += `- actions://next (current priority action)\n`;
-    prompt += `- actions://${action.id} (this action's details)\n\n`;
+    prompt += `- action://tree (full action hierarchy)\n`;
+    prompt += `- action://next (current priority action)\n`;
+    prompt += `- action://${action.id} (this action's details)\n\n`;
 
     prompt += `Please help me complete this task. You can use the MCP URIs above to access the ActionBias system for context and updates.`;
 

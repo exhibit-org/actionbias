@@ -44,8 +44,8 @@ Create a web interface that maximizes "bias for action" by making it effortless 
 ### Data Architecture
 ```
 Frontend State:
-├── Current Next Action (from actions://next)
-├── Action Network (from actions://tree)  
+├── Current Next Action (from action://next)
+├── Action Network (from action://tree)  
 ├── User Preferences (local storage)
 └── Chat History (for AI integration)
 

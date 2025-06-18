@@ -19,7 +19,7 @@ export interface Edge {
   updatedAt: string;
 }
 
-// actions://list
+// action://list
 export interface ActionListResource {
   actions: Action[];
   total: number;
@@ -28,7 +28,7 @@ export interface ActionListResource {
   filtered_by_done?: boolean;
 }
 
-// actions://tree  
+// action://tree  
 export interface ActionTreeResource {
   rootActions: ActionNode[];
 }
@@ -42,7 +42,7 @@ export interface ActionNode {
   dependencies: string[]; // IDs of actions this depends on
 }
 
-// actions://dependencies
+// action://dependencies
 export interface ActionDependenciesResource {
   dependencies: DependencyMapping[];
 }
@@ -63,7 +63,7 @@ export interface DependencyMapping {
   }>;
 }
 
-// actions://{id}
+// action://{id}
 export interface ActionDetailResource {
   id: string;
   title: string;

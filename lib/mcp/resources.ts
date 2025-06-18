@@ -5,10 +5,10 @@ import { actions, edges } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 
 export function registerResources(server: any) {
-  // actions://list - List all actions with pagination support
+  // action://list - List all actions with pagination support
   server.resource(
     "List all actions with pagination support (excludes completed actions by default)", 
-    "actions://list",
+    "action://list",
     async (uri: any) => {
       try {
         // Parse URI parameters if present - default to reasonable limits
@@ -77,10 +77,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // actions://tree - Hierarchical view of actions
+  // action://tree - Hierarchical view of actions
   server.resource(
     "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default)",
-    "actions://tree",
+    "action://tree",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -149,10 +149,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // actions://dependencies - Dependency graph view
+  // action://dependencies - Dependency graph view
   server.resource(
     "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default)",
-    "actions://dependencies",
+    "action://dependencies",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -208,17 +208,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // actions://{id} - Individual action details with relationships
+  // action://{id} - Individual action details with relationships
   server.resource(
     "Individual action details with relationships",
-    new ResourceTemplate("actions://{id}", { list: undefined }),
+    new ResourceTemplate("action://{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Action ID is required - URI should be like 'actions://123'");
+          throw new Error("Action ID is required - URI should be like 'action://123'");
         }
         
         // Check if database is available
@@ -271,10 +271,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // actions://next - Get the next actionable task with complete metadata context
+  // action://next - Get the next actionable task with complete metadata context
   server.resource(
     "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
-    "actions://next",
+    "action://next",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -349,19 +349,19 @@ export function registerResources(server: any) {
 }
 
 export const resourceCapabilities = {
-  "actions://list": {
+  "action://list": {
     description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
-  "actions://tree": {
+  "action://tree": {
     description: "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
-  "actions://dependencies": {
+  "action://dependencies": {
     description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
-  "actions://next": {
+  "action://next": {
     description: "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
   },
-  "actions://{id}": {
+  "action://{id}": {
     description: "Individual action details with relationships",
   },
 };

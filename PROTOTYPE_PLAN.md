@@ -10,7 +10,7 @@ Does a web interface focused on "next action" actually help people take more act
 
 ### What we're building
 - Single page at `/next`
-- Big "Next Action" card from `actions://next` API
+- Big "Next Action" card from `action://next` API
 - "Mark Complete" button
 - Simple list of other actions
 - Basic mobile-friendly styling
