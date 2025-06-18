@@ -76,6 +76,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [savingDescription, setSavingDescription] = useState(false);
   const visionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const visionDisplayRef = useRef<HTMLParagraphElement>(null);
+  const descriptionDisplayRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -137,6 +139,12 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     setEditingVision(true);
     setTimeout(() => {
       if (visionTextareaRef.current) {
+        // Calculate the height of the original text
+        const displayElement = visionDisplayRef.current;
+        if (displayElement) {
+          const height = Math.max(displayElement.offsetHeight, 80);
+          visionTextareaRef.current.style.height = `${height}px`;
+        }
         visionTextareaRef.current.focus();
         visionTextareaRef.current.select();
       }
@@ -147,6 +155,12 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     setEditingDescription(true);
     setTimeout(() => {
       if (descriptionTextareaRef.current) {
+        // Calculate the height of the original text
+        const displayElement = descriptionDisplayRef.current;
+        if (displayElement) {
+          const height = Math.max(displayElement.offsetHeight, 80);
+          descriptionTextareaRef.current.style.height = `${height}px`;
+        }
         descriptionTextareaRef.current.focus();
         descriptionTextareaRef.current.select();
       }
@@ -1012,7 +1026,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                   fontFamily: 'inherit',
                   lineHeight: '1.5',
                   resize: 'vertical',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="Enter description..."
               />
@@ -1085,7 +1100,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <p style={{
+              <p ref={descriptionDisplayRef} style={{
                 fontSize: '0.875rem',
                 color: actionData.description ? colors.textMuted : colors.textFaint,
                 margin: 0,
@@ -1185,7 +1200,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                   fontFamily: 'inherit',
                   lineHeight: '1.5',
                   resize: 'vertical',
-                  outline: 'none'
+                  outline: 'none',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="Enter vision..."
               />
@@ -1257,7 +1273,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <p style={{
+              <p ref={visionDisplayRef} style={{
                 color: actionData.vision ? colors.textMuted : colors.textFaint,
                 fontSize: '0.875rem',
                 margin: 0,
