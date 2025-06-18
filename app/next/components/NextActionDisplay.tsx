@@ -74,6 +74,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const descriptionEditableRef = useRef<HTMLDivElement>(null);
   const [visionSaveTimeout, setVisionSaveTimeout] = useState<NodeJS.Timeout | null>(null);
   const [descriptionSaveTimeout, setDescriptionSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [visionContent, setVisionContent] = useState('');
+  const [descriptionContent, setDescriptionContent] = useState('');
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -96,6 +98,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         }
 
         setActionData(data.data);
+        setVisionContent(data.data.vision || '');
+        setDescriptionContent(data.data.description || '');
         
         // Fetch siblings if action has a parent
         if (data.data?.parent_id) {
@@ -155,11 +159,13 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
 
   const handleVisionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const newVision = e.currentTarget.textContent || '';
+    setVisionContent(newVision);
     saveVisionWithDelay(newVision);
   };
 
   const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>) => {
     const newDescription = e.currentTarget.textContent || '';
+    setDescriptionContent(newDescription);
     saveDescriptionWithDelay(newDescription);
   };
 
@@ -191,14 +197,13 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }
 
       setActionData(prev => prev ? { ...prev, vision: newVision } : null);
+      setVisionContent(newVision);
       
     } catch (err) {
       console.error('Error updating vision:', err);
       setError(err instanceof Error ? err.message : 'Failed to update vision');
       // Revert the content on error
-      if (visionEditableRef.current) {
-        visionEditableRef.current.textContent = actionData.vision || '';
-      }
+      setVisionContent(actionData.vision || '');
     } finally {
       setSavingVision(false);
     }
@@ -232,14 +237,13 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }
 
       setActionData(prev => prev ? { ...prev, description: newDescription } : null);
+      setDescriptionContent(newDescription);
       
     } catch (err) {
       console.error('Error updating description:', err);
       setError(err instanceof Error ? err.message : 'Failed to update description');
       // Revert the content on error
-      if (descriptionEditableRef.current) {
-        descriptionEditableRef.current.textContent = actionData.description || '';
-      }
+      setDescriptionContent(actionData.description || '');
     } finally {
       setSavingDescription(false);
     }
@@ -257,7 +261,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       saveVision(newVision);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      e.currentTarget.textContent = actionData?.vision || '';
+      const originalVision = actionData?.vision || '';
+      setVisionContent(originalVision);
       e.currentTarget.blur();
       if (visionSaveTimeout) {
         clearTimeout(visionSaveTimeout);
@@ -278,7 +283,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       saveDescription(newDescription);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      e.currentTarget.textContent = actionData?.description || '';
+      const originalDescription = actionData?.description || '';
+      setDescriptionContent(originalDescription);
       e.currentTarget.blur();
       if (descriptionSaveTimeout) {
         clearTimeout(descriptionSaveTimeout);
@@ -1060,10 +1066,16 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 e.currentTarget.style.border = '1px solid transparent';
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
-              dangerouslySetInnerHTML={{
-                __html: actionData.description || '<span style="color: #9CA3AF; font-style: italic;">Click to add description...</span>'
-              }}
-            />
+            >
+              {descriptionContent || (
+                <span style={{
+                  color: '#9CA3AF',
+                  fontStyle: 'italic'
+                }}>
+                  Click to add description...
+                </span>
+              )}
+            </div>
             {savingDescription && (
               <div style={{
                 position: 'absolute',
@@ -1178,10 +1190,16 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 e.currentTarget.style.border = '1px solid transparent';
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
-              dangerouslySetInnerHTML={{
-                __html: actionData.vision || '<span style="color: #9CA3AF; font-style: italic;">Click to add vision...</span>'
-              }}
-            />
+            >
+              {visionContent || (
+                <span style={{
+                  color: '#9CA3AF',
+                  fontStyle: 'italic'
+                }}>
+                  Click to add vision...
+                </span>
+              )}
+            </div>
             {savingVision && (
               <div style={{
                 position: 'absolute',
