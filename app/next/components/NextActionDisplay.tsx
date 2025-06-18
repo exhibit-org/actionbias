@@ -68,16 +68,12 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [completed, setCompleted] = useState(false);
   const [copying, setCopying] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [editingVision, setEditingVision] = useState(false);
-  const [editingDescription, setEditingDescription] = useState(false);
-  const [visionText, setVisionText] = useState('');
-  const [descriptionText, setDescriptionText] = useState('');
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
-  const visionTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const visionDisplayRef = useRef<HTMLParagraphElement>(null);
-  const descriptionDisplayRef = useRef<HTMLParagraphElement>(null);
+  const visionEditableRef = useRef<HTMLDivElement>(null);
+  const descriptionEditableRef = useRef<HTMLDivElement>(null);
+  const [visionSaveTimeout, setVisionSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [descriptionSaveTimeout, setDescriptionSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -100,8 +96,6 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         }
 
         setActionData(data.data);
-        setVisionText(data.data.vision || '');
-        setDescriptionText(data.data.description || '');
         
         // Fetch siblings if action has a parent
         if (data.data?.parent_id) {
@@ -135,38 +129,42 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     fetchAction();
   }, [actionId]);
 
-  const handleVisionEdit = () => {
-    // Calculate the height of the original text BEFORE hiding it
-    const displayElement = visionDisplayRef.current;
-    const originalHeight = displayElement ? Math.max(displayElement.offsetHeight, 80) : 80;
+  const saveVisionWithDelay = (newVision: string) => {
+    if (visionSaveTimeout) {
+      clearTimeout(visionSaveTimeout);
+    }
     
-    setEditingVision(true);
-    setTimeout(() => {
-      if (visionTextareaRef.current) {
-        visionTextareaRef.current.style.height = `${originalHeight}px`;
-        visionTextareaRef.current.focus();
-        visionTextareaRef.current.select();
-      }
-    }, 0);
+    const timeout = setTimeout(() => {
+      saveVision(newVision);
+    }, 1000); // Save after 1 second of no changes
+    
+    setVisionSaveTimeout(timeout);
   };
 
-  const handleDescriptionEdit = () => {
-    // Calculate the height of the original text BEFORE hiding it
-    const displayElement = descriptionDisplayRef.current;
-    const originalHeight = displayElement ? Math.max(displayElement.offsetHeight, 80) : 80;
+  const saveDescriptionWithDelay = (newDescription: string) => {
+    if (descriptionSaveTimeout) {
+      clearTimeout(descriptionSaveTimeout);
+    }
     
-    setEditingDescription(true);
-    setTimeout(() => {
-      if (descriptionTextareaRef.current) {
-        descriptionTextareaRef.current.style.height = `${originalHeight}px`;
-        descriptionTextareaRef.current.focus();
-        descriptionTextareaRef.current.select();
-      }
-    }, 0);
+    const timeout = setTimeout(() => {
+      saveDescription(newDescription);
+    }, 1000); // Save after 1 second of no changes
+    
+    setDescriptionSaveTimeout(timeout);
   };
 
-  const saveVision = async () => {
-    if (!actionData) return;
+  const handleVisionInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const newVision = e.currentTarget.textContent || '';
+    saveVisionWithDelay(newVision);
+  };
+
+  const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const newDescription = e.currentTarget.textContent || '';
+    saveDescriptionWithDelay(newDescription);
+  };
+
+  const saveVision = async (newVision: string) => {
+    if (!actionData || actionData.vision === newVision) return;
     
     try {
       setSavingVision(true);
@@ -178,7 +176,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          vision: visionText
+          vision: newVision
         })
       });
 
@@ -192,19 +190,22 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         throw new Error(data.error || 'Failed to update vision');
       }
 
-      setActionData(prev => prev ? { ...prev, vision: visionText } : null);
-      setEditingVision(false);
+      setActionData(prev => prev ? { ...prev, vision: newVision } : null);
       
     } catch (err) {
       console.error('Error updating vision:', err);
       setError(err instanceof Error ? err.message : 'Failed to update vision');
+      // Revert the content on error
+      if (visionEditableRef.current) {
+        visionEditableRef.current.textContent = actionData.vision || '';
+      }
     } finally {
       setSavingVision(false);
     }
   };
 
-  const saveDescription = async () => {
-    if (!actionData) return;
+  const saveDescription = async (newDescription: string) => {
+    if (!actionData || actionData.description === newDescription) return;
     
     try {
       setSavingDescription(true);
@@ -216,7 +217,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          description: descriptionText
+          description: newDescription
         })
       });
 
@@ -230,44 +231,59 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         throw new Error(data.error || 'Failed to update description');
       }
 
-      setActionData(prev => prev ? { ...prev, description: descriptionText } : null);
-      setEditingDescription(false);
+      setActionData(prev => prev ? { ...prev, description: newDescription } : null);
       
     } catch (err) {
       console.error('Error updating description:', err);
       setError(err instanceof Error ? err.message : 'Failed to update description');
+      // Revert the content on error
+      if (descriptionEditableRef.current) {
+        descriptionEditableRef.current.textContent = actionData.description || '';
+      }
     } finally {
       setSavingDescription(false);
     }
   };
 
-  const cancelVisionEdit = () => {
-    setVisionText(actionData?.vision || '');
-    setEditingVision(false);
-  };
-
-  const cancelDescriptionEdit = () => {
-    setDescriptionText(actionData?.description || '');
-    setEditingDescription(false);
-  };
-
-  const handleVisionKeyDown = (e: React.KeyboardEvent) => {
+  const handleVisionKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      saveVision();
+      e.currentTarget.blur(); // Remove focus to trigger save
+      const newVision = e.currentTarget.textContent || '';
+      if (visionSaveTimeout) {
+        clearTimeout(visionSaveTimeout);
+        setVisionSaveTimeout(null);
+      }
+      saveVision(newVision);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      cancelVisionEdit();
+      e.currentTarget.textContent = actionData?.vision || '';
+      e.currentTarget.blur();
+      if (visionSaveTimeout) {
+        clearTimeout(visionSaveTimeout);
+        setVisionSaveTimeout(null);
+      }
     }
   };
 
-  const handleDescriptionKeyDown = (e: React.KeyboardEvent) => {
+  const handleDescriptionKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      saveDescription();
+      e.currentTarget.blur(); // Remove focus to trigger save
+      const newDescription = e.currentTarget.textContent || '';
+      if (descriptionSaveTimeout) {
+        clearTimeout(descriptionSaveTimeout);
+        setDescriptionSaveTimeout(null);
+      }
+      saveDescription(newDescription);
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      cancelDescriptionEdit();
+      e.currentTarget.textContent = actionData?.description || '';
+      e.currentTarget.blur();
+      if (descriptionSaveTimeout) {
+        clearTimeout(descriptionSaveTimeout);
+        setDescriptionSaveTimeout(null);
+      }
     }
   };
 
@@ -285,6 +301,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     // Cleanup
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (visionSaveTimeout) clearTimeout(visionSaveTimeout);
+      if (descriptionSaveTimeout) clearTimeout(descriptionSaveTimeout);
+    };
+  }, [visionSaveTimeout, descriptionSaveTimeout]);
 
   const generateClaudeCodePrompt = (action: NextActionData): string => {
     let prompt = `I'm working on: ${action.title}\nMCP URI: actions://${action.id}\n\n`;
@@ -1005,110 +1029,57 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             </h2>
           </div>
           
-          {editingDescription ? (
-            <div style={{ marginTop: '0.5rem' }}>
-              <textarea
-                ref={descriptionTextareaRef}
-                value={descriptionText}
-                onChange={(e) => setDescriptionText(e.target.value)}
-                onKeyDown={handleDescriptionKeyDown}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '0.5rem',
-                  border: `2px solid ${colors.borderAccent}`,
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  color: colors.text,
-                  backgroundColor: 'white',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.5',
-                  resize: 'vertical',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Enter description..."
-              />
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginTop: '0.5rem'
-              }}>
-                <button
-                  onClick={saveDescription}
-                  disabled={savingDescription}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    backgroundColor: savingDescription ? colors.textFaint : colors.borderAccent,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: savingDescription ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {savingDescription ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={cancelDescriptionEdit}
-                  disabled={savingDescription}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    backgroundColor: 'transparent',
-                    color: colors.textMuted,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '0.25rem',
-                    cursor: savingDescription ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-              <div style={{
-                fontSize: '0.625rem',
-                color: colors.textFaint,
-                marginTop: '0.25rem'
-              }}>
-                Press Cmd+Enter to save, Escape to cancel
-              </div>
-            </div>
-          ) : (
+          <div style={{ 
+            marginTop: '0.5rem',
+            position: 'relative'
+          }}>
             <div
-              onClick={handleDescriptionEdit}
+              ref={descriptionEditableRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleDescriptionInput}
+              onKeyDown={handleDescriptionKeyDown}
               style={{
-                cursor: 'pointer',
-                marginTop: actionData.description ? '0.5rem' : '0.5rem',
-                padding: '0.5rem',
-                borderRadius: '0.25rem',
-                border: `1px dashed ${colors.border}`,
-                backgroundColor: 'transparent',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = colors.borderAccent;
-                e.currentTarget.style.backgroundColor = colors.bg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = colors.border;
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <p ref={descriptionDisplayRef} style={{
                 fontSize: '0.875rem',
-                color: actionData.description ? colors.textMuted : colors.textFaint,
+                color: colors.textMuted,
                 margin: 0,
                 lineHeight: '1.5',
-                fontStyle: actionData.description ? 'normal' : 'italic'
+                padding: '0.5rem',
+                borderRadius: '0.25rem',
+                border: '1px solid transparent',
+                outline: 'none',
+                minHeight: '1.5em',
+                transition: 'all 0.2s ease',
+                cursor: 'text'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
+                e.currentTarget.style.backgroundColor = colors.bg;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid transparent';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              dangerouslySetInnerHTML={{
+                __html: actionData.description || '<span style="color: #9CA3AF; font-style: italic;">Click to add description...</span>'
+              }}
+            />
+            {savingDescription && (
+              <div style={{
+                position: 'absolute',
+                top: '0.25rem',
+                right: '0.25rem',
+                fontSize: '0.625rem',
+                color: colors.textFaint,
+                backgroundColor: 'white',
+                padding: '0.125rem 0.25rem',
+                borderRadius: '0.125rem',
+                border: `1px solid ${colors.border}`
               }}>
-                {actionData.description || 'Click to add description...'}
-              </p>
-            </div>
-          )}
+                Saving...
+              </div>
+            )}
+          </div>
 
           {/* Completion message */}
           {completed && (
@@ -1179,109 +1150,54 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             }}>Vision</h3>
           </div>
           
-          {editingVision ? (
-            <div>
-              <textarea
-                ref={visionTextareaRef}
-                value={visionText}
-                onChange={(e) => setVisionText(e.target.value)}
-                onKeyDown={handleVisionKeyDown}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '0.5rem',
-                  border: `2px solid ${colors.borderAccent}`,
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                  color: colors.text,
-                  backgroundColor: 'white',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.5',
-                  resize: 'vertical',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-                placeholder="Enter vision..."
-              />
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginTop: '0.5rem'
-              }}>
-                <button
-                  onClick={saveVision}
-                  disabled={savingVision}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    backgroundColor: savingVision ? colors.textFaint : colors.borderAccent,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: savingVision ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {savingVision ? 'Saving...' : 'Save'}
-                </button>
-                <button
-                  onClick={cancelVisionEdit}
-                  disabled={savingVision}
-                  style={{
-                    padding: '0.375rem 0.75rem',
-                    backgroundColor: 'transparent',
-                    color: colors.textMuted,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '0.25rem',
-                    cursor: savingVision ? 'not-allowed' : 'pointer',
-                    fontSize: '0.75rem',
-                    fontWeight: '500',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-              <div style={{
-                fontSize: '0.625rem',
-                color: colors.textFaint,
-                marginTop: '0.25rem'
-              }}>
-                Press Cmd+Enter to save, Escape to cancel
-              </div>
-            </div>
-          ) : (
+          <div style={{ position: 'relative' }}>
             <div
-              onClick={handleVisionEdit}
+              ref={visionEditableRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={handleVisionInput}
+              onKeyDown={handleVisionKeyDown}
               style={{
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '0.25rem',
-                border: `1px dashed ${colors.border}`,
-                backgroundColor: 'transparent',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = colors.borderAccent;
-                e.currentTarget.style.backgroundColor = colors.bg;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = colors.border;
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <p ref={visionDisplayRef} style={{
-                color: actionData.vision ? colors.textMuted : colors.textFaint,
+                color: colors.textMuted,
                 fontSize: '0.875rem',
                 margin: 0,
                 lineHeight: '1.5',
-                fontStyle: actionData.vision ? 'normal' : 'italic'
+                padding: '0.5rem',
+                borderRadius: '0.25rem',
+                border: '1px solid transparent',
+                outline: 'none',
+                minHeight: '1.5em',
+                transition: 'all 0.2s ease',
+                cursor: 'text'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
+                e.currentTarget.style.backgroundColor = colors.bg;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.border = '1px solid transparent';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              dangerouslySetInnerHTML={{
+                __html: actionData.vision || '<span style="color: #9CA3AF; font-style: italic;">Click to add vision...</span>'
+              }}
+            />
+            {savingVision && (
+              <div style={{
+                position: 'absolute',
+                top: '0.25rem',
+                right: '0.25rem',
+                fontSize: '0.625rem',
+                color: colors.textFaint,
+                backgroundColor: 'white',
+                padding: '0.125rem 0.25rem',
+                borderRadius: '0.125rem',
+                border: `1px solid ${colors.border}`
               }}>
-                {actionData.vision || 'Click to add vision...'}
-              </p>
-            </div>
-          )}
+                Saving...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bottom Left: Parent Context Summary */}
