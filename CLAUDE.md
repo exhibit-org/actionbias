@@ -56,3 +56,4 @@ node scripts/test-streamable-http-client.mjs http://localhost:3000
 
 ## Deployment Workflow
 - To test out a change we've made to the actionbias MCP server, we have to push the code to the main branch and wait about 60 seconds for Vercel to deploy the new version of the code
+- **Push Policy**: Push liberally as long as tests pass - don't wait for explicit permission to push changes that build successfully
