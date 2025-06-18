@@ -6,6 +6,8 @@ jest.mock('../../lib/services/actions', () => ({
   ActionsService: {
     getNextAction: jest.fn(),
     getActionDetailResource: jest.fn(),
+    getParentContextSummary: jest.fn(),
+    getParentVisionSummary: jest.fn(),
   },
 }));
 
@@ -47,6 +49,8 @@ describe('/api/actions/next', () => {
 
     mockedService.getNextAction.mockResolvedValue(mockAction);
     mockedService.getActionDetailResource.mockResolvedValue(mockActionDetails);
+    mockedService.getParentContextSummary.mockResolvedValue('Test parent context summary');
+    mockedService.getParentVisionSummary.mockResolvedValue('Test parent vision summary');
 
     const request = new Request('http://localhost:3000/api/actions/next');
     const response = await GET(request);
@@ -54,9 +58,15 @@ describe('/api/actions/next', () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.data).toEqual(mockActionDetails);
+    expect(data.data).toEqual({
+      ...mockActionDetails,
+      parent_context_summary: 'Test parent context summary',
+      parent_vision_summary: 'Test parent vision summary'
+    });
     expect(mockedService.getNextAction).toHaveBeenCalled();
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith('test-action-id');
+    expect(mockedService.getParentContextSummary).toHaveBeenCalledWith('test-action-id');
+    expect(mockedService.getParentVisionSummary).toHaveBeenCalledWith('test-action-id');
   });
 
   it('returns null when no next action exists', async () => {

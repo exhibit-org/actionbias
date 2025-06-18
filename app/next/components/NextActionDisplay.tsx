@@ -100,8 +100,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         }
 
         setActionData(data.data);
-        setVisionContent(data.data.vision || '');
-        setDescriptionContent(data.data.description || '');
+        setVisionContent(data.data?.vision || '');
+        setDescriptionContent(data.data?.description || '');
         
         // Fetch siblings if action has a parent
         if (data.data?.parent_id) {
