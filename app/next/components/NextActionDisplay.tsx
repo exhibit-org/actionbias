@@ -1102,7 +1102,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 }
               })}
             >
-              {isEditingDescription && descriptionContent}
+              {isEditingDescription ? descriptionContent : null}
             </div>
             {savingDescription && (
               <div style={{
@@ -1218,7 +1218,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 }
               })}
             >
-              {isEditingVision && visionContent}
+              {isEditingVision ? visionContent : null}
             </div>
             {savingVision && (
               <div style={{
