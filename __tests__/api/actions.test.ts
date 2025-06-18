@@ -88,6 +88,55 @@ describe("/api/actions", () => {
       });
     });
 
+    it("should create an orphaned action with analysis", async () => {
+      const mockResult = {
+        action: {
+          id: "orphan-id",
+          data: { title: "Orphaned Action" },
+          done: false,
+          version: 1,
+          createdAt: "2024-01-01T00:00:00.000Z",
+          updatedAt: "2024-01-01T00:00:00.000Z",
+        },
+        dependencies_count: 0,
+        needs_auto_placement: true,
+        analysis: {
+          action: {
+            title: "Orphaned Action",
+          },
+          importantTerms: ["action", "test"],
+          metadata: {
+            qualityScore: 0.5,
+            hasSufficientContent: true,
+            analyzedAt: "2024-01-01T00:00:00.000Z",
+          },
+        },
+      };
+
+      mockActionsService.createAction.mockResolvedValue(mockResult);
+
+      const request = new NextRequest("http://localhost/api/actions", {
+        method: "POST",
+        body: JSON.stringify({
+          title: "Orphaned Action",
+          description: "This action has no parent and should trigger analysis",
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.data.needs_auto_placement).toBe(true);
+      expect(data.data.analysis).toBeDefined();
+      expect(mockActionsService.createAction).toHaveBeenCalledWith({
+        title: "Orphaned Action",
+        description: "This action has no parent and should trigger analysis",
+      });
+    });
+
     it("should return 400 for invalid input", async () => {
       const request = new NextRequest("http://localhost/api/actions", {
         method: "POST",

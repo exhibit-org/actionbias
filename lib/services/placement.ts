@@ -1,0 +1,253 @@
+/**
+ * LLM-based intelligent action placement service
+ * 
+ * This service determines the optimal parent for new actions using semantic reasoning.
+ * It builds context about existing action hierarchies and uses LLM calls via the 
+ * Vercel AI SDK to make intelligent placement decisions.
+ */
+
+import { generateObject } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import type { ActionContent } from '../utils/text-processing';
+import { AnalysisService } from './analysis';
+
+export interface PlacementResult {
+  bestParent: { id: string; title: string } | null;
+  confidence: number;
+  reasoning: string;
+  analysis: any;
+}
+
+export interface ActionHierarchyItem {
+  id: string;
+  title: string;
+  description?: string;
+  vision?: string;
+  parentId?: string;
+}
+
+export class PlacementService {
+  /**
+   * Find the best parent for a new action using semantic reasoning
+   */
+  static async findBestParent(
+    newAction: ActionContent,
+    existingActions: ActionHierarchyItem[]
+  ): Promise<PlacementResult> {
+    // Analyze the new action for quality scoring and structured data
+    const newActionAnalysis = await AnalysisService.analyzeAction(newAction);
+    
+    // Get root-level actions (potential parents)
+    const potentialParents = existingActions.filter(action => !action.parentId);
+    
+    if (potentialParents.length === 0) {
+      return {
+        bestParent: null,
+        confidence: 0,
+        reasoning: 'No potential parent actions found',
+        analysis: newActionAnalysis
+      };
+    }
+
+    // Build context for each potential parent
+    const parentContexts = potentialParents.map(parent => {
+      const children = existingActions.filter(action => action.parentId === parent.id);
+      return {
+        parent,
+        children,
+        context: this.buildParentContext(parent, children)
+      };
+    });
+
+    // Determine best placement using semantic heuristics
+    const placement = await this.determineBestPlacement(newAction, parentContexts);
+    
+    return {
+      bestParent: placement.bestParent,
+      confidence: placement.confidence,
+      reasoning: placement.reasoning,
+      analysis: newActionAnalysis
+    };
+  }
+
+  /**
+   * Build a descriptive context for a parent and its children
+   */
+  private static buildParentContext(parent: ActionHierarchyItem, children: ActionHierarchyItem[]): string {
+    let context = `**${parent.title}**\n`;
+    if (parent.description) context += `Description: ${parent.description}\n`;
+    if (parent.vision) context += `Vision: ${parent.vision}\n`;
+    
+    if (children.length > 0) {
+      context += `\nExisting children:\n`;
+      children.forEach(child => {
+        context += `- ${child.title}`;
+        if (child.description) context += `: ${child.description}`;
+        context += `\n`;
+      });
+    } else {
+      context += `\nNo existing children.\n`;
+    }
+    
+    return context;
+  }
+
+  /**
+   * Use LLM to determine the best placement for a new action
+   */
+  private static async determineBestPlacement(
+    newAction: ActionContent, 
+    parentContexts: Array<{ 
+      parent: ActionHierarchyItem; 
+      children: ActionHierarchyItem[]; 
+      context: string 
+    }>
+  ): Promise<{
+    bestParent: { id: string; title: string } | null;
+    confidence: number;
+    reasoning: string;
+  }> {
+    try {
+      // Build the prompt for the LLM
+      const prompt = this.buildPlacementPrompt(newAction, parentContexts);
+      
+      // Define the response schema
+      const placementSchema = z.object({
+        bestParentId: z.string().nullable().describe('The ID of the best parent category, or null if no good match'),
+        confidence: z.number().min(0).max(1).describe('Confidence score between 0 and 1'),
+        reasoning: z.string().describe('Explanation of why this placement was chosen')
+      });
+
+      // Make the LLM call
+      const result = await generateObject({
+        model: openai('gpt-4o-mini'),
+        prompt,
+        schema: placementSchema,
+        temperature: 0, // Deterministic results
+      });
+
+      // Find the parent object if ID was provided
+      let bestParent = null;
+      if (result.object.bestParentId) {
+        const parentContext = parentContexts.find(p => p.parent.id === result.object.bestParentId);
+        if (parentContext) {
+          bestParent = {
+            id: parentContext.parent.id,
+            title: parentContext.parent.title
+          };
+        }
+      }
+
+      return {
+        bestParent,
+        confidence: result.object.confidence,
+        reasoning: result.object.reasoning
+      };
+
+    } catch (error) {
+      console.error('Error in LLM placement call:', error);
+      
+      // Fallback to heuristic approach if LLM fails
+      return this.fallbackPlacement(newAction, parentContexts);
+    }
+  }
+
+  /**
+   * Build the prompt for LLM placement decision
+   */
+  private static buildPlacementPrompt(
+    newAction: ActionContent,
+    parentContexts: Array<{ parent: ActionHierarchyItem; children: ActionHierarchyItem[]; context: string }>
+  ): string {
+    const newActionDescription = `
+**New Action to Place:**
+Title: ${newAction.title}
+${newAction.description ? `Description: ${newAction.description}` : ''}
+${newAction.vision ? `Vision: ${newAction.vision}` : ''}
+`;
+
+    const categoryDescriptions = parentContexts.map((ctx, index) => 
+      `${index + 1}. **${ctx.parent.title}** (ID: ${ctx.parent.id})
+${ctx.parent.description ? `   Description: ${ctx.parent.description}` : ''}
+${ctx.parent.vision ? `   Vision: ${ctx.parent.vision}` : ''}
+${ctx.children.length > 0 ? 
+  `   Existing children: ${ctx.children.map(c => c.title).join(', ')}` : 
+  '   No existing children'}`
+    ).join('\n\n');
+
+    return `You are an intelligent action categorization system. Your task is to determine the best parent category for a new action based on semantic similarity and logical organization.
+
+${newActionDescription}
+
+**Available Parent Categories:**
+${categoryDescriptions}
+
+**Instructions:**
+1. Analyze the semantic meaning and purpose of the new action
+2. Consider which parent category it most naturally belongs to
+3. Look at existing children to understand each category's scope
+4. Prioritize semantic similarity over superficial keyword matching
+5. If no category is a good fit (confidence < 0.3), return null for bestParentId
+
+**Response Requirements:**
+- bestParentId: The ID of the most appropriate parent category, or null if no good match
+- confidence: A score from 0 to 1 indicating how confident you are in this placement
+- reasoning: A clear explanation of your decision
+
+Be thoughtful about semantic relationships. For example:
+- "OAuth Integration" belongs with authentication, not UI, despite containing "integration"
+- "Password Reset API" could go with either auth or API, but auth is more semantically core
+- "Database Schema" clearly belongs with database categories
+- Unrelated concepts should get low confidence scores`;
+  }
+
+  /**
+   * Fallback heuristic placement if LLM fails
+   */
+  private static fallbackPlacement(
+    newAction: ActionContent,
+    parentContexts: Array<{ parent: ActionHierarchyItem; children: ActionHierarchyItem[]; context: string }>
+  ): { bestParent: { id: string; title: string } | null; confidence: number; reasoning: string } {
+    // Simple keyword-based fallback
+    const newActionText = this.normalizeText(`${newAction.title} ${newAction.description || ''} ${newAction.vision || ''}`);
+    
+    const scores = parentContexts.map(({ parent }) => {
+      const parentText = this.normalizeText(`${parent.title} ${parent.description || ''} ${parent.vision || ''}`);
+      
+      let score = 0;
+      if (newActionText.includes('auth') && parentText.includes('auth')) score = 0.8;
+      else if (newActionText.includes('database') && parentText.includes('database')) score = 0.8;
+      else if (newActionText.includes('api') && parentText.includes('api')) score = 0.6;
+      else if (newActionText.includes('ui') && parentText.includes('ui')) score = 0.6;
+      
+      return { parent: { id: parent.id, title: parent.title }, score };
+    });
+    
+    const bestMatch = scores.reduce((best, current) => 
+      current.score > best.score ? current : best
+    );
+    
+    if (bestMatch.score === 0) {
+      return {
+        bestParent: null,
+        confidence: 0.2,
+        reasoning: 'LLM unavailable and no clear heuristic match found'
+      };
+    }
+    
+    return {
+      bestParent: bestMatch.parent,
+      confidence: bestMatch.score * 0.6, // Lower confidence for heuristic
+      reasoning: `Fallback heuristic placement in ${bestMatch.parent.title} (LLM unavailable)`
+    };
+  }
+
+
+  /**
+   * Normalize text for consistent comparison
+   */
+  private static normalizeText(text: string): string {
+    return text.toLowerCase().trim();
+  }
+}

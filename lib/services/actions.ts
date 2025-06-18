@@ -12,6 +12,9 @@ import {
 } from "../types/resources";
 import { getDb } from "../db/adapter";
 import "../db/init"; // Auto-initialize PGlite if needed
+import { AnalysisService, needsPlacementAnalysis, type ActionAnalysisResult } from "./analysis";
+import { PlacementService, type PlacementResult } from "./placement";
+import type { ActionContent } from "../utils/text-processing";
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -166,6 +169,8 @@ export interface CreateActionResult {
   parent_id?: string;
   dependencies_count: number;
   needs_auto_placement: boolean;
+  analysis?: ActionAnalysisResult; // Content analysis if auto-placement is needed
+  placement?: PlacementResult; // LLM-based placement suggestion if auto-placement is needed
 }
 
 export interface ListActionsParams {
@@ -276,16 +281,69 @@ export class ActionsService {
       }
     }
 
-    // Log detection of orphaned action for automatic placement analysis
+    // Perform content analysis and placement suggestion for orphaned actions
+    let analysis: ActionAnalysisResult | undefined;
+    let placement: PlacementResult | undefined;
+    
     if (needsAutoPlacement) {
       console.log(`Action created without parent_id: ${newAction[0].id} - "${title}" - flagged for automatic placement analysis`);
+      
+      try {
+        // Build action content for analysis
+        const actionContent: ActionContent = {
+          title,
+          description,
+          vision
+        };
+        
+        // Get all existing actions for placement context
+        const existingActionsResult = await getDb()
+          .select({
+            id: actions.id,
+            title: sql<string>`${actions.data}->>'title'`,
+            description: sql<string>`${actions.data}->>'description'`,
+            vision: sql<string>`${actions.data}->>'vision'`,
+            parentId: sql<string>`${actions.data}->>'parent_id'`
+          })
+          .from(actions)
+          .where(eq(actions.done, false)); // Only consider active actions
+        
+        // Ensure we have an array (handle test environment quirks)
+        const existingActions = Array.isArray(existingActionsResult) ? existingActionsResult : [];
+        
+        // Convert to the format expected by PlacementService
+        const hierarchyItems = existingActions.map(action => ({
+          id: action.id,
+          title: action.title || '',
+          description: action.description || undefined,
+          vision: action.vision || undefined,
+          parentId: action.parentId || undefined
+        }));
+        
+        // Get intelligent placement suggestion
+        placement = await PlacementService.findBestParent(actionContent, hierarchyItems);
+        analysis = placement.analysis; // PlacementService includes analysis results
+        
+        console.log(`Placement analysis completed for action ${newAction[0].id}:`, {
+          bestParent: placement.bestParent ? `${placement.bestParent.title} (${placement.bestParent.id})` : 'none',
+          confidence: placement.confidence.toFixed(3),
+          reasoning: placement.reasoning,
+          qualityScore: analysis?.metadata.qualityScore.toFixed(3) || 'N/A',
+          keywordCount: analysis?.keywords.keywords.length || 0
+        });
+      } catch (error) {
+        console.error(`Error analyzing/placing action content for ${newAction[0].id}:`, error);
+        // Don't fail action creation if analysis/placement fails
+      }
     }
 
     return {
       action: newAction[0],
       parent_id,
       dependencies_count: depends_on_ids?.length || 0,
-      needs_auto_placement: needsAutoPlacement
+      needs_auto_placement: needsAutoPlacement,
+      analysis,
+      placement
     };
   }
 
