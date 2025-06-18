@@ -170,6 +170,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   };
 
   const handleVisionFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Set the content first before switching to edit mode
+    if (!e.currentTarget.textContent || e.currentTarget.textContent.includes('Click to add')) {
+      e.currentTarget.textContent = visionContent;
+    }
     setIsEditingVision(true);
     e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
     e.currentTarget.style.backgroundColor = colors.bg;
@@ -184,6 +188,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   };
 
   const handleDescriptionFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    // Set the content first before switching to edit mode
+    if (!e.currentTarget.textContent || e.currentTarget.textContent.includes('Click to add')) {
+      e.currentTarget.textContent = descriptionContent;
+    }
     setIsEditingDescription(true);
     e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
     e.currentTarget.style.backgroundColor = colors.bg;
@@ -1088,10 +1096,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               }}
               onFocus={handleDescriptionFocus}
               onBlur={handleDescriptionBlur}
-              dangerouslySetInnerHTML={!isEditingDescription ? {
-                __html: descriptionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add description...</span>'
-              } : undefined}
-            />
+              {...(!isEditingDescription && {
+                dangerouslySetInnerHTML: {
+                  __html: descriptionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add description...</span>'
+                }
+              })}
+            >
+              {isEditingDescription && descriptionContent}
+            </div>
             {savingDescription && (
               <div style={{
                 position: 'absolute',
@@ -1200,10 +1212,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               }}
               onFocus={handleVisionFocus}
               onBlur={handleVisionBlur}
-              dangerouslySetInnerHTML={!isEditingVision ? {
-                __html: visionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add vision...</span>'
-              } : undefined}
-            />
+              {...(!isEditingVision && {
+                dangerouslySetInnerHTML: {
+                  __html: visionContent || '<span style="color: #9CA3AF; font-style: italic;">Click to add vision...</span>'
+                }
+              })}
+            >
+              {isEditingVision && visionContent}
+            </div>
             {savingVision && (
               <div style={{
                 position: 'absolute',
