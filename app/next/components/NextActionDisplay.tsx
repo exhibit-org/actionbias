@@ -136,15 +136,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   }, [actionId]);
 
   const handleVisionEdit = () => {
+    // Calculate the height of the original text BEFORE hiding it
+    const displayElement = visionDisplayRef.current;
+    const originalHeight = displayElement ? Math.max(displayElement.offsetHeight, 80) : 80;
+    
     setEditingVision(true);
     setTimeout(() => {
       if (visionTextareaRef.current) {
-        // Calculate the height of the original text
-        const displayElement = visionDisplayRef.current;
-        if (displayElement) {
-          const height = Math.max(displayElement.offsetHeight, 80);
-          visionTextareaRef.current.style.height = `${height}px`;
-        }
+        visionTextareaRef.current.style.height = `${originalHeight}px`;
         visionTextareaRef.current.focus();
         visionTextareaRef.current.select();
       }
@@ -152,15 +151,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   };
 
   const handleDescriptionEdit = () => {
+    // Calculate the height of the original text BEFORE hiding it
+    const displayElement = descriptionDisplayRef.current;
+    const originalHeight = displayElement ? Math.max(displayElement.offsetHeight, 80) : 80;
+    
     setEditingDescription(true);
     setTimeout(() => {
       if (descriptionTextareaRef.current) {
-        // Calculate the height of the original text
-        const displayElement = descriptionDisplayRef.current;
-        if (displayElement) {
-          const height = Math.max(displayElement.offsetHeight, 80);
-          descriptionTextareaRef.current.style.height = `${height}px`;
-        }
+        descriptionTextareaRef.current.style.height = `${originalHeight}px`;
         descriptionTextareaRef.current.focus();
         descriptionTextareaRef.current.select();
       }
