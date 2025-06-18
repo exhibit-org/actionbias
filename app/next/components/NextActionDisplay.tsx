@@ -233,7 +233,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }
 
       setActionData(prev => prev ? { ...prev, vision: newVision } : null);
-      setVisionContent(newVision);
+      // Only update content state if not actively editing to avoid re-renders
+      if (!isEditingVision) {
+        setVisionContent(newVision);
+      }
       
     } catch (err) {
       console.error('Error updating vision:', err);
@@ -273,7 +276,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }
 
       setActionData(prev => prev ? { ...prev, description: newDescription } : null);
-      setDescriptionContent(newDescription);
+      // Only update content state if not actively editing to avoid re-renders
+      if (!isEditingDescription) {
+        setDescriptionContent(newDescription);
+      }
       
     } catch (err) {
       console.error('Error updating description:', err);
