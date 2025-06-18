@@ -367,8 +367,8 @@ export function registerTools(server: any) {
       try {
         console.log(`Getting placement suggestion for action: ${title}`);
         
-        // Get all existing actions to use as placement candidates
-        const existingActions = await ActionsService.listActions();
+        // Get all existing actions to use as placement candidates (exclude completed actions)
+        const existingActions = await ActionsService.listActions({ done: false });
         
         // Convert to the format expected by PlacementService
         const hierarchyItems = existingActions.map((action: any) => ({
@@ -385,7 +385,8 @@ export function registerTools(server: any) {
           hierarchyItems
         );
         
-        let message = `Placement Analysis for: "${title}"\n\n`;
+        let message = `Placement Analysis for: "${title}"\n`;
+        message += `(Note: Only non-completed actions are considered as potential parents)\n\n`;
         
         if (placementResult.bestParent) {
           message += `✅ **Recommended Parent:**\n`;
