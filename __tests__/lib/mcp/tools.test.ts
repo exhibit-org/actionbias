@@ -30,13 +30,14 @@ describe('MCP Tools', () => {
     it('should register all tools with the server', () => {
       registerTools(mockServer);
 
-      expect(mockServer.tool).toHaveBeenCalledTimes(6);
+      expect(mockServer.tool).toHaveBeenCalledTimes(7);
       expect(mockServer.tool).toHaveBeenCalledWith('create_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('add_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('delete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('remove_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('update_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('update_parent', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('suggest_parent', expect.any(String), expect.any(Object), expect.any(Function));
     });
   });
 
@@ -48,9 +49,11 @@ describe('MCP Tools', () => {
       expect(toolCapabilities).toHaveProperty('remove_dependency');
       expect(toolCapabilities).toHaveProperty('update_action');
       expect(toolCapabilities).toHaveProperty('update_parent');
+      expect(toolCapabilities).toHaveProperty('suggest_parent');
 
       expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with optional parent and dependencies');
       expect(toolCapabilities.update_parent.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
+      expect(toolCapabilities.suggest_parent.description).toBe('Get an intelligent placement suggestion for a new action using semantic analysis');
     });
   });
 

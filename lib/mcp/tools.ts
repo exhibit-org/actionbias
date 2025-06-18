@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
+import { PlacementService } from "../services/placement";
 import { getDb } from "../db/adapter";
 import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -353,6 +354,87 @@ export function registerTools(server: any) {
     },
   );
 
+  // suggest_parent - Get intelligent placement suggestion for a new action
+  server.tool(
+    "suggest_parent",
+    "Get an intelligent placement suggestion for a new action using semantic analysis",
+    {
+      title: z.string().min(1).describe("The title for the new action"),
+      description: z.string().optional().describe("Detailed description of what the action involves"),
+      vision: z.string().optional().describe("The desired outcome when the action is complete"),
+    },
+    async ({ title, description, vision }: { title: string; description?: string; vision?: string }, extra: any) => {
+      try {
+        console.log(`Getting placement suggestion for action: ${title}`);
+        
+        // Get all existing actions to use as placement candidates
+        const existingActions = await ActionsService.listActions();
+        
+        // Convert to the format expected by PlacementService
+        const hierarchyItems = existingActions.map((action: any) => ({
+          id: action.id,
+          title: action.data?.title || '',
+          description: action.data?.description,
+          vision: action.data?.vision,
+          parentId: action.data?.parent_id
+        }));
+        
+        // Get placement suggestion
+        const placementResult = await PlacementService.findBestParent(
+          { title, description, vision },
+          hierarchyItems
+        );
+        
+        let message = `Placement Analysis for: "${title}"\n\n`;
+        
+        if (placementResult.bestParent) {
+          message += `✅ **Recommended Parent:**\n`;
+          message += `   ID: ${placementResult.bestParent.id}\n`;
+          message += `   Title: ${placementResult.bestParent.title}\n`;
+          message += `   Confidence: ${(placementResult.confidence * 100).toFixed(1)}%\n\n`;
+          message += `📝 **Reasoning:**\n   ${placementResult.reasoning}\n\n`;
+        } else {
+          message += `❌ **No suitable parent found**\n`;
+          message += `   Confidence: ${(placementResult.confidence * 100).toFixed(1)}%\n`;
+          message += `   Reasoning: ${placementResult.reasoning}\n\n`;
+          message += `💡 **Suggestion:** This action should be created as a root-level action.\n\n`;
+        }
+        
+        // Add analysis details if available
+        if (placementResult.analysis) {
+          const analysis = placementResult.analysis;
+          message += `🔍 **Content Analysis:**\n`;
+          message += `   Quality Score: ${(analysis.metadata.qualityScore * 100).toFixed(1)}%\n`;
+          message += `   Content Length: ${analysis.metadata.contentLength} characters\n`;
+          message += `   Important Terms: ${analysis.importantTerms.slice(0, 5).join(', ')}\n`;
+          
+          if (analysis.keywords.phrases.length > 0) {
+            message += `   Key Phrases: ${analysis.keywords.phrases.slice(0, 3).map((p: any) => p.term).join(', ')}\n`;
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error getting placement suggestion:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting placement suggestion: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 }
 
 export const toolCapabilities = {
@@ -373,5 +455,8 @@ export const toolCapabilities = {
   },
   update_parent: {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
+  },
+  suggest_parent: {
+    description: "Get an intelligent placement suggestion for a new action using semantic analysis",
   },
 };

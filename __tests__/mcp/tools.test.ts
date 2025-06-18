@@ -8,6 +8,13 @@ jest.mock("../../lib/services/actions", () => ({
     deleteAction: jest.fn(),
     removeDependency: jest.fn(),
     updateAction: jest.fn(),
+    listActions: jest.fn(),
+  },
+}));
+
+jest.mock("../../lib/services/placement", () => ({
+  PlacementService: {
+    findBestParent: jest.fn(),
   },
 }));
 
@@ -47,7 +54,7 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(6);
+    expect(server.tool).toHaveBeenCalledTimes(7);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
@@ -55,6 +62,7 @@ describe("MCP Tools", () => {
       "remove_dependency",
       "update_action",
       "update_parent",
+      "suggest_parent",
     ]);
   });
 
