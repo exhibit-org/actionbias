@@ -39,8 +39,9 @@ export class PlacementService {
     // Analyze the new action for quality scoring and structured data
     const newActionAnalysis = await AnalysisService.analyzeAction(newAction);
     
-    // Get root-level actions (potential parents)
-    const potentialParents = existingActions.filter(action => !action.parentId);
+    // Get all actions as potential parents (not just root-level)
+    // This allows placement anywhere in the hierarchy
+    const potentialParents = existingActions;
     
     if (potentialParents.length === 0) {
       return {
@@ -57,7 +58,7 @@ export class PlacementService {
       return {
         parent,
         children,
-        context: this.buildParentContext(parent, children)
+        context: this.buildParentContext(parent, children, existingActions)
       };
     });
 
@@ -75,10 +76,16 @@ export class PlacementService {
   /**
    * Build a descriptive context for a parent and its children
    */
-  private static buildParentContext(parent: ActionHierarchyItem, children: ActionHierarchyItem[]): string {
+  private static buildParentContext(parent: ActionHierarchyItem, children: ActionHierarchyItem[], allActions: ActionHierarchyItem[]): string {
     let context = `**${parent.title}**\n`;
     if (parent.description) context += `Description: ${parent.description}\n`;
     if (parent.vision) context += `Vision: ${parent.vision}\n`;
+    
+    // Add hierarchy path for better context
+    const hierarchyPath = this.buildHierarchyPath(parent, allActions);
+    if (hierarchyPath.length > 1) {
+      context += `Hierarchy: ${hierarchyPath.join(' → ')}\n`;
+    }
     
     if (children.length > 0) {
       context += `\nExisting children:\n`;
@@ -92,6 +99,23 @@ export class PlacementService {
     }
     
     return context;
+  }
+
+  /**
+   * Build hierarchy path for better contextual understanding
+   */
+  private static buildHierarchyPath(action: ActionHierarchyItem, allActions: ActionHierarchyItem[]): string[] {
+    const path = [action.title];
+    
+    if (action.parentId) {
+      const parent = allActions.find(a => a.id === action.parentId);
+      if (parent) {
+        const parentPath = this.buildHierarchyPath(parent, allActions);
+        return [...parentPath, action.title];
+      }
+    }
+    
+    return path;
   }
 
   /**
@@ -181,7 +205,7 @@ ${ctx.children.length > 0 ?
   '   No existing children'}`
     ).join('\n\n');
 
-    return `You are an intelligent action categorization system. Your task is to determine the best parent category for a new action based on semantic similarity and logical organization.
+    return `You are an intelligent action categorization system. Your task is to determine the best parent category for a new action based on semantic similarity, logical organization, and software architecture patterns.
 
 ${newActionDescription}
 
@@ -190,21 +214,32 @@ ${categoryDescriptions}
 
 **Instructions:**
 1. Analyze the semantic meaning and purpose of the new action
-2. Consider which parent category it most naturally belongs to
+2. Consider which parent category it most naturally belongs to based on:
+   - Functional domain (auth, payments, UI, API, etc.)
+   - Architectural layer (frontend, backend, database, infrastructure)
+   - Business context (user management, billing, content, etc.)
 3. Look at existing children to understand each category's scope
-4. Prioritize semantic similarity over superficial keyword matching
-5. If no category is a good fit (confidence < 0.3), return null for bestParentId
+4. Consider the hierarchy path - deeper nesting often indicates more specific functional areas
+5. Prioritize semantic similarity over superficial keyword matching
+6. If no category is a good fit (confidence < 0.3), return null for bestParentId
+
+**Domain Knowledge Patterns:**
+- **Payment/Billing**: Usually belongs with organization management, user accounts, or subscription features
+- **Authentication**: Core security feature, often separate but related to user management
+- **Multi-tenancy**: Organizational structure, billing, and access control are tightly related
+- **API Development**: Technical implementation details, distinct from business features
+- **Infrastructure**: Deployment, monitoring, security scanning are operational concerns
 
 **Response Requirements:**
 - bestParentId: The ID of the most appropriate parent category, or null if no good match
 - confidence: A score from 0 to 1 indicating how confident you are in this placement
-- reasoning: A clear explanation of your decision
+- reasoning: A clear explanation considering functional domain, architecture, and business context
 
-Be thoughtful about semantic relationships. For example:
-- "OAuth Integration" belongs with authentication, not UI, despite containing "integration"
-- "Password Reset API" could go with either auth or API, but auth is more semantically core
+Be thoughtful about semantic relationships. Examples:
+- "Integrate polar.sh for payment" belongs with organization/billing management, not technical API categories
+- "OAuth Integration" belongs with authentication, not UI, despite containing "integration"  
 - "Database Schema" clearly belongs with database categories
-- Unrelated concepts should get low confidence scores
+- "User Settings UI" could be UI or user management, but user management is more semantically core
 
 Only suggest a placement if you are reasonably confident. Return null if uncertain.`;
   }
