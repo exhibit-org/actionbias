@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { ActionsService, CreateActionParams, ListActionsParams } from "../../../lib/services/actions";
+import { ActionsService, CreateActionParams, CreateActionResult, ListActionsParams } from "../../../lib/services/actions";
 import { actionDataSchema } from "../../../db/schema";
 
 const createActionSchema = actionDataSchema.extend({

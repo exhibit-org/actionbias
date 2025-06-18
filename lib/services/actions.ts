@@ -161,6 +161,13 @@ export interface CreateActionParams {
   depends_on_ids?: string[];
 }
 
+export interface CreateActionResult {
+  action: any; // The created action from the database
+  parent_id?: string;
+  dependencies_count: number;
+  needs_auto_placement: boolean;
+}
+
 export interface ListActionsParams {
   limit?: number;
   offset?: number;
@@ -205,8 +212,11 @@ export interface UpdateParentParams {
 }
 
 export class ActionsService {
-  static async createAction(params: CreateActionParams) {
+  static async createAction(params: CreateActionParams): Promise<CreateActionResult> {
     const { title, description, vision, parent_id, depends_on_ids } = params;
+    
+    // Detect if this action needs automatic placement analysis
+    const needsAutoPlacement = !parent_id;
     
     // Validate parent exists if provided
     if (parent_id) {
@@ -266,10 +276,16 @@ export class ActionsService {
       }
     }
 
+    // Log detection of orphaned action for automatic placement analysis
+    if (needsAutoPlacement) {
+      console.log(`Action created without parent_id: ${newAction[0].id} - "${title}" - flagged for automatic placement analysis`);
+    }
+
     return {
       action: newAction[0],
       parent_id,
-      dependencies_count: depends_on_ids?.length || 0
+      dependencies_count: depends_on_ids?.length || 0,
+      needs_auto_placement: needsAutoPlacement
     };
   }
 
