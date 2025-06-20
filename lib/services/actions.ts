@@ -17,6 +17,7 @@ import { PlacementService, type PlacementResult } from "./placement";
 import type { ActionContent } from "../utils/text-processing";
 import { EmbeddingsService } from './embeddings';
 import { VectorService } from './vector';
+import { SummaryService } from './summary';
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -339,8 +340,9 @@ export class ActionsService {
       }
     }
 
-    // Generate embedding asynchronously (fire-and-forget)
+    // Generate embedding and node summary asynchronously (fire-and-forget)
     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
+    generateNodeSummaryAsync(newAction[0].id, validatedData).catch(console.error);
 
     return {
       action: newAction[0],
@@ -590,9 +592,10 @@ export class ActionsService {
       .where(eq(actions.id, action_id))
       .returning();
 
-    // Generate embedding asynchronously if content was updated
+    // Generate embedding and node summary asynchronously if content was updated
     if (updateData.data) {
       generateEmbeddingAsync(action_id, updateData.data).catch(console.error);
+      generateNodeSummaryAsync(action_id, updateData.data).catch(console.error);
     }
 
     return updatedAction[0];
@@ -1101,6 +1104,28 @@ async function generateEmbeddingAsync(actionId: string, actionData: any): Promis
     console.log(`Generated embedding for action ${actionId}`);
   } catch (error) {
     console.error(`Failed to generate embedding for action ${actionId}:`, error);
+    // Don't throw - this is fire-and-forget
+  }
+}
+
+/**
+ * Generate node summary for an action asynchronously (fire-and-forget)
+ * This function runs in the background and doesn't block the main operation
+ */
+async function generateNodeSummaryAsync(actionId: string, actionData: any): Promise<void> {
+  try {
+    const summaryInput = {
+      title: actionData.title,
+      description: actionData.description,
+      vision: actionData.vision
+    };
+
+    const summary = await SummaryService.generateNodeSummary(summaryInput);
+    await SummaryService.updateNodeSummary(actionId, summary);
+    
+    console.log(`Generated node summary for action ${actionId}`);
+  } catch (error) {
+    console.error(`Failed to generate node summary for action ${actionId}:`, error);
     // Don't throw - this is fire-and-forget
   }
 }

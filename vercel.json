@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/embeddings",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/node-summaries",
+      "schedule": "*/10 * * * *"
     }
   ]
 }
