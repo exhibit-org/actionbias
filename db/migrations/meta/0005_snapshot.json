@@ -1,0 +1,201 @@
+{
+  "id": "f1a9049f-bf1e-499b-a1bc-7ef7c742c729",
+  "prevId": "b1b1a330-b227-4d6a-a8cd-002e7c2e292e",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.actions": {
+      "name": "actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "data": {
+          "name": "data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "done": {
+          "name": "done",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vision": {
+          "name": "vision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "embedding_vector": {
+          "name": "embedding_vector",
+          "type": "vector(1536)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "node_summary": {
+          "name": "node_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subtree_summary": {
+          "name": "subtree_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_context_summary": {
+          "name": "parent_context_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_vision_summary": {
+          "name": "parent_vision_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.edges": {
+      "name": "edges",
+      "schema": "",
+      "columns": {
+        "src": {
+          "name": "src",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dst": {
+          "name": "dst",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "edges_src_actions_id_fk": {
+          "name": "edges_src_actions_id_fk",
+          "tableFrom": "edges",
+          "tableTo": "actions",
+          "columnsFrom": [
+            "src"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "edges_dst_actions_id_fk": {
+          "name": "edges_dst_actions_id_fk",
+          "tableFrom": "edges",
+          "tableTo": "actions",
+          "columnsFrom": [
+            "dst"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "edges_src_dst_kind_pk": {
+          "name": "edges_src_dst_kind_pk",
+          "columns": [
+            "src",
+            "dst",
+            "kind"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

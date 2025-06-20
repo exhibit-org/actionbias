@@ -75,6 +75,8 @@ export interface ActionDetailResource {
   updated_at: string;
   parent_id?: string;
   parent_chain: ActionMetadata[]; // all parent actions up to root
+  parent_context_summary?: string; // AI-generated summary of parent context
+  parent_vision_summary?: string; // AI-generated summary of parent vision
   children: ActionMetadata[];
   dependencies: ActionMetadata[]; // actions this depends on
   dependents: ActionMetadata[]; // actions that depend on this one

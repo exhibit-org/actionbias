@@ -17,10 +17,16 @@ export const actions = pgTable('actions', {
   version: integer('version').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Core action fields (extracted from JSON for better performance and indexing)
+  title: text('title'),
+  description: text('description'),
+  vision: text('vision'),
   // Semantic fields for AI-powered action management
   embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // OpenAI embedding dimensions
   nodeSummary: text('node_summary'),
   subtreeSummary: text('subtree_summary'),
+  parentContextSummary: text('parent_context_summary'),
+  parentVisionSummary: text('parent_vision_summary'),
 });
 
 export const edges = pgTable('edges', {

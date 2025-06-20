@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/subtree-summaries",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/parent-summaries",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

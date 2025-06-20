@@ -19,6 +19,7 @@ import { EmbeddingsService } from './embeddings';
 import { VectorService } from './vector';
 import { SummaryService } from './summary';
 import { SubtreeSummaryService } from './subtree-summary';
+import { ParentSummaryService } from './parent-summary';
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -419,6 +420,9 @@ export class ActionsService {
     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
     generateNodeSummaryAsync(newAction[0].id, validatedData).catch(console.error);
     
+    // Generate parent summaries for the new child action (since it now has a parent chain)
+    generateParentSummariesAsync(newAction[0].id).catch(console.error);
+    
     // Generate subtree summary for parent asynchronously (since it now has a new child)
     generateSubtreeSummaryAsync(parent_id).catch(console.error);
 
@@ -511,6 +515,15 @@ export class ActionsService {
     if (child_handling === "reparent" && new_parent_id && childIds.length > 0) {
       // Regenerate subtree summary for new parent (children were added)
       generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+      
+      // Regenerate parent summaries for all reparented children and their descendants
+      // (their parent chains have changed)
+      for (const childId of childIds) {
+        const allDescendants = await getAllDescendants([childId]);
+        for (const descendantId of allDescendants) {
+          generateParentSummariesAsync(descendantId).catch(console.error);
+        }
+      }
     }
 
     return {
@@ -621,6 +634,14 @@ export class ActionsService {
     if (updateData.data) {
       generateEmbeddingAsync(action_id, updateData.data).catch(console.error);
       generateNodeSummaryAsync(action_id, updateData.data).catch(console.error);
+      
+      // Regenerate parent summaries for all descendants (their parent chain context has changed)
+      const allDescendants = await getAllDescendants([action_id]);
+      for (const descendantId of allDescendants) {
+        if (descendantId !== action_id) { // Don't regenerate for the current action itself
+          generateParentSummariesAsync(descendantId).catch(console.error);
+        }
+      }
     }
 
     // If done status changed, regenerate subtree summary for parent (child completion affects parent summary)
@@ -695,6 +716,13 @@ export class ActionsService {
     }
     if (new_parent_id) {
       generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+    }
+
+    // Regenerate parent summaries for the moved action and all its descendants
+    // (their parent chains have changed)
+    const allDescendants = await getAllDescendants([action_id]);
+    for (const descendantId of allDescendants) {
+      generateParentSummariesAsync(descendantId).catch(console.error);
     }
 
     return {
@@ -922,9 +950,9 @@ export class ActionsService {
     // Helper function to convert action to ActionMetadata
     const toActionMetadata = (action: any): ActionMetadata => ({
       id: action.id,
-      title: action.data?.title || 'untitled',
-      description: action.data?.description,
-      vision: action.data?.vision,
+      title: action.title || action.data?.title || 'untitled',
+      description: action.description || action.data?.description,
+      vision: action.vision || action.data?.vision,
       done: action.done,
       version: action.version,
       created_at: action.createdAt.toISOString(),
@@ -995,9 +1023,9 @@ export class ActionsService {
 
     return {
       id: action[0].id,
-      title: action[0].data?.title || 'untitled',
-      description: action[0].data?.description,
-      vision: action[0].data?.vision,
+      title: action[0].title || action[0].data?.title || 'untitled',
+      description: action[0].description || action[0].data?.description,
+      vision: action[0].vision || action[0].data?.vision,
       done: action[0].done,
       version: action[0].version,
       created_at: action[0].createdAt.toISOString(),
@@ -1007,6 +1035,9 @@ export class ActionsService {
       children: children.map(toActionMetadata),
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
+      // Parent summaries from database columns
+      parent_context_summary: action[0].parentContextSummary,
+      parent_vision_summary: action[0].parentVisionSummary,
     };
   }
 
@@ -1233,6 +1264,53 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
     console.log(`Generated subtree summary for action ${actionId}`);
   } catch (error) {
     console.error(`Failed to generate subtree summary for action ${actionId}:`, error);
+    // Don't throw - this is fire-and-forget
+  }
+}
+
+/**
+ * Generate parent summaries for an action asynchronously (fire-and-forget)
+ * This function runs in the background and doesn't block the main operation
+ * Generates both context and vision summaries based on parent chain
+ */
+async function generateParentSummariesAsync(actionId: string): Promise<void> {
+  try {
+    // Get the action details
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    if (actionResult.length === 0) {
+      console.log(`Action ${actionId} not found, skipping parent summaries generation`);
+      return;
+    }
+
+    const action = actionResult[0];
+    
+    // Get title, description, vision from either new columns or JSON fallback
+    const title = action.title || (action.data as any)?.title;
+    const description = action.description || (action.data as any)?.description;
+    const vision = action.vision || (action.data as any)?.vision;
+
+    if (!title) {
+      console.log(`Action ${actionId} has no title, skipping parent summaries generation`);
+      return;
+    }
+
+    // Get parent chain
+    const parentChain = await ParentSummaryService.getParentChain(actionId);
+
+    const parentSummaryInput = {
+      actionId: actionId,
+      title: title,
+      description: description,
+      vision: vision,
+      parentChain: parentChain
+    };
+
+    const { contextSummary, visionSummary } = await ParentSummaryService.generateBothParentSummaries(parentSummaryInput);
+    await ParentSummaryService.updateParentSummaries(actionId, contextSummary, visionSummary);
+    
+    console.log(`Generated parent summaries for action ${actionId}`);
+  } catch (error) {
+    console.error(`Failed to generate parent summaries for action ${actionId}:`, error);
     // Don't throw - this is fire-and-forget
   }
 }
