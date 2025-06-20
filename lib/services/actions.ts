@@ -263,6 +263,10 @@ export class ActionsService {
       .values({
         id: crypto.randomUUID(),
         data: validatedData,
+        // Set new columns for better performance and indexing
+        title: title,
+        description: description,
+        vision: vision,
       })
       .returning();
 
@@ -403,6 +407,10 @@ export class ActionsService {
       .values({
         id: crypto.randomUUID(),
         data: validatedData,
+        // Set new columns for better performance and indexing
+        title: title,
+        description: description,
+        vision: vision,
       })
       .returning();
 
@@ -605,12 +613,15 @@ export class ActionsService {
       
       if (title !== undefined) {
         newData.title = title;
+        updateData.title = title; // Update new column
       }
       if (description !== undefined) {
         newData.description = description;
+        updateData.description = description; // Update new column
       }
       if (vision !== undefined) {
         newData.vision = vision;
+        updateData.vision = vision; // Update new column
       }
       
       // Validate updated data against schema
