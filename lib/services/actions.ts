@@ -15,6 +15,8 @@ import "../db/init"; // Auto-initialize PGlite if needed
 import { AnalysisService, needsPlacementAnalysis, type ActionAnalysisResult } from "./analysis";
 import { PlacementService, type PlacementResult } from "./placement";
 import type { ActionContent } from "../utils/text-processing";
+import { EmbeddingsService } from './embeddings';
+import { VectorService } from './vector';
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -337,6 +339,9 @@ export class ActionsService {
       }
     }
 
+    // Generate embedding asynchronously (fire-and-forget)
+    generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
+
     return {
       action: newAction[0],
       parent_id,
@@ -584,6 +589,11 @@ export class ActionsService {
       .set(updateData)
       .where(eq(actions.id, action_id))
       .returning();
+
+    // Generate embedding asynchronously if content was updated
+    if (updateData.data) {
+      generateEmbeddingAsync(action_id, updateData.data).catch(console.error);
+    }
 
     return updatedAction[0];
   }
@@ -1070,5 +1080,27 @@ export class ActionsService {
     });
 
     return result.text;
+  }
+}
+
+/**
+ * Generate embedding for an action asynchronously (fire-and-forget)
+ * This function runs in the background and doesn't block the main operation
+ */
+async function generateEmbeddingAsync(actionId: string, actionData: any): Promise<void> {
+  try {
+    const embeddingInput = {
+      title: actionData.title,
+      description: actionData.description,
+      vision: actionData.vision
+    };
+
+    const embedding = await EmbeddingsService.generateEmbedding(embeddingInput);
+    await VectorService.updateEmbedding(actionId, embedding);
+    
+    console.log(`Generated embedding for action ${actionId}`);
+  } catch (error) {
+    console.error(`Failed to generate embedding for action ${actionId}:`, error);
+    // Don't throw - this is fire-and-forget
   }
 }
