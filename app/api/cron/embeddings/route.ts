@@ -72,8 +72,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get updated stats
-    const stats = await VectorService.getEmbeddingStats();
+    // Get updated stats (with error handling)
+    let stats;
+    try {
+      stats = await VectorService.getEmbeddingStats();
+    } catch (error) {
+      console.error('Failed to get embedding stats:', error);
+      stats = {
+        totalActions: 0,
+        actionsWithEmbeddings: 0,
+        actionsWithoutEmbeddings: 0,
+        coveragePercentage: 0
+      };
+    }
 
     console.log(`Embedding cron job completed: ${totalProcessed} processed, ${errors} errors`);
 

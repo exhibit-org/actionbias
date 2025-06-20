@@ -63,8 +63,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get updated stats
-    const stats = await SummaryService.getNodeSummaryStats();
+    // Get updated stats (with error handling)
+    let stats;
+    try {
+      stats = await SummaryService.getNodeSummaryStats();
+    } catch (error) {
+      console.error('Failed to get node summary stats:', error);
+      stats = {
+        totalActions: 0,
+        actionsWithNodeSummaries: 0,
+        actionsWithoutNodeSummaries: 0,
+        coveragePercentage: 0
+      };
+    }
     
     console.log(`Node summaries cron job completed. Processed: ${totalProcessed}, Stats:`, stats);
     
