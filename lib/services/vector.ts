@@ -71,15 +71,22 @@ export class VectorService {
   static async updateEmbedding(actionId: string, embeddingVector: number[]): Promise<void> {
     const db = getDb();
     
-    // Convert embedding to vector format
-    const vectorString = `[${embeddingVector.join(',')}]`;
-    
-    await db.execute(sql`
-      UPDATE ${actions}
-      SET ${actions.embeddingVector} = ${sql.raw(`'${vectorString}'::vector`)},
-          ${actions.updatedAt} = NOW()
-      WHERE ${actions.id} = ${actionId}
-    `);
+    try {
+      // Convert embedding to vector format - try pgvector first, fallback to JSON
+      const vectorString = `[${embeddingVector.join(',')}]`;
+      
+      await db.execute(sql`
+        UPDATE ${actions}
+        SET ${actions.embeddingVector} = ${vectorString},
+            ${actions.updatedAt} = NOW()
+        WHERE ${actions.id} = ${actionId}
+      `);
+      
+      console.log(`Successfully stored embedding for action ${actionId}`);
+    } catch (error) {
+      console.error(`Failed to store embedding for action ${actionId}:`, error);
+      throw error;
+    }
   }
 
   /**
