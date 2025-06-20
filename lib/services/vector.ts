@@ -7,7 +7,7 @@
 
 import { getDb } from '../db/adapter';
 import { actions } from '../../db/schema';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 export interface SimilarityResult {
   id: string;
@@ -72,14 +72,15 @@ export class VectorService {
     const db = getDb();
     
     try {
-      // Convert embedding to vector format - try pgvector first, fallback to JSON
+      // Convert embedding to vector format string
       const vectorString = `[${embeddingVector.join(',')}]`;
       
+      // Use parameterized query to safely pass the vector string
       await db.execute(sql`
         UPDATE ${actions}
-        SET ${actions.embeddingVector} = ${vectorString},
-            ${actions.updatedAt} = NOW()
-        WHERE ${actions.id} = ${actionId}
+        SET embedding_vector = ${vectorString}::vector,
+            updated_at = NOW()
+        WHERE id = ${actionId}
       `);
       
       console.log(`Successfully stored embedding for action ${actionId}`);
