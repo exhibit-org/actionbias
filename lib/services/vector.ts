@@ -106,6 +106,11 @@ export class VectorService {
       LIMIT ${limit}
     `);
     
+    if (!results.rows) {
+      console.error('Database query returned undefined rows:', results);
+      return [];
+    }
+    
     return results.rows.map((row: any) => ({
       id: row.id,
       title: row.title,
