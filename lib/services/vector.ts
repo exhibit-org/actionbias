@@ -107,8 +107,18 @@ export class VectorService {
     `);
     
     // Handle different database result formats
-    const rows = results.rows || results;
-    if (!Array.isArray(rows)) {
+    console.log('Database results type:', typeof results, 'Array?', Array.isArray(results));
+    console.log('Results.rows type:', typeof results.rows, 'Array?', Array.isArray(results.rows));
+    
+    let rows;
+    if (Array.isArray(results)) {
+      rows = results;
+    } else if (results.rows && Array.isArray(results.rows)) {
+      rows = results.rows;
+    } else if (results && typeof results[Symbol.iterator] === 'function') {
+      // Handle array-like objects
+      rows = Array.from(results);
+    } else {
       console.error('Database query returned unexpected format:', results);
       return [];
     }
