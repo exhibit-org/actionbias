@@ -106,12 +106,14 @@ export class VectorService {
       LIMIT ${limit}
     `);
     
-    if (!results.rows) {
-      console.error('Database query returned undefined rows:', results);
+    // Handle different database result formats
+    const rows = results.rows || results;
+    if (!Array.isArray(rows)) {
+      console.error('Database query returned unexpected format:', results);
       return [];
     }
     
-    return results.rows.map((row: any) => ({
+    return rows.map((row: any) => ({
       id: row.id,
       title: row.title,
       description: row.description || undefined,
