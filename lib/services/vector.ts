@@ -168,7 +168,19 @@ export class VectorService {
       FROM ${actions}
     `);
     
-    const row = results.rows[0] as any;
+    // Handle different database result formats
+    const rows = results.rows || results;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.error('No results from embedding stats query:', results);
+      return {
+        totalActions: 0,
+        actionsWithEmbeddings: 0,
+        actionsWithoutEmbeddings: 0,
+        coveragePercentage: 0
+      };
+    }
+    
+    const row = rows[0] as any;
     const totalActions = parseInt(row.total_actions);
     const actionsWithEmbeddings = parseInt(row.actions_with_embeddings);
     const actionsWithoutEmbeddings = parseInt(row.actions_without_embeddings);
