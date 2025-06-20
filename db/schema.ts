@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, jsonb, integer, primaryKey, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, jsonb, integer, primaryKey, timestamp, boolean, vector } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 
 // Zod schema for actions.data field
@@ -17,6 +17,10 @@ export const actions = pgTable('actions', {
   version: integer('version').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Semantic fields for AI-powered action management
+  embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // OpenAI embedding dimensions
+  nodeSummary: text('node_summary'),
+  subtreeSummary: text('subtree_summary'),
 });
 
 export const edges = pgTable('edges', {
