@@ -627,7 +627,7 @@ export class ActionsService {
     if (done !== undefined) {
       // Find parent of this action and regenerate its subtree summary
       getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "child"))).limit(1)
-        .then(parentEdges => {
+        .then((parentEdges: any) => {
           const parentEdgeResults = Array.isArray(parentEdges) ? parentEdges : [];
           if (parentEdgeResults.length > 0 && parentEdgeResults[0].src) {
             generateSubtreeSummaryAsync(parentEdgeResults[0].src).catch(console.error);
