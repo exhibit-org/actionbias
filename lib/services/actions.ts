@@ -18,6 +18,7 @@ import type { ActionContent } from "../utils/text-processing";
 import { EmbeddingsService } from './embeddings';
 import { VectorService } from './vector';
 import { SummaryService } from './summary';
+import { SubtreeSummaryService } from './subtree-summary';
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -414,6 +415,13 @@ export class ActionsService {
       })
       .returning();
 
+    // Generate embedding and node summary asynchronously for new child action
+    generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
+    generateNodeSummaryAsync(newAction[0].id, validatedData).catch(console.error);
+    
+    // Generate subtree summary for parent asynchronously (since it now has a new child)
+    generateSubtreeSummaryAsync(parent_id).catch(console.error);
+
     return {
       action: newAction[0],
       parent: parentAction[0],
@@ -445,6 +453,13 @@ export class ActionsService {
     if (actionToDelete.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
     }
+
+    // Get parent of action being deleted (for subtree summary regeneration)
+    const parentEdgesResult = await getDb().select().from(edges).where(
+      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+    ).limit(1);
+    const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+    const parent_id = parentEdges.length > 0 ? parentEdges[0].src : undefined;
 
     // Find all children (actions where this action is the parent)
     const childEdgesResult = await getDb().select().from(edges).where(
@@ -487,6 +502,16 @@ export class ActionsService {
 
     // Delete the action (this will cascade delete all edges due to foreign key constraints)
     const deletedAction = await getDb().delete(actions).where(eq(actions.id, action_id)).returning();
+
+    // Regenerate subtree summaries for affected parents
+    if (parent_id) {
+      // Regenerate subtree summary for original parent (child was removed)
+      generateSubtreeSummaryAsync(parent_id).catch(console.error);
+    }
+    if (child_handling === "reparent" && new_parent_id && childIds.length > 0) {
+      // Regenerate subtree summary for new parent (children were added)
+      generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+    }
 
     return {
       deleted_action: deletedAction[0],
@@ -598,6 +623,19 @@ export class ActionsService {
       generateNodeSummaryAsync(action_id, updateData.data).catch(console.error);
     }
 
+    // If done status changed, regenerate subtree summary for parent (child completion affects parent summary)
+    if (done !== undefined) {
+      // Find parent of this action and regenerate its subtree summary
+      getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "child"))).limit(1)
+        .then(parentEdges => {
+          const parentEdgeResults = Array.isArray(parentEdges) ? parentEdges : [];
+          if (parentEdgeResults.length > 0 && parentEdgeResults[0].src) {
+            generateSubtreeSummaryAsync(parentEdgeResults[0].src).catch(console.error);
+          }
+        })
+        .catch(console.error);
+    }
+
     return updatedAction[0];
   }
 
@@ -624,6 +662,13 @@ export class ActionsService {
       }
     }
 
+    // Get existing parent before removing relationship (for subtree summary regeneration)
+    const existingParentEdges = await getDb().select().from(edges).where(
+      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+    ).limit(1);
+    const existingParentEdgeResults = Array.isArray(existingParentEdges) ? existingParentEdges : [];
+    const old_parent_id = existingParentEdgeResults.length > 0 ? existingParentEdgeResults[0].src : undefined;
+
     // Remove existing parent relationship
     await getDb().delete(edges).where(
       and(eq(edges.dst, action_id), eq(edges.kind, "child"))
@@ -644,9 +689,17 @@ export class ActionsService {
       .set({ updatedAt: new Date() })
       .where(eq(actions.id, action_id));
 
+    // Regenerate subtree summaries for both old and new parents (if they exist)
+    if (old_parent_id) {
+      generateSubtreeSummaryAsync(old_parent_id).catch(console.error);
+    }
+    if (new_parent_id) {
+      generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+    }
+
     return {
       action_id,
-      old_parent_id: undefined, // We could track this if needed
+      old_parent_id,
       new_parent_id,
     };
   }
@@ -1126,6 +1179,60 @@ async function generateNodeSummaryAsync(actionId: string, actionData: any): Prom
     console.log(`Generated node summary for action ${actionId}`);
   } catch (error) {
     console.error(`Failed to generate node summary for action ${actionId}:`, error);
+    // Don't throw - this is fire-and-forget
+  }
+}
+
+/**
+ * Generate subtree summary for a parent action asynchronously (fire-and-forget)
+ * This function runs in the background and doesn't block the main operation
+ * Only generates summaries for actions that have children
+ */
+async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
+  try {
+    // Get the action details and children
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    if (actionResult.length === 0) {
+      console.log(`Action ${actionId} not found, skipping subtree summary generation`);
+      return;
+    }
+
+    const action = actionResult[0];
+    const actionData = action.data as any;
+
+    // Get children to check if this action needs a subtree summary
+    const childEdgesResult = await getDb().select().from(edges).where(
+      and(eq(edges.src, actionId), eq(edges.kind, "child"))
+    );
+    const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+    
+    if (childEdges.length === 0) {
+      console.log(`Action ${actionId} has no children, skipping subtree summary generation`);
+      return;
+    }
+
+    // Get children details
+    const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+    const childrenResult = await getDb().select().from(actions).where(inArray(actions.id, childIds));
+    const children = Array.isArray(childrenResult) ? childrenResult : [];
+
+    const subtreeSummaryInput = {
+      actionId: actionId,
+      title: actionData.title,
+      description: actionData.description,
+      children: children.map(child => ({
+        title: (child.data as any)?.title || 'Untitled',
+        description: (child.data as any)?.description,
+        done: Boolean(child.done)
+      }))
+    };
+
+    const summary = await SubtreeSummaryService.generateSubtreeSummary(subtreeSummaryInput);
+    await SubtreeSummaryService.updateSubtreeSummary(actionId, summary);
+    
+    console.log(`Generated subtree summary for action ${actionId}`);
+  } catch (error) {
+    console.error(`Failed to generate subtree summary for action ${actionId}:`, error);
     // Don't throw - this is fire-and-forget
   }
 }
