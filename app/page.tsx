@@ -9,7 +9,7 @@ export default function HomePage() {
             </h1>
             <nav className="flex items-center space-x-6 text-sm font-mono">
               <a 
-                href="https://github.com/actionbias/actionbias" 
+                href="https://github.com/exhibit-org/actionbias" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="transition-colors hover:opacity-80"
@@ -98,7 +98,7 @@ pnpm dev`}</code>
                 <div className="pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
                   <div className="flex flex-wrap gap-4">
                     <a 
-                      href="https://github.com/actionbias/actionbias" 
+                      href="https://github.com/exhibit-org/actionbias" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="inline-flex items-center px-6 py-3 rounded-md transition-colors font-medium hover:opacity-90"
@@ -110,7 +110,7 @@ pnpm dev`}</code>
                       View on GitHub
                     </a>
                     <a 
-                      href="https://github.com/actionbias/actionbias#quick-setup" 
+                      href="https://github.com/exhibit-org/actionbias#quick-setup" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="inline-flex items-center px-6 py-3 rounded-md transition-colors font-medium hover:opacity-80"
@@ -133,7 +133,7 @@ pnpm dev`}</code>
             <p>© 2024 ActionBias</p>
             <div className="space-x-4">
               <a 
-                href="https://github.com/actionbias/actionbias" 
+                href="https://github.com/exhibit-org/actionbias" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="transition-colors hover:opacity-80"
