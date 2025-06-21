@@ -1119,6 +1119,86 @@ export class ActionsService {
     return null;
   }
 
+  static async getNextActionScoped(scopeActionId: string): Promise<Action | null> {
+    // Validate that the scope action exists
+    const scopeAction = await getDb()
+      .select()
+      .from(actions)
+      .where(eq(actions.id, scopeActionId))
+      .limit(1);
+
+    if (scopeAction.length === 0) {
+      throw new Error(`Scope action with ID ${scopeActionId} not found`);
+    }
+
+    // Get all descendants of the scope action (including the scope action itself)
+    const subtreeActionIds = await getAllDescendants([scopeActionId]);
+    
+    // If the subtree is empty (no descendants), only consider the scope action itself
+    if (subtreeActionIds.length === 1) {
+      const action = scopeAction[0];
+      // Check if this single action is actionable
+      if (action.done || !(await dependenciesMet(action.id))) {
+        return null;
+      }
+      return {
+        id: action.id,
+        data: action.data as { title: string },
+        done: action.done,
+        version: action.version,
+        createdAt: action.createdAt.toISOString(),
+        updatedAt: action.updatedAt.toISOString(),
+      };
+    }
+
+    // Get all actions in the subtree that are not done, ordered by creation date
+    const subtreeActions = await getDb()
+      .select()
+      .from(actions)
+      .where(and(
+        inArray(actions.id, subtreeActionIds),
+        eq(actions.done, false)
+      ))
+      .orderBy(actions.createdAt);
+
+    // Apply the same logic as getNextAction, but only within the subtree
+    for (const action of subtreeActions) {
+      if (!(await dependenciesMet(action.id))) {
+        continue;
+      }
+
+      const result = await findNextActionInChildren(action.id);
+      if (result.action) {
+        // Verify the found action is within our scope
+        const foundActionInScope = subtreeActionIds.includes(result.action.id);
+        if (foundActionInScope) {
+          const a = result.action;
+          return {
+            id: a.id,
+            data: a.data as { title: string },
+            done: a.done,
+            version: a.version,
+            createdAt: a.createdAt.toISOString(),
+            updatedAt: a.updatedAt.toISOString(),
+          };
+        }
+      }
+
+      if (result.allDone) {
+        return {
+          id: action.id,
+          data: action.data as { title: string },
+          done: action.done,
+          version: action.version,
+          createdAt: action.createdAt.toISOString(),
+          updatedAt: action.updatedAt.toISOString(),
+        };
+      }
+    }
+
+    return null;
+  }
+
   static async getParentContextSummary(actionId: string): Promise<string> {
     const detail = await this.getActionDetailResource(actionId);
     

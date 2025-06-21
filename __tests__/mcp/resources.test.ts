@@ -56,12 +56,13 @@ describe("MCP Resources", () => {
 
   it("registers all resources", () => {
     registerResources(server);
-    expect(server.resource).toHaveBeenCalledTimes(5);
+    expect(server.resource).toHaveBeenCalledTimes(6);
     expect(Object.keys(resourceCapabilities)).toEqual([
       "action://list",
       "action://tree",
       "action://dependencies",
       "action://next",
+      "action://next/{id}",
       "action://{id}",
     ]);
   });
