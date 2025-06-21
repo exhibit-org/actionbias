@@ -134,12 +134,13 @@ Focus on the "what" and "scope", not implementation details.`,
     const results = await db.execute(sql`
       SELECT DISTINCT
         a.id,
-        a.data->>'title' as title,
-        a.data->>'description' as description
+        COALESCE(a.title, a.data->>'title') as title,
+        COALESCE(a.description, a.data->>'description') as description,
+        a.created_at
       FROM ${actions} a
       INNER JOIN ${edges} e ON a.id = e.src AND e.kind = 'child'
       WHERE a.subtree_summary IS NULL
-        AND a.data->>'title' IS NOT NULL
+        AND (a.title IS NOT NULL OR a.data->>'title' IS NOT NULL)
       ORDER BY a.created_at DESC
       LIMIT ${limit}
     `);
@@ -201,8 +202,8 @@ Focus on the "what" and "scope", not implementation details.`,
     
     const results = await db.execute(sql`
       SELECT 
-        a.data->>'title' as title,
-        a.data->>'description' as description,
+        COALESCE(a.title, a.data->>'title') as title,
+        COALESCE(a.description, a.data->>'description') as description,
         a.done
       FROM ${actions} a
       INNER JOIN ${edges} e ON a.id = e.dst
