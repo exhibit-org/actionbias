@@ -20,6 +20,7 @@ import { VectorService } from './vector';
 import { SummaryService } from './summary';
 import { SubtreeSummaryService } from './subtree-summary';
 import { ParentSummaryService } from './parent-summary';
+import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -1178,6 +1179,36 @@ export class ActionsService {
     });
 
     return result.text;
+  }
+
+  /**
+   * Build a breadcrumb path for an action by traversing up to the root
+   * @param actionId The ID of the action to build the path for
+   * @param separator The separator to use in the breadcrumb string (default: " > ")
+   * @param includeCurrentAction Whether to include the current action in the path (default: true)
+   * @returns PathBuilderResult with segments, breadcrumb string, and titles
+   */
+  static async buildActionPath(
+    actionId: string, 
+    separator: string = " > ", 
+    includeCurrentAction: boolean = true
+  ) {
+    return buildActionPath(actionId, separator, includeCurrentAction);
+  }
+
+  /**
+   * Build a simple breadcrumb string for an action
+   * @param actionId The ID of the action to build the path for
+   * @param separator The separator to use (default: " > ")
+   * @param includeCurrentAction Whether to include the current action (default: true)
+   * @returns Simple breadcrumb string
+   */
+  static async buildActionBreadcrumb(
+    actionId: string, 
+    separator: string = " > ", 
+    includeCurrentAction: boolean = true
+  ): Promise<string> {
+    return buildActionBreadcrumb(actionId, separator, includeCurrentAction);
   }
 }
 
