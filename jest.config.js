@@ -33,6 +33,7 @@ const customJestConfig = {
     },
   },
   testTimeout: 30000,
+  globalTeardown: '<rootDir>/scripts/cleanup-test-dbs.mjs',
   // Remove parallelism restrictions for speed - fix race conditions instead
 }
 
