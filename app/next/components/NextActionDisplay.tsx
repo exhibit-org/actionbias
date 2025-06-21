@@ -410,21 +410,22 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
-  const markComplete = async () => {
+  const toggleCompletion = async () => {
     if (!actionData) return;
-    
+
     try {
       setCompleting(true);
       setError(null);
-      
+
       // Call the REST API to update the action
+      const newDone = !actionData.done;
       const response = await fetch(`/api/actions/${actionData.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          done: true
+          done: newDone
         })
       });
 
@@ -435,14 +436,20 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       const data = await response.json();
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to mark action as complete');
+        throw new Error(data.error || 'Failed to update action');
       }
 
-      // Mark as completed and refresh after a short delay
-      setCompleted(true);
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      setActionData(prev => prev ? { ...prev, done: newDone } : null);
+
+      if (newDone) {
+        // Mark as completed and refresh after a short delay
+        setCompleted(true);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setCompleted(false);
+      }
       
     } catch (err) {
       console.error('Error marking action complete:', err);
@@ -990,83 +997,71 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             gap: '0.75rem',
             marginBottom: '0.75rem'
           }}>
-            {completed ? (
-              <div style={{
+            <button
+              onClick={toggleCompletion}
+              disabled={completing}
+              aria-label={actionData?.done ? 'Mark Incomplete' : 'Mark Complete'}
+                style={{
                 width: '20px',
                 height: '20px',
-                backgroundColor: colors.borderAccent,
-                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255,255,255,0.2) 2px, rgba(255,255,255,0.2) 4px)',
-                borderRadius: '0.25rem',
+                backgroundColor: actionData?.done ? colors.borderAccent : completing ? colors.textFaint : colors.surface,
+                border: `2px solid ${completing ? colors.textFaint : colors.borderAccent}`,
+                borderRadius: '0.375rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <svg 
+                cursor: completing ? 'not-allowed' : 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+              }}
+              onMouseEnter={(e) => {
+                if (!completing) {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = colors.text;
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.bg;
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!completing) {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = colors.borderAccent;
+                  (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+                }
+              }}
+            >
+              {completing ? (
+                <svg
                   style={{
-                    width: '12px', 
-                    height: '12px', 
+                    width: '12px',
+                    height: '12px',
+                    animation: 'spin 1s linear infinite',
                     color: 'white'
-                  }} 
-                  fill="none" 
-                  stroke="currentColor" 
+                  }}
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  <circle style={{opacity: 0.25}} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path style={{opacity: 0.75}} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-              </div>
-            ) : (
-              <button
-                onClick={markComplete}
-                disabled={completing}
-                aria-label="Mark Complete"
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: completing ? colors.textFaint : colors.surface,
-                  border: `2px solid ${completing ? colors.textFaint : colors.borderAccent}`,
-                  borderRadius: '0.375rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: completing ? 'not-allowed' : 'pointer',
-                  flexShrink: 0,
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!completing) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.text;
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.bg;
-                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!completing) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = colors.borderAccent;
-                    (e.currentTarget as HTMLButtonElement).style.backgroundColor = colors.surface;
-                    (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
-                  }
-                }}
-              >
-                {completing && (
-                  <svg 
+              ) : (
+                actionData?.done && (
+                  <svg
                     style={{
-                      width: '12px', 
+                      width: '12px',
                       height: '12px',
-                      animation: 'spin 1s linear infinite',
                       color: 'white'
-                    }} 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    fill="none" 
+                    }}
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <circle style={{opacity: 0.25}} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path style={{opacity: 0.75}} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
-                )}
-              </button>
-            )}
+                )
+              )}
+            </button>
             <h2 style={{ 
               fontSize: '1.125rem', 
               fontWeight: '600', 

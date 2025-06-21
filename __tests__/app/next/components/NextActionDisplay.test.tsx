@@ -426,4 +426,47 @@ describe('NextActionDisplay Error Handling', () => {
       expect(screen.getByText('🎉 All Done!')).toBeInTheDocument();
     });
   });
+
+  it('shows checked checkbox for completed action and allows unchecking', async () => {
+    const doneAction = { ...mockNextActionData, done: true };
+
+    // Initial fetch returns completed action
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: doneAction
+      })
+    });
+
+    // Sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    render(<NextActionDisplay colors={mockColors} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mark Incomplete')).toBeInTheDocument();
+    });
+
+    // Mock uncheck API call
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { ...doneAction, done: false }
+      })
+    });
+
+    fireEvent.click(screen.getByLabelText('Mark Incomplete'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
+    });
+  });
 });
