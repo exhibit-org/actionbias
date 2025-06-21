@@ -312,7 +312,7 @@ describe('NextActionDisplay Error Handling', () => {
     });
   });
 
-  it('should reload page after successful completion with delay', async () => {
+  it('should show suggestions modal after successful completion', async () => {
     // First call succeeds for initial fetch
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -339,6 +339,14 @@ describe('NextActionDisplay Error Handling', () => {
         data: { ...mockNextActionData, done: true }
       })
     });
+    // Fourth call for fetching next suggestions
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: mockNextActionData
+      })
+    });
 
     render(<NextActionDisplay colors={mockColors} />);
 
@@ -350,15 +358,11 @@ describe('NextActionDisplay Error Handling', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
-      expect(screen.getByText('Loading next action...')).toBeInTheDocument();
     });
 
-    // Fast-forward timers to trigger the reload (timeout is tested even if reload itself can't be)
-    jest.advanceTimersByTime(1500);
-    
-    // Verify the completion message is still shown
-    expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
-    expect(screen.getByText('Loading next action...')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('suggestions-modal')).toBeInTheDocument();
+    });
   });
 
   it('should handle missing MCP error message gracefully', async () => {

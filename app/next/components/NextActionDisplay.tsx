@@ -27,6 +27,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [completed, setCompleted] = useState(false);
   const [copying, setCopying] = useState(false);
   const [copyingCodex, setCopyingCodex] = useState(false);
+  const [suggestions, setSuggestions] = useState<ActionMetadata[]>([]);
+  const [showModal, setShowModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
@@ -181,6 +183,53 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
+  const fetchSuggestions = async () => {
+    if (!actionData) return;
+    const nextActions: ActionMetadata[] = [];
+    try {
+      for (const dep of actionData.dependents || []) {
+        const resp = await fetch(`/api/actions/${dep.id}`);
+        if (!resp.ok) continue;
+        const detail = await resp.json();
+        if (detail.success && detail.data) {
+          const allDone = detail.data.dependencies.every((d: ActionMetadata) => d.done);
+          if (!detail.data.done && allDone) {
+            nextActions.push({
+              id: detail.data.id,
+              title: detail.data.title,
+              description: detail.data.description,
+              vision: detail.data.vision,
+              done: detail.data.done,
+              version: detail.data.version,
+              created_at: detail.data.created_at,
+              updated_at: detail.data.updated_at,
+            });
+          }
+        }
+      }
+      const nextResp = await fetch('/api/actions/next');
+      if (nextResp.ok) {
+        const nextData = await nextResp.json();
+        if (nextData.success && nextData.data) {
+          nextActions.unshift({
+            id: nextData.data.id,
+            title: nextData.data.title,
+            description: nextData.data.description,
+            vision: nextData.data.vision,
+            done: nextData.data.done,
+            version: nextData.data.version,
+            created_at: nextData.data.created_at,
+            updated_at: nextData.data.updated_at,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching suggestions:', err);
+    }
+    setSuggestions(nextActions);
+    setShowModal(true);
+  };
+
   const toggleCompletion = async () => {
     if (!actionData) return;
     try {
@@ -198,7 +247,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       setActionData(prev => (prev ? { ...prev, done: newDone } : null));
       if (newDone) {
         setCompleted(true);
-        setTimeout(() => { window.location.reload(); }, 1500);
+        await fetchSuggestions();
       } else {
         setCompleted(false);
       }
@@ -271,7 +320,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           {completed && (
             <div style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '0.375rem', padding: '0.75rem', marginTop: '1rem', textAlign: 'center' }}>
               <p style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.text, margin: '0 0 0.25rem 0' }}>Action Completed! 🎉</p>
-              <p style={{ fontSize: '0.75rem', color: colors.textMuted, margin: 0 }}>Loading next action...</p>
+              <p style={{ fontSize: '0.75rem', color: colors.textMuted, margin: 0 }}>Fetching suggestions...</p>
             </div>
           )}
         </div>
@@ -338,6 +387,27 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         </button>
       </div>
       <ActionNavigation action={actionData} siblings={siblings} colors={colors} />
+      {showModal && (
+        <div data-testid="suggestions-modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', maxWidth: '90%', width: '24rem', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '0.75rem', color: colors.text, fontSize: '1rem' }}>Next Actions</h3>
+            {suggestions.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {suggestions.map(s => (
+                  <li key={s.id} style={{ marginBottom: '0.5rem' }}>
+                    <a href={`/${s.id}`} style={{ color: colors.textSubtle, textDecoration: 'none' }}>{s.title}</a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ fontSize: '0.875rem', color: colors.textMuted }}>No immediate next actions found.</p>
+            )}
+            <button onClick={() => { setShowModal(false); if (!actionId) { window.location.reload(); } }} style={{ marginTop: '1rem', padding: '0.5rem 1rem', backgroundColor: colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.25rem', cursor: 'pointer' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

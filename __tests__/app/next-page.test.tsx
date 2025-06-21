@@ -197,12 +197,21 @@ describe('NextActionDisplay', () => {
       })
     });
 
+    // Fourth call for suggestions fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ success: true, data: mockActionData })
+    });
+
     const markCompleteButton = screen.getByLabelText('Mark Complete');
     fireEvent.click(markCompleteButton);
 
     await waitFor(() => {
       expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
-      expect(screen.getByText('Loading next action...')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('suggestions-modal')).toBeInTheDocument();
     });
 
     // Verify the PUT request was made
