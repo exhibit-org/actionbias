@@ -8,7 +8,7 @@ if (typeof document !== 'undefined') {
 }
 
 import { useState, useEffect } from 'react';
-import { ActionDetailResource, ActionMetadata } from '../../lib/types/resources';
+import { ActionDetailResource, ActionMetadata } from '../../../lib/types/resources';
 import EditableField from './EditableField';
 import ActionNavigation from './ActionNavigation';
 import { ColorScheme } from './types';

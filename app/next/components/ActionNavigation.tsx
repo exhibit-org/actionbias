@@ -1,5 +1,5 @@
 'use client';
-import { ActionDetailResource, ActionMetadata } from '../../lib/types/resources';
+import { ActionDetailResource, ActionMetadata } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
 
 interface Props {
