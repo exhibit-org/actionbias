@@ -362,8 +362,16 @@ export function registerTools(server: any) {
       title: z.string().min(1).describe("The title for the new action"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
       vision: z.string().optional().describe("The desired outcome when the action is complete"),
+      confidence_threshold: z.number().min(0).max(1).default(0.3).optional().describe("Minimum confidence threshold for accepting parent suggestions (0-1, default: 0.3). Lower values = more suggestions"),
+      similarity_threshold: z.number().min(0).max(1).default(0.7).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.7). Higher values = stricter matching"),
     },
-    async ({ title, description, vision }: { title: string; description?: string; vision?: string }, extra: any) => {
+    async ({ title, description, vision, confidence_threshold = 0.3, similarity_threshold = 0.7 }: { 
+      title: string; 
+      description?: string; 
+      vision?: string; 
+      confidence_threshold?: number;
+      similarity_threshold?: number;
+    }, extra: any) => {
       try {
         console.log(`Getting placement suggestion for action: ${title}`);
         
@@ -382,11 +390,13 @@ export function registerTools(server: any) {
         // Get placement suggestion
         const placementResult = await PlacementService.findBestParent(
           { title, description, vision },
-          hierarchyItems
+          hierarchyItems,
+          { confidenceThreshold: confidence_threshold, similarityThreshold: similarity_threshold }
         );
         
         let message = `Placement Analysis for: "${title}"\n`;
-        message += `(Note: Only non-completed actions are considered as potential parents)\n\n`;
+        message += `(Note: Only non-completed actions are considered as potential parents)\n`;
+        message += `🎛️ **Thresholds:** Confidence ≥ ${confidence_threshold}, Similarity ≥ ${similarity_threshold}\n\n`;
         
         if (placementResult.bestParent) {
           message += `✅ **Recommended Parent:**\n`;

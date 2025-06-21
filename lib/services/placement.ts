@@ -29,14 +29,21 @@ export interface ActionHierarchyItem {
   parentId?: string;
 }
 
+export interface PlacementConfig {
+  confidenceThreshold?: number;
+  similarityThreshold?: number;
+}
+
 export class PlacementService {
   /**
    * Find the best parent for a new action using semantic reasoning
    */
   static async findBestParent(
     newAction: ActionContent,
-    existingActions: ActionHierarchyItem[]
+    existingActions: ActionHierarchyItem[],
+    config: PlacementConfig = {}
   ): Promise<PlacementResult> {
+    const { confidenceThreshold = 0.3, similarityThreshold = 0.7 } = config;
     // Analyze the new action for quality scoring and structured data
     const newActionAnalysis = await AnalysisService.analyzeAction(newAction);
     
@@ -64,7 +71,7 @@ export class PlacementService {
     });
 
     // Determine best placement using semantic heuristics
-    const placement = await this.determineBestPlacement(newAction, parentContexts);
+    const placement = await this.determineBestPlacement(newAction, parentContexts, { confidenceThreshold, similarityThreshold });
     
     return {
       bestParent: placement.bestParent,
@@ -129,7 +136,8 @@ export class PlacementService {
       parent: ActionHierarchyItem; 
       children: ActionHierarchyItem[]; 
       context: string 
-    }>
+    }>,
+    config: { confidenceThreshold: number; similarityThreshold: number }
   ): Promise<{
     bestParent: { id: string; title: string } | null;
     confidence: number;
@@ -138,7 +146,7 @@ export class PlacementService {
   }> {
     try {
       // Build the prompt for the LLM
-      const prompt = this.buildPlacementPrompt(newAction, parentContexts);
+      const prompt = this.buildPlacementPrompt(newAction, parentContexts, config.confidenceThreshold);
       
       // Define the response schema with new parent suggestion capability
       const placementSchema = z.object({
@@ -205,7 +213,8 @@ export class PlacementService {
    */
   private static buildPlacementPrompt(
     newAction: ActionContent,
-    parentContexts: Array<{ parent: ActionHierarchyItem; children: ActionHierarchyItem[]; context: string }>
+    parentContexts: Array<{ parent: ActionHierarchyItem; children: ActionHierarchyItem[]; context: string }>,
+    confidenceThreshold: number
   ): string {
     const newActionDescription = `
 **New Action to Place:**
@@ -239,7 +248,7 @@ ${categoryDescriptions}
 3. Look at existing children to understand each category's scope
 4. Consider the hierarchy path - deeper nesting often indicates more specific functional areas
 5. Prioritize semantic similarity over superficial keyword matching
-6. If no category is a good fit (confidence < 0.3), consider suggesting a new parent category
+6. If no category is a good fit (confidence < ${confidenceThreshold}), consider suggesting a new parent category
 
 **When to Suggest New Parent Categories:**
 - The new action represents a distinct functional domain not covered by existing categories
@@ -265,7 +274,7 @@ ${categoryDescriptions}
 - newParentReasoning: If suggesting new parent, explain why this new category improves organization
 
 **Decision Logic:**
-1. First, try to find a good existing parent (confidence >= 0.3)
+1. First, try to find a good existing parent (confidence >= ${confidenceThreshold})
 2. If no good existing parent, consider if a new parent category would be beneficial
 3. Only suggest new parents for actions that represent clear functional domains
 4. Prefer existing parents unless new category significantly improves organization
