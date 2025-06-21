@@ -119,6 +119,85 @@ async function dependenciesMet(actionId: string): Promise<boolean> {
   return parentDepsOk;
 }
 
+// Scoped version of dependency checking that only considers dependencies within a subtree
+async function dependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+  // Check both direct dependencies and parent dependencies, but only within scope
+  const directDepsOk = await dependenciesMetDirectlyScoped(actionId, scopeActionIds);
+  if (!directDepsOk) {
+    return false;
+  }
+  
+  const parentDepsOk = await parentDependenciesMetScoped(actionId, scopeActionIds);
+  return parentDepsOk;
+}
+
+// Helper function to check only direct dependencies within scope
+async function dependenciesMetDirectlyScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+  const dependencyEdgesResult = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "depends_on")));
+  const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
+  const dependencyIds = dependencyEdges
+    .map((edge: any) => edge.src)
+    .filter((id: any): id is string => id !== null);
+
+  if (dependencyIds.length > 0) {
+    // Filter dependencies to only those within scope
+    const scopedDependencyIds = dependencyIds.filter(id => scopeActionIds.includes(id));
+    
+    if (scopedDependencyIds.length > 0) {
+      const dependencies = await getDb()
+        .select()
+        .from(actions)
+        .where(inArray(actions.id, scopedDependencyIds));
+      const unmet = dependencies.find((dep: any) => !dep.done);
+      if (unmet) {
+        return false;
+      }
+    }
+    
+    // If there are dependencies outside scope, we ignore them for scoped analysis
+    // This allows actions to be actionable within their subtree even if they have 
+    // external dependencies that aren't met
+  }
+  return true;
+}
+
+// Helper function to check parent dependencies within scope
+async function parentDependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+  // Get parent relationship
+  const parentEdgesResult = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+  
+  if (parentEdges.length === 0) {
+    // No parent, so parent dependencies are met
+    return true;
+  }
+  
+  const parentId = parentEdges[0].src;
+  if (!parentId) {
+    return true;
+  }
+  
+  // If parent is outside scope, ignore parent dependencies
+  if (!scopeActionIds.includes(parentId)) {
+    return true;
+  }
+  
+  // Check if parent's direct dependencies are met (within scope)
+  const parentDepsOk = await dependenciesMetDirectlyScoped(parentId, scopeActionIds);
+  if (!parentDepsOk) {
+    return false;
+  }
+  
+  // Recursively check parent's parent dependencies (within scope)
+  return await parentDependenciesMetScoped(parentId, scopeActionIds);
+}
+
 // Recursively find the next actionable child of a given action
 async function findNextActionInChildren(actionId: string): Promise<{ action: any | null; allDone: boolean }> {
   const childEdgesResult = await getDb()
@@ -150,6 +229,53 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
       }
 
       const result = await findNextActionInChildren(child.id);
+      if (result.action) {
+        return { action: result.action, allDone: false };
+      }
+
+      if (result.allDone) {
+        return { action: child, allDone: false };
+      }
+
+      return { action: null, allDone: false };
+    }
+  }
+
+  return { action: null, allDone: allChildrenDone };
+}
+
+// Scoped version that only considers children within the specified subtree
+async function findNextActionInChildrenScoped(actionId: string, scopeActionIds: string[]): Promise<{ action: any | null; allDone: boolean }> {
+  const childEdgesResult = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
+  const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+  const childIds = childEdges
+    .map((edge: any) => edge.dst)
+    .filter((id: any): id is string => id !== null)
+    .filter(id => scopeActionIds.includes(id)); // Only consider children within scope
+
+  if (childIds.length === 0) {
+    return { action: null, allDone: true };
+  }
+
+  const children = await getDb()
+    .select()
+    .from(actions)
+    .where(inArray(actions.id, childIds))
+    .orderBy(actions.createdAt);
+
+  let allChildrenDone = true;
+  for (const child of children) {
+    if (!child.done) {
+      allChildrenDone = false;
+      const depsMet = await dependenciesMetScoped(child.id, scopeActionIds);
+      if (!depsMet) {
+        continue;
+      }
+
+      const result = await findNextActionInChildrenScoped(child.id, scopeActionIds);
       if (result.action) {
         return { action: result.action, allDone: false };
       }
@@ -1137,8 +1263,8 @@ export class ActionsService {
     // If the subtree is empty (no descendants), only consider the scope action itself
     if (subtreeActionIds.length === 1) {
       const action = scopeAction[0];
-      // Check if this single action is actionable
-      if (action.done || !(await dependenciesMet(action.id))) {
+      // Check if this single action is actionable using scoped dependency checking
+      if (action.done || !(await dependenciesMetScoped(action.id, subtreeActionIds))) {
         return null;
       }
       return {
@@ -1163,25 +1289,21 @@ export class ActionsService {
 
     // Apply the same logic as getNextAction, but only within the subtree
     for (const action of subtreeActions) {
-      if (!(await dependenciesMet(action.id))) {
+      if (!(await dependenciesMetScoped(action.id, subtreeActionIds))) {
         continue;
       }
 
-      const result = await findNextActionInChildren(action.id);
+      const result = await findNextActionInChildrenScoped(action.id, subtreeActionIds);
       if (result.action) {
-        // Verify the found action is within our scope
-        const foundActionInScope = subtreeActionIds.includes(result.action.id);
-        if (foundActionInScope) {
-          const a = result.action;
-          return {
-            id: a.id,
-            data: a.data as { title: string },
-            done: a.done,
-            version: a.version,
-            createdAt: a.createdAt.toISOString(),
-            updatedAt: a.updatedAt.toISOString(),
-          };
-        }
+        const a = result.action;
+        return {
+          id: a.id,
+          data: a.data as { title: string },
+          done: a.done,
+          version: a.version,
+          createdAt: a.createdAt.toISOString(),
+          updatedAt: a.updatedAt.toISOString(),
+        };
       }
 
       if (result.allDone) {
