@@ -77,6 +77,9 @@ describe("ActionsService - Full Coverage", () => {
       expect(mockDb.insert().values).toHaveBeenCalledWith({
         id: 'test-uuid-123',
         data: { title: "Test Action", vision: "Success is achieved when this action is complete" },
+        title: "Test Action",
+        description: undefined,
+        vision: "Success is achieved when this action is complete",
       });
     });
 
@@ -93,6 +96,9 @@ describe("ActionsService - Full Coverage", () => {
       expect(mockDb.insert().values).toHaveBeenCalledWith({
         id: 'test-uuid-123',
         data: { title: "Test Action", description: "Follow steps 1-5 in the implementation guide" },
+        title: "Test Action",
+        description: "Follow steps 1-5 in the implementation guide",
+        vision: undefined,
       });
     });
 
@@ -109,11 +115,14 @@ describe("ActionsService - Full Coverage", () => {
       // Verify that all fields were included in the data
       expect(mockDb.insert().values).toHaveBeenCalledWith({
         id: 'test-uuid-123',
-        data: { 
-          title: "Complete Task", 
+        data: {
+          title: "Complete Task",
           description: "Execute according to the project plan",
-          vision: "Task is fully complete and reviewed" 
+          vision: "Task is fully complete and reviewed"
         },
+        title: "Complete Task",
+        description: "Execute according to the project plan",
+        vision: "Task is fully complete and reviewed",
       });
     });
 
@@ -345,6 +354,13 @@ describe("ActionsService - Full Coverage", () => {
         })
         .mockReturnValueOnce({
           from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
             where: jest.fn().mockResolvedValue([]), // No children
           }),
         });
@@ -365,6 +381,13 @@ describe("ActionsService - Full Coverage", () => {
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue([mockAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
             }),
           }),
         })
@@ -403,6 +426,13 @@ describe("ActionsService - Full Coverage", () => {
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue([mockAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
             }),
           }),
         })
@@ -453,6 +483,13 @@ describe("ActionsService - Full Coverage", () => {
         })
         .mockReturnValueOnce({
           from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
             where: jest.fn().mockResolvedValue([childEdge]),
           }),
         });
@@ -471,6 +508,13 @@ describe("ActionsService - Full Coverage", () => {
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue([mockAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
             }),
           }),
         })
@@ -505,6 +549,13 @@ describe("ActionsService - Full Coverage", () => {
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue([rootAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
             }),
           }),
         })
@@ -570,6 +621,13 @@ describe("ActionsService - Full Coverage", () => {
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockReturnValue({
               limit: jest.fn().mockResolvedValue([parentAction]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([]),
             }),
           }),
         })

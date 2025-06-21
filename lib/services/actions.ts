@@ -22,6 +22,9 @@ import { SubtreeSummaryService } from './subtree-summary';
 import { ParentSummaryService } from './parent-summary';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
+// Default confidence threshold for automatically applying placement suggestions
+const DEFAULT_AUTO_PLACEMENT_THRESHOLD = 0.8;
+
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
   if (actionIds.length === 0) return [];
@@ -173,6 +176,7 @@ export interface CreateActionParams {
 export interface CreateActionResult {
   action: any; // The created action from the database
   parent_id?: string;
+  applied_parent_id?: string;
   dependencies_count: number;
   needs_auto_placement: boolean;
   analysis?: ActionAnalysisResult; // Content analysis if auto-placement is needed
@@ -223,7 +227,10 @@ export interface UpdateParentParams {
 }
 
 export class ActionsService {
-  static async createAction(params: CreateActionParams): Promise<CreateActionResult> {
+  static async createAction(
+    params: CreateActionParams,
+    autoPlacementThreshold: number = DEFAULT_AUTO_PLACEMENT_THRESHOLD
+  ): Promise<CreateActionResult> {
     const { title, description, vision, parent_id, depends_on_ids } = params;
     
     // Detect if this action needs automatic placement analysis
@@ -294,6 +301,7 @@ export class ActionsService {
     // Perform content analysis and placement suggestion for orphaned actions
     let analysis: ActionAnalysisResult | undefined;
     let placement: PlacementResult | undefined;
+    let appliedParentId: string | undefined = parent_id;
     
     if (needsAutoPlacement) {
       console.log(`Action created without parent_id: ${newAction[0].id} - "${title}" - flagged for automatic placement analysis`);
@@ -333,6 +341,22 @@ export class ActionsService {
         // Get intelligent placement suggestion
         placement = await PlacementService.findBestParent(actionContent, hierarchyItems);
         analysis = placement.analysis; // PlacementService includes analysis results
+
+        if (
+          placement.bestParent &&
+          placement.confidence >= autoPlacementThreshold
+        ) {
+          await getDb().insert(edges).values({
+            src: placement.bestParent.id,
+            dst: newAction[0].id,
+            kind: "child",
+          });
+          appliedParentId = placement.bestParent.id;
+
+          // Trigger async summary generation similar to addChildAction
+          generateParentSummariesAsync(newAction[0].id).catch(console.error);
+          generateSubtreeSummaryAsync(appliedParentId).catch(console.error);
+        }
         
         console.log(`Placement analysis completed for action ${newAction[0].id}:`, {
           bestParent: placement.bestParent ? `${placement.bestParent.title} (${placement.bestParent.id})` : 'none',
@@ -354,6 +378,7 @@ export class ActionsService {
     return {
       action: newAction[0],
       parent_id,
+      applied_parent_id: appliedParentId,
       dependencies_count: depends_on_ids?.length || 0,
       needs_auto_placement: needsAutoPlacement,
       analysis,
