@@ -435,6 +435,25 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
+  const copyCodexPromptToClipboard = async () => {
+    if (!actionData) return;
+    
+    try {
+      setCopyingCodex(true);
+      const prompt = generateCodexPrompt(actionData);
+      await navigator.clipboard.writeText(prompt);
+      
+      // Brief success feedback
+      setTimeout(() => {
+        setCopyingCodex(false);
+      }, 1000);
+      
+    } catch (err) {
+      console.error('Failed to copy Codex prompt:', err);
+      setCopyingCodex(false);
+    }
+  };
+
   const toggleCompletion = async () => {
     if (!actionData) return;
 
