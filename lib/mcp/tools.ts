@@ -357,7 +357,7 @@ export function registerTools(server: any) {
   // suggest_parent - Get intelligent placement suggestion for a new action
   server.tool(
     "suggest_parent",
-    "Get an intelligent placement suggestion for a new action using semantic analysis",
+    "Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis",
     {
       title: z.string().min(1).describe("The title for the new action"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
@@ -381,9 +381,13 @@ export function registerTools(server: any) {
         // Convert to the format expected by PlacementService
         const hierarchyItems = existingActions.map((action: any) => ({
           id: action.id,
-          title: action.data?.title || '',
-          description: action.data?.description,
-          vision: action.data?.vision,
+          title: action.title ?? action.data?.title ?? '',
+          description: action.description ?? action.data?.description,
+          vision: action.vision ?? action.data?.vision,
+          nodeSummary: action.nodeSummary,
+          subtreeSummary: action.subtreeSummary,
+          parentContextSummary: action.parentContextSummary,
+          parentVisionSummary: action.parentVisionSummary,
           parentId: action.data?.parent_id
         }));
         
@@ -477,6 +481,6 @@ export const toolCapabilities = {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
   },
   suggest_parent: {
-    description: "Get an intelligent placement suggestion for a new action using semantic analysis",
+    description: "Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis",
   },
 };
