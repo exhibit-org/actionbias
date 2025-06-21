@@ -53,7 +53,7 @@ describe('MCP Tools', () => {
 
       expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with optional parent and dependencies');
       expect(toolCapabilities.update_parent.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
-      expect(toolCapabilities.suggest_parent.description).toBe('Get an intelligent placement suggestion for a new action using semantic analysis');
+      expect(toolCapabilities.suggest_parent.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
     });
   });
 

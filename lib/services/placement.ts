@@ -26,6 +26,10 @@ export interface ActionHierarchyItem {
   title: string;
   description?: string;
   vision?: string;
+  nodeSummary?: string;
+  subtreeSummary?: string;
+  parentContextSummary?: string;
+  parentVisionSummary?: string;
   parentId?: string;
 }
 
@@ -87,6 +91,10 @@ export class PlacementService {
    */
   private static buildParentContext(parent: ActionHierarchyItem, children: ActionHierarchyItem[], allActions: ActionHierarchyItem[]): string {
     let context = `**${parent.title}**\n`;
+    if (parent.nodeSummary) context += `Node Summary: ${parent.nodeSummary}\n`;
+    if (parent.subtreeSummary) context += `Subtree Summary: ${parent.subtreeSummary}\n`;
+    if (parent.parentContextSummary) context += `Context Summary: ${parent.parentContextSummary}\n`;
+    if (parent.parentVisionSummary) context += `Vision Summary: ${parent.parentVisionSummary}\n`;
     if (parent.description) context += `Description: ${parent.description}\n`;
     if (parent.vision) context += `Vision: ${parent.vision}\n`;
     
