@@ -173,7 +173,16 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    // Second call fails for mark complete
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    // Third call fails for mark complete
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 403,
@@ -182,10 +191,10 @@ describe('NextActionDisplay Error Handling', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Mark Complete'));
+    fireEvent.click(screen.getByLabelText('Mark Complete'));
 
     await waitFor(() => {
       expect(screen.getByText('HTTP error! status: 403')).toBeInTheDocument();
@@ -202,7 +211,16 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    // Second call returns error
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    // Third call returns error
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
@@ -214,10 +232,10 @@ describe('NextActionDisplay Error Handling', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Mark Complete'));
+    fireEvent.click(screen.getByLabelText('Mark Complete'));
 
     await waitFor(() => {
       expect(screen.getByText('Action not found')).toBeInTheDocument();
@@ -234,16 +252,25 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    // Second call fails with network error
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    // Third call fails with network error
     mockFetch.mockRejectedValueOnce(new Error('Network timeout'));
 
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Mark Complete'));
+    fireEvent.click(screen.getByLabelText('Mark Complete'));
 
     await waitFor(() => {
       expect(screen.getByText('Network timeout')).toBeInTheDocument();
@@ -260,16 +287,25 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    // Second call fails with string error
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    // Third call fails with string error
     mockFetch.mockRejectedValueOnce('Unknown error type');
 
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Mark Complete'));
+    fireEvent.click(screen.getByLabelText('Mark Complete'));
 
     await waitFor(() => {
       expect(screen.getByText('Failed to mark action as complete')).toBeInTheDocument();
@@ -286,7 +322,16 @@ describe('NextActionDisplay Error Handling', () => {
       })
     });
 
-    // Second call succeeds for mark complete
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    // Third call succeeds for mark complete
     mockFetch.mockResolvedValueOnce({
       ok: true,
       json: jest.fn().mockResolvedValue({
@@ -298,10 +343,10 @@ describe('NextActionDisplay Error Handling', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Mark Complete'));
+    fireEvent.click(screen.getByLabelText('Mark Complete'));
 
     await waitFor(() => {
       expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();

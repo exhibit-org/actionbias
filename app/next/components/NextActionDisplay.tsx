@@ -1019,6 +1019,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               <button
                 onClick={markComplete}
                 disabled={completing}
+                aria-label="Mark Complete"
                 style={{
                   width: '20px',
                   height: '20px',

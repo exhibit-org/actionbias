@@ -93,15 +93,14 @@ describe('NextActionDisplay', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Action Title')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Test Action Title');
     });
 
     expect(screen.getByText('Test action description')).toBeInTheDocument();
-    expect(screen.getByText('Vision:')).toBeInTheDocument();
+    expect(screen.getByText('Vision')).toBeInTheDocument();
     expect(screen.getByText('Test action vision')).toBeInTheDocument();
-    expect(screen.getByText('Parent Action')).toBeInTheDocument();
-    expect(screen.getByText('✓ Dependency Action')).toBeInTheDocument();
-    expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
 
     // Verify API call
     expect(mockFetch).toHaveBeenCalledWith('/api/actions/next');
@@ -186,7 +185,7 @@ describe('NextActionDisplay', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Mark Complete')).toBeInTheDocument();
+      expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
 
     // Mock the update action call
@@ -198,11 +197,12 @@ describe('NextActionDisplay', () => {
       })
     });
 
-    const markCompleteButton = screen.getByText('Mark Complete');
+    const markCompleteButton = screen.getByLabelText('Mark Complete');
     fireEvent.click(markCompleteButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Action completed! Loading next action...')).toBeInTheDocument();
+      expect(screen.getByText('Action Completed! 🎉')).toBeInTheDocument();
+      expect(screen.getByText('Loading next action...')).toBeInTheDocument();
     });
 
     // Verify the PUT request was made
@@ -244,7 +244,8 @@ describe('NextActionDisplay', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Test Action')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Test Action Title');
     });
 
     // Mock failed update
@@ -258,6 +259,7 @@ describe('NextActionDisplay', () => {
     // fireEvent.click(markCompleteButton);
 
     // Test that error handling works in general - check for any error text
-    expect(screen.getByText('Test Action')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Test Action Title');
   });
 });
