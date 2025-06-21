@@ -67,6 +67,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [copyingCodex, setCopyingCodex] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
@@ -391,6 +392,30 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     return prompt;
   };
 
+  const generateCodexPrompt = (action: NextActionData): string => {
+    let prompt = `# Current Task\n**${action.title}**\n`;
+    if (action.description) {
+      prompt += `${action.description}\n\n`;
+    } else {
+      prompt += `\n`;
+    }
+
+    prompt += `# Vision\n`;
+    prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
+
+    prompt += `# Context from Parent Chain\n`;
+    prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
+
+    prompt += `# Broader Vision\n`;
+    prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
+
+    prompt += `# Repository Quick Setup\n`;
+    prompt += `pnpm install\npnpm db:setup\npnpm dev\n\n`;
+
+    prompt += `Refer to README.md for full details.`;
+    return prompt;
+  };
+
   const copyPromptToClipboard = async () => {
     if (!actionData) return;
     
@@ -407,6 +432,23 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     } catch (err) {
       console.error('Failed to copy prompt:', err);
       setCopying(false);
+    }
+  };
+
+  const copyCodexPromptToClipboard = async () => {
+    if (!actionData) return;
+
+    try {
+      setCopyingCodex(true);
+      const prompt = generateCodexPrompt(actionData);
+      await navigator.clipboard.writeText(prompt);
+
+      setTimeout(() => {
+        setCopyingCodex(false);
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to copy Codex prompt:', err);
+      setCopyingCodex(false);
     }
   };
 
@@ -522,8 +564,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
         >
           Retry
-        </button>
-      </div>
+          </button>
+        </div>
     );
   }
 
@@ -1330,7 +1372,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         paddingTop: '1rem',
         borderTop: `1px solid ${colors.border}`,
         display: 'flex',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        gap: '1rem',
+        flexWrap: 'wrap'
       }}>
         <button
           onClick={copyPromptToClipboard}
@@ -1391,6 +1435,68 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
               Copy Full Context for Claude Code
+            </>
+          )}
+        </button>
+        <button
+          onClick={copyCodexPromptToClipboard}
+          disabled={copyingCodex}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: copyingCodex ? colors.surface : colors.borderAccent,
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: copyingCodex ? 'not-allowed' : 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            if (!copyingCodex) {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '0.9';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!copyingCodex) {
+              (e.currentTarget as HTMLButtonElement).style.opacity = '1';
+            }
+          }}
+        >
+          {copyingCodex ? (
+            <>
+              <svg
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  color: 'white'
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  color: 'white'
+                }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Action Instructions for Codex
             </>
           )}
         </button>
