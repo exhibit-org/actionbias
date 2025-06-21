@@ -166,12 +166,12 @@ describe("MCP Resources", () => {
       parent_chain: [],
       children: [],
       dependencies: [],
-      dependents: []
+      dependents: [],
+      parent_context_summary: "test context summary",
+      parent_vision_summary: "test vision summary"
     };
     mockedService.getNextAction.mockResolvedValue(mockAction);
     mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
-    mockedService.getParentContextSummary.mockResolvedValue("test context summary");
-    mockedService.getParentVisionSummary.mockResolvedValue("test vision summary");
     const result = await handler(new URL("action://next"));
     expect(mockedService.getNextAction).toHaveBeenCalled();
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
@@ -227,11 +227,9 @@ describe("MCP Resources", () => {
       typeof call[1] !== 'string'
     );
     const handler = detailCall[2];
-    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now" } as any;
-    const expectedWithSummaries = { ...expected, parent_context_summary: "test context", parent_vision_summary: "test vision" };
+    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", parent_context_summary: "test context", parent_vision_summary: "test vision" } as any;
+    const expectedWithSummaries = { ...expected };
     mockedService.getActionDetailResource.mockResolvedValue(expected);
-    mockedService.getParentContextSummary.mockResolvedValue("test context");
-    mockedService.getParentVisionSummary.mockResolvedValue("test vision");
     const result = await handler(new URL("action://123"), { id: "123" });
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
     expect(JSON.parse(result.contents[0].text)).toEqual(expectedWithSummaries);
