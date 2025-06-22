@@ -169,7 +169,7 @@ export default function FeedPage() {
             feedItems.map((item) => (
               <div key={item.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 {/* Header */}
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-gray-900 mb-1">
                       {item.actionTitle}
@@ -181,7 +181,7 @@ export default function FeedPage() {
                       <p className="text-blue-600 text-sm italic mb-2">"{item.actionVision}"</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       item.changelogVisibility === 'public' 
                         ? 'bg-green-100 text-green-700'
