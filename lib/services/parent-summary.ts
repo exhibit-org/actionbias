@@ -155,8 +155,8 @@ export class ParentSummaryService {
     try {
       await db.execute(sql`
         UPDATE ${actions}
-        SET ${actions.parentContextSummary} = ${contextSummary},
-            ${actions.parentVisionSummary} = ${visionSummary},
+        SET parent_context_summary = ${contextSummary},
+            parent_vision_summary = ${visionSummary},
             updated_at = NOW()
         WHERE id = ${actionId}
       `);
@@ -264,7 +264,7 @@ export class ParentSummaryService {
         COALESCE(description, data->>'description') as description,
         COALESCE(vision, data->>'vision') as vision
       FROM ${actions}
-      WHERE (${actions.parentContextSummary} IS NULL OR ${actions.parentVisionSummary} IS NULL)
+      WHERE (parent_context_summary IS NULL OR parent_vision_summary IS NULL)
         AND COALESCE(title, data->>'title') IS NOT NULL
       ORDER BY created_at DESC
       LIMIT ${limit}
