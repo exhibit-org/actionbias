@@ -1199,8 +1199,8 @@ export class ActionsService {
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
       // Parent summaries from database columns
-      parent_context_summary: action[0].parentContextSummary,
-      parent_vision_summary: action[0].parentVisionSummary,
+      parent_context_summary: (action[0] as any).parent_context_summary,
+      parent_vision_summary: (action[0] as any).parent_vision_summary,
     };
   }
 
