@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import { sql } from "drizzle-orm";
 import postgres from "postgres";
 
 // Lazy-load database connection to avoid startup failures
@@ -46,11 +47,65 @@ export async function initializePGlite() {
     try {
       const { PGlite } = await import('@electric-sql/pglite');
       const { drizzle: drizzlePGlite } = await import('drizzle-orm/pglite');
+      const { migrate } = await import('drizzle-orm/pglite/migrator');
+      const fs = await import('fs');
+      const path = await import('path');
       
       const dbPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
       const pglite = new PGlite(dbPath);
       rawPgliteInstance = pglite; // Store for cleanup
       pgliteDb = drizzlePGlite(pglite);
+      
+      // Run migrations for PGlite databases only if SKIP_MIGRATIONS is not set
+      if (!process.env.SKIP_MIGRATIONS) {
+        const migrationsFolder = path.resolve('./db/migrations');
+        if (fs.existsSync(migrationsFolder)) {
+          // For PGlite, we need to handle vector extension manually since it's not supported
+          // Read and filter migrations to skip vector extension
+          const migrationFiles = fs.readdirSync(migrationsFolder)
+            .filter(file => file.endsWith('.sql'))
+            .sort();
+          
+          for (const file of migrationFiles) {
+            const migrationPath = path.join(migrationsFolder, file);
+            let migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+            
+            // Skip vector extension and related operations for PGlite
+            if (migrationSQL.includes('CREATE EXTENSION IF NOT EXISTS vector') || 
+                migrationSQL.includes('vector(1536)') ||
+                migrationSQL.includes('ivfflat')) {
+              // Replace vector operations with regular text for PGlite compatibility
+              migrationSQL = migrationSQL
+                .replace(/-- Enable pgvector extension for vector embeddings\nCREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint/g, '')
+                .replace(/vector\(1536\)/g, 'text')
+                .replace(/-- Create IVFFLAT index for fast similarity search on embedding vectors.*?WITH \(lists = 100\);/gs, '');
+            }
+            
+            // Replace UUID with text for PGlite compatibility (uuid generation will be handled in application code)
+            migrationSQL = migrationSQL
+              .replace(/uuid/g, 'text')
+              .replace(/DEFAULT gen_random_text\(\)/g, '');
+            
+            // Execute the filtered migration
+            if (migrationSQL.trim()) {
+              const statements = migrationSQL.split('--> statement-breakpoint');
+              for (const statement of statements) {
+                const cleanStatement = statement.trim();
+                if (cleanStatement) {
+                  try {
+                    await pgliteDb.execute(sql.raw(cleanStatement));
+                  } catch (error) {
+                    // Skip errors for duplicate objects (tables/indexes already exist)
+                    if (!String(error).includes('already exists')) {
+                      throw error;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       
       return pgliteDb;
     } catch (error) {

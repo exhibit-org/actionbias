@@ -43,6 +43,13 @@
       "when": 1750457201237,
       "tag": "0005_rare_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1750604596606,
+      "tag": "0006_young_zaladane",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,24 @@
 import { ActionsService } from '../../lib/services/actions';
 import { ParentSummaryService } from '../../lib/services/parent-summary';
-import { getDb } from '../../lib/db/adapter';
+import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
 import { actions, edges } from '../../db/schema';
 import { sql } from 'drizzle-orm';
-import '../../lib/db/init';
 
 describe('Parent Summaries Integration', () => {
-  // Skip cleanup for now to focus on the core issue
+  const baseTestId = Math.random().toString(36).substring(7);
+  let testCounter = 0;
+
+  beforeEach(async () => {
+    // Set up PGlite for tests with unique paths per test
+    testCounter++;
+    process.env.DATABASE_URL = `pglite://.pglite-parent-summaries-test-${baseTestId}-${testCounter}`;
+    await cleanupPGlite(); // Clean up before init
+    await initializePGlite();
+  });
+
+  afterEach(async () => {
+    await cleanupPGlite();
+  });
 
   test('should display parent context and vision summaries on action page', async () => {
     // Create a parent action
@@ -25,7 +37,19 @@ describe('Parent Summaries Integration', () => {
     });
 
     // Generate parent summaries for the child action
-    await ParentSummaryService.generateParentSummaries(childAction.id);
+    const parentChain = await ParentSummaryService.getParentChain(childAction.id);
+    const summaryInput = {
+      actionId: childAction.id,
+      title: childAction.data?.title || '',
+      description: childAction.data?.description,
+      vision: childAction.data?.vision,
+      parentChain
+    };
+    
+    // Mock the AI calls to avoid needing API keys in tests
+    const mockContextSummary = "Test context summary: This action builds upon the parent vision.";
+    const mockVisionSummary = "Test vision summary: This contributes to the larger project goals.";
+    await ParentSummaryService.updateParentSummaries(childAction.id, mockContextSummary, mockVisionSummary);
 
     // Fetch the action detail resource (this is what the web page uses)
     const actionDetails = await ActionsService.getActionDetailResource(childAction.id);

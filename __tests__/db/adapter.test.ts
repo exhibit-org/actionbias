@@ -8,8 +8,15 @@ describe('Database Adapter', () => {
     jest.resetModules();
     process.env = { ...originalEnv };
     
+    // Skip migrations for adapter tests to test basic functionality
+    process.env.SKIP_MIGRATIONS = 'true';
+    
     // Clean up any existing PGlite instances before each test
     await cleanupPGlite();
+    
+    // Clear any existing initialization promises
+    const { resetCache } = require('../../lib/db/adapter');
+    resetCache();
   });
 
   afterEach(async () => {

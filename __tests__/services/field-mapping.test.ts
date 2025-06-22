@@ -1,9 +1,22 @@
-import { getDb } from '../../lib/db/adapter';
+import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
 import { actions } from '../../db/schema';
 import { eq, sql } from 'drizzle-orm';
-import '../../lib/db/init';
 
 describe('Database Field Mapping', () => {
+  const baseTestId = Math.random().toString(36).substring(7);
+  let testCounter = 0;
+
+  beforeEach(async () => {
+    // Set up PGlite for tests with unique paths per test
+    testCounter++;
+    process.env.DATABASE_URL = `pglite://.pglite-field-mapping-test-${baseTestId}-${testCounter}`;
+    await cleanupPGlite(); // Clean up before init
+    await initializePGlite();
+  });
+
+  afterEach(async () => {
+    await cleanupPGlite();
+  });
   test('should understand how Drizzle maps snake_case to camelCase', async () => {
     console.log('🔧 Starting field mapping test...');
     

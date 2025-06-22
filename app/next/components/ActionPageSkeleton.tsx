@@ -11,7 +11,7 @@ const ActionPageSkeleton = ({ colors, isMobile }: Props) => {
   );
 
   return (
-    <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem', padding: '1.5rem' }}>
+    <div data-testid="loading-skeleton" style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem', padding: '1.5rem' }}>
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gridTemplateRows: isMobile ? 'auto auto auto auto' : 'auto auto', gap: '1rem', marginBottom: '1.5rem' }}>
         {/* Quadrant 1: Action Details Skeleton */}
         <div style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', order: isMobile ? 1 : 'unset' }}>
