@@ -10,10 +10,16 @@ const deleteActionSchema = z.object({
 
 const updateActionSchema = actionDataSchema.partial().extend({
   done: z.boolean().optional(),
+  completion_context: z.object({
+    implementation_story: z.string().optional(),
+    impact_story: z.string().optional(),
+    learning_story: z.string().optional(),
+    changelog_visibility: z.string().optional(),
+  }).optional(),
 }).refine(
-  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined || data.done !== undefined,
+  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined || data.done !== undefined || data.completion_context !== undefined,
   {
-    message: "At least one field (title, description, vision, or done) must be provided",
+    message: "At least one field (title, description, vision, done, or completion_context) must be provided",
   }
 );
 
