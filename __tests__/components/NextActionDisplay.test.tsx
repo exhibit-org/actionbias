@@ -259,4 +259,51 @@ describe('NextActionDisplay', () => {
     // Check that the component renders successfully
     expect(screen.getByText('Broader Context')).toBeInTheDocument();
   });
+
+  it('should highlight the next child action when scoped', async () => {
+    const mockAction = {
+      id: 'parent-id',
+      title: 'Parent Action',
+      description: 'desc',
+      vision: 'vision',
+      done: false,
+      version: 1,
+      created_at: '2023-01-01T00:00:00.000Z',
+      updated_at: '2023-01-01T00:00:00.000Z',
+      parent_id: null,
+      parent_chain: [],
+      children: [
+        {
+          id: 'child-1',
+          title: 'Child 1',
+          description: '',
+          vision: '',
+          done: false,
+          version: 1,
+          created_at: '2023-01-01T00:00:00.000Z',
+          updated_at: '2023-01-01T00:00:00.000Z'
+        }
+      ],
+      dependencies: [],
+      dependents: []
+    };
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: mockAction })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { id: 'child-1', parent_id: 'parent-id' } })
+      });
+
+    render(<NextActionDisplay colors={mockColors} actionId="parent-id" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Child 1')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('next-child-indicator')).toBeInTheDocument();
+  });
 });
