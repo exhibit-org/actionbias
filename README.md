@@ -158,6 +158,12 @@ The server provides these MCP tools for AI assistants:
 - **@vercel/mcp-adapter** - MCP protocol implementation
 - **Zod** - Runtime type validation
 
+### Database Strategy
+
+PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on parent/child relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
+
+Migration to a dedicated graph database (Neo4j, Amazon Neptune) should only be considered when hitting specific bottlenecks: complex multi-hop queries exceeding 100ms, or requirements for advanced graph algorithms. Migration costs are significant, so PostgreSQL optimization should be exhausted first.
+
 ## Deployment
 
 ActionBias is **optimized for Vercel deployment** with first-class support for:
