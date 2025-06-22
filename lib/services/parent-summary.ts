@@ -153,14 +153,13 @@ export class ParentSummaryService {
     const db = getDb();
     
     try {
-      await db
-        .update(actions)
-        .set({
-          parentContextSummary: contextSummary,
-          parentVisionSummary: visionSummary,
-          updatedAt: new Date()
-        })
-        .where(eq(actions.id, actionId));
+      await db.execute(sql`
+        UPDATE ${actions}
+        SET parent_context_summary = ${contextSummary},
+            parent_vision_summary = ${visionSummary},
+            updated_at = NOW()
+        WHERE id = ${actionId}
+      `);
       
       console.log(`Successfully stored parent summaries for action ${actionId}`);
     } catch (error) {

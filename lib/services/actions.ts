@@ -418,6 +418,9 @@ export class ActionsService {
         dst: newAction[0].id,
         kind: "child",
       });
+      
+      // Generate parent summaries for actions with explicit parents
+      generateParentSummariesAsync(newAction[0].id).catch(console.error);
     }
 
     // Create dependency relationships if specified
