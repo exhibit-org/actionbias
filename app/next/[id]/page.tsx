@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import NextActionDisplay from '../components/NextActionDisplay';
+import ActionPageSkeleton from '../components/ActionPageSkeleton';
 
 export default function ScopedNextPage({ params }: { params: Promise<{ id: string }> }) {
   const [scopedActionId, setScopedActionId] = useState<string | null>(null);
@@ -91,6 +92,18 @@ export default function ScopedNextPage({ params }: { params: Promise<{ id: strin
   }, [params]);
 
   if (loading) {
+    // Determine isMobile, similar to NextActionDisplay, or pass undefined if not critical for this page's skeleton
+    // For simplicity here, we'll assume it might not be needed or can be determined similarly if required.
+    // const [isMobile, setIsMobile] = useState(false);
+    // useEffect(() => {
+    //   const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    //   checkMobile();
+    //   window.addEventListener('resize', checkMobile);
+    //   return () => window.removeEventListener('resize', checkMobile);
+    // }, []);
+    // This page doesn't have the isMobile state, so we'll pass undefined.
+    // The skeleton component should handle this gracefully.
+
     return (
       <div style={{
         minHeight: '100vh',
@@ -99,6 +112,34 @@ export default function ScopedNextPage({ params }: { params: Promise<{ id: strin
         display: 'flex',
         flexDirection: 'column'
       }}>
+        {/* Project Scope Header Skeleton - if needed, or keep simple */}
+        <div style={{
+          backgroundColor: 'white',
+          borderBottom: `1px solid ${colors.border}`,
+          padding: '1rem'
+        }}>
+          <div style={{
+            maxWidth: '48rem',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              backgroundColor: colors.border, // Use border color for skeleton
+              borderRadius: '50%',
+              flexShrink: 0
+            }}></div>
+            <div>
+              <div style={{ height: '1.125rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '200px', marginBottom: '0.25rem' }}></div>
+              <div style={{ height: '0.875rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '300px' }}></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area - Scrollable */}
         <div style={{
           flex: '1',
           overflow: 'auto',
@@ -108,34 +149,11 @@ export default function ScopedNextPage({ params }: { params: Promise<{ id: strin
             maxWidth: '48rem',
             margin: '0 auto'
           }}>
-            <div style={{ 
-              backgroundColor: 'white', 
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', 
-              borderRadius: '0.5rem', 
-              padding: '1.5rem',
-              marginBottom: '1rem'
-            }}>
-              <div style={{ 
-                height: '1.5rem', 
-                backgroundColor: colors.border, 
-                borderRadius: '0.25rem', 
-                width: '60%', 
-                marginBottom: '1rem'
-              }}></div>
-              <div style={{ 
-                height: '1rem', 
-                backgroundColor: colors.border, 
-                borderRadius: '0.25rem', 
-                width: '40%'
-              }}></div>
-            </div>
-            <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem', padding: '1.5rem' }}>
-              <div style={{ height: '1.5rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '25%', marginBottom: '1rem' }}></div>
-              <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '75%', marginBottom: '0.5rem' }}></div>
-              <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '50%' }}></div>
-            </div>
+            {/* The new skeleton for the main content */}
+            <ActionPageSkeleton colors={colors} />
           </div>
         </div>
+        {/* Footer can remain as is or also be skeletonized if it fetches dynamic data */}
       </div>
     );
   }

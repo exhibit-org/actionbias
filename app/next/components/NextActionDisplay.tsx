@@ -12,6 +12,7 @@ import { ActionDetailResource, ActionMetadata } from '../../../lib/types/resourc
 import EditableField from './EditableField';
 import ActionNavigation from './ActionNavigation';
 import { ColorScheme } from './types';
+import ActionPageSkeleton from './ActionPageSkeleton';
 
 interface Props {
   colors: ColorScheme;
@@ -281,15 +282,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   };
 
   if (loading) {
-    return (
-      <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem', padding: '1.5rem' }}>
-        <div data-testid="loading-skeleton">
-          <div style={{ height: '1.5rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '25%', marginBottom: '1rem' }}></div>
-          <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '75%', marginBottom: '0.5rem' }}></div>
-          <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '50%' }}></div>
-        </div>
-      </div>
-    );
+    return <ActionPageSkeleton colors={colors} isMobile={isMobile} />;
   }
 
   if (error) {
