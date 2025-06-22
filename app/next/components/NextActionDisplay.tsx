@@ -34,6 +34,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [nextChildId, setNextChildId] = useState<string | null>(null);
+  const [showCompletionContext, setShowCompletionContext] = useState(false);
+  const [completionContext, setCompletionContext] = useState({
+    implementationStory: '',
+    impactStory: '',
+    learningStory: '',
+    changelogVisibility: 'team' as 'private' | 'team' | 'public'
+  });
+  const [savingContext, setSavingContext] = useState(false);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -254,31 +262,99 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
 
   const toggleCompletion = async () => {
     if (!actionData) return;
+    
+    const newDone = !actionData.done;
+    
+    if (newDone) {
+      // Show completion context modal when marking as complete
+      setShowCompletionContext(true);
+    } else {
+      // Handle uncompleting directly
+      try {
+        setCompleting(true);
+        setError(null);
+        const response = await fetch(`/api/actions/${actionData.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ done: false })
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Failed to update action');
+        setActionData(prev => (prev ? { ...prev, done: false } : null));
+        setCompleted(false);
+      } catch (err) {
+        console.error('Error marking action incomplete:', err);
+        setError(err instanceof Error ? err.message : 'Failed to mark action as incomplete');
+      } finally {
+        setCompleting(false);
+      }
+    }
+  };
+
+  const handleCompletionSubmit = async (skipContext = false) => {
+    if (!actionData) return;
+    
     try {
-      setCompleting(true);
+      setSavingContext(true);
       setError(null);
-      const newDone = !actionData.done;
+      
+      // Prepare completion context data
+      const contextData = skipContext ? {} : {
+        completion_context: {
+          implementation_story: completionContext.implementationStory.trim() || undefined,
+          impact_story: completionContext.impactStory.trim() || undefined,
+          learning_story: completionContext.learningStory.trim() || undefined,
+          changelog_visibility: completionContext.changelogVisibility,
+        }
+      };
+      
+      // Update action as complete with context
       const response = await fetch(`/api/actions/${actionData.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ done: newDone })
+        body: JSON.stringify({ 
+          done: true,
+          ...contextData
+        })
       });
+      
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      if (!data.success) throw new Error(data.error || 'Failed to update action');
-      setActionData(prev => (prev ? { ...prev, done: newDone } : null));
-      if (newDone) {
-        setCompleted(true);
-        await fetchSuggestions();
-      } else {
-        setCompleted(false);
-      }
+      if (!data.success) throw new Error(data.error || 'Failed to complete action');
+      
+      // Update UI state
+      setActionData(prev => (prev ? { ...prev, done: true } : null));
+      setCompleted(true);
+      setShowCompletionContext(false);
+      
+      // Reset context form
+      setCompletionContext({
+        implementationStory: '',
+        impactStory: '',
+        learningStory: '',
+        changelogVisibility: 'team'
+      });
+      
+      // Show next actions suggestions
+      await fetchSuggestions();
+      
     } catch (err) {
-      console.error('Error marking action complete:', err);
-      setError(err instanceof Error ? err.message : 'Failed to mark action as complete');
+      console.error('Error completing action:', err);
+      setError(err instanceof Error ? err.message : 'Failed to complete action');
     } finally {
-      setCompleting(false);
+      setSavingContext(false);
     }
+  };
+
+  const handleContextCancel = () => {
+    setShowCompletionContext(false);
+    setCompletionContext({
+      implementationStory: '',
+      impactStory: '',
+      learningStory: '',
+      changelogVisibility: 'team'
+    });
   };
 
   if (loading) {
@@ -415,6 +491,153 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Completion Context Modal */}
+      {showCompletionContext && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '0.5rem', maxWidth: '90%', width: '32rem', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', color: colors.text, fontSize: '1.125rem', fontWeight: '600' }}>
+              Share Your Completion Story
+            </h3>
+            <p style={{ marginBottom: '1.5rem', color: colors.textSubtle, fontSize: '0.875rem', lineHeight: '1.4' }}>
+              Help build institutional knowledge by sharing how you completed this action. All fields are optional.
+            </p>
+            
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: colors.text, fontSize: '0.875rem', fontWeight: '500' }}>
+                🔧 Implementation Story
+              </label>
+              <textarea
+                value={completionContext.implementationStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, implementationStory: e.target.value }))}
+                placeholder="How did you build this? What tools/approach did you use? What challenges did you overcome?"
+                style={{ 
+                  width: '100%', 
+                  height: '4rem', 
+                  padding: '0.5rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: colors.text, fontSize: '0.875rem', fontWeight: '500' }}>
+                🎯 Impact Story
+              </label>
+              <textarea
+                value={completionContext.impactStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, impactStory: e.target.value }))}
+                placeholder="What did you accomplish? What value was delivered? Who benefits from this work?"
+                style={{ 
+                  width: '100%', 
+                  height: '4rem', 
+                  padding: '0.5rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: colors.text, fontSize: '0.875rem', fontWeight: '500' }}>
+                💡 Learning Story
+              </label>
+              <textarea
+                value={completionContext.learningStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, learningStory: e.target.value }))}
+                placeholder="What did you learn? What insights were gained? What would you do differently next time?"
+                style={{ 
+                  width: '100%', 
+                  height: '4rem', 
+                  padding: '0.5rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: colors.text, fontSize: '0.875rem', fontWeight: '500' }}>
+                👥 Changelog Visibility
+              </label>
+              <select
+                value={completionContext.changelogVisibility}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, changelogVisibility: e.target.value as 'private' | 'team' | 'public' }))}
+                style={{ 
+                  width: '100%', 
+                  padding: '0.5rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  fontSize: '0.875rem',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value="private">Private - Personal notes only</option>
+                <option value="team">Team - Internal team visibility</option>
+                <option value="public">Public - External stakeholder visibility</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={handleContextCancel}
+                disabled={savingContext}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  backgroundColor: 'transparent', 
+                  color: colors.textSubtle, 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  cursor: savingContext ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleCompletionSubmit(true)}
+                disabled={savingContext}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  backgroundColor: colors.textSubtle, 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.25rem', 
+                  cursor: savingContext ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                {savingContext ? 'Completing...' : 'Skip & Complete'}
+              </button>
+              <button 
+                onClick={() => handleCompletionSubmit(false)}
+                disabled={savingContext}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  backgroundColor: colors.borderAccent, 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.25rem', 
+                  cursor: savingContext ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                {savingContext ? 'Saving...' : 'Save & Complete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
