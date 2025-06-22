@@ -6,9 +6,10 @@ interface Props {
   action: ActionDetailResource;
   siblings: ActionMetadata[];
   colors: ColorScheme;
+  nextChildId?: string | null;
 }
 
-export default function ActionNavigation({ action, siblings, colors }: Props) {
+export default function ActionNavigation({ action, siblings, colors, nextChildId }: Props) {
   const hasParents = action.parent_chain && action.parent_chain.length > 0;
   const hasChildren = action.children && action.children.length > 0;
   const hasSiblings = siblings && siblings.length > 0;
@@ -150,6 +151,11 @@ export default function ActionNavigation({ action, siblings, colors }: Props) {
                   <span style={{ textDecoration: child.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {child.title}
                   </span>
+                  {nextChildId === child.id && (
+                    <span data-testid="next-child-indicator" style={{ fontSize: '0.625rem', color: colors.borderAccent, fontWeight: 600 }}>
+                      Next Action
+                    </span>
+                  )}
                 </a>
               ))}
             </div>

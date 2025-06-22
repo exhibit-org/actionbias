@@ -32,6 +32,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [nextChildId, setNextChildId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -59,6 +60,22 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           }
         } else {
           setSiblings([]);
+        }
+
+        if (actionId) {
+          try {
+            const nextResp = await fetch(`/api/actions/next/${actionId}`);
+            if (nextResp.ok) {
+              const nextData = await nextResp.json();
+              if (nextData.success && nextData.data && nextData.data.parent_id === actionId) {
+                setNextChildId(nextData.data.id);
+              } else {
+                setNextChildId(null);
+              }
+            }
+          } catch (nextErr) {
+            console.error('Error fetching next child action:', nextErr);
+          }
         }
       } catch (err) {
         console.error(`Error fetching ${actionId ? 'action' : 'next action'}:`, err);
@@ -390,7 +407,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           )}
         </button>
       </div>
-      <ActionNavigation action={actionData} siblings={siblings} colors={colors} />
+      <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextChildId={nextChildId} />
       {showModal && (
         <div data-testid="suggestions-modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', maxWidth: '90%', width: '24rem', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
