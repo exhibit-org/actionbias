@@ -20,6 +20,7 @@ import { VectorService } from './vector';
 import { SummaryService } from './summary';
 import { SubtreeSummaryService } from './subtree-summary';
 import { ParentSummaryService } from './parent-summary';
+import { CompletionContextService } from './completion-context';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
@@ -345,6 +346,12 @@ export interface UpdateActionParams {
   description?: string;
   vision?: string;
   done?: boolean;
+  completion_context?: {
+    implementation_story?: string;
+    impact_story?: string;
+    learning_story?: string;
+    changelog_visibility?: string;
+  };
 }
 
 export interface UpdateParentParams {
@@ -739,11 +746,11 @@ export class ActionsService {
   }
 
   static async updateAction(params: UpdateActionParams) {
-    const { action_id, title, description, vision, done } = params;
+    const { action_id, title, description, vision, done, completion_context } = params;
     
     // Validate that at least one field is provided
-    if (title === undefined && description === undefined && vision === undefined && done === undefined) {
-      throw new Error("At least one field (title, description, vision, or done) must be provided");
+    if (title === undefined && description === undefined && vision === undefined && done === undefined && completion_context === undefined) {
+      throw new Error("At least one field (title, description, vision, done, or completion_context) must be provided");
     }
     
     // Check that action exists
@@ -804,6 +811,22 @@ export class ActionsService {
         if (descendantId !== action_id) { // Don't regenerate for the current action itself
           generateParentSummariesAsync(descendantId).catch(console.error);
         }
+      }
+    }
+
+    // Handle completion context if provided
+    if (completion_context !== undefined) {
+      try {
+        await CompletionContextService.upsertCompletionContext({
+          actionId: action_id,
+          implementationStory: completion_context.implementation_story,
+          impactStory: completion_context.impact_story,
+          learningStory: completion_context.learning_story,
+          changelogVisibility: completion_context.changelog_visibility,
+        });
+      } catch (error) {
+        console.error(`Failed to update completion context for action ${action_id}:`, error);
+        // Don't fail the action update if completion context fails
       }
     }
 

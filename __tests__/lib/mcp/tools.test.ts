@@ -429,7 +429,7 @@ describe('MCP Tools', () => {
         action_id: 'action-id',
       }, {});
 
-      expect(result.content[0].text).toBe('Error: At least one field (title, description, vision, or done) must be provided');
+      expect(result.content[0].text).toBe('Error: At least one field (title, description, vision, done, or completion context) must be provided');
       expect(mockActionsService.updateAction).not.toHaveBeenCalled();
     });
 

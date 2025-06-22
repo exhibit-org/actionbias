@@ -244,23 +244,38 @@ export function registerTools(server: any) {
   // update_action - Update an action
   server.tool(
     "update_action",
-    "Update an existing action's properties including title and completion status",
+    "Update an existing action's properties including title, completion status, and completion context",
     {
       action_id: z.string().uuid().describe("The ID of the action to update"),
       title: z.string().min(1).optional().describe("The new title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
       done: z.boolean().optional().describe("Whether the action is completed (true) or not (false)"),
+      implementation_story: z.string().optional().describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting."),
+      impact_story: z.string().optional().describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting."),
+      learning_story: z.string().optional().describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting."),
+      changelog_visibility: z.enum(["private", "team", "public"]).optional().describe("Who should see this completion context in changelog generation (default: 'team')"),
     },
-    async ({ action_id, title, description, vision, done }: { action_id: string; title?: string; description?: string; vision?: string; done?: boolean }, extra: any) => {
+    async ({ action_id, title, description, vision, done, implementation_story, impact_story, learning_story, changelog_visibility }: { 
+      action_id: string; 
+      title?: string; 
+      description?: string; 
+      vision?: string; 
+      done?: boolean;
+      implementation_story?: string;
+      impact_story?: string;
+      learning_story?: string;
+      changelog_visibility?: "private" | "team" | "public";
+    }, extra: any) => {
       try {
         // Validate that at least one field is provided
-        if (title === undefined && description === undefined && vision === undefined && done === undefined) {
+        if (title === undefined && description === undefined && vision === undefined && done === undefined &&
+            implementation_story === undefined && impact_story === undefined && learning_story === undefined && changelog_visibility === undefined) {
           return {
             content: [
               {
                 type: "text",
-                text: "Error: At least one field (title, description, vision, or done) must be provided",
+                text: "Error: At least one field (title, description, vision, done, or completion context) must be provided",
               },
             ],
           };
@@ -271,6 +286,18 @@ export function registerTools(server: any) {
         if (description !== undefined) updateData.description = description;
         if (vision !== undefined) updateData.vision = vision;
         if (done !== undefined) updateData.done = done;
+        
+        // Add completion context parameters
+        const completionContext: any = {};
+        if (implementation_story !== undefined) completionContext.implementation_story = implementation_story;
+        if (impact_story !== undefined) completionContext.impact_story = impact_story;
+        if (learning_story !== undefined) completionContext.learning_story = learning_story;
+        if (changelog_visibility !== undefined) completionContext.changelog_visibility = changelog_visibility;
+        
+        // Only add completion context if at least one field is provided
+        if (Object.keys(completionContext).length > 0) {
+          updateData.completion_context = completionContext;
+        }
         
         console.log(`Updating action ${action_id} with:`, updateData);
         
@@ -283,6 +310,10 @@ export function registerTools(server: any) {
         
         if (done !== undefined) {
           message += `\nStatus: ${done ? 'Completed' : 'Not completed'}`;
+        }
+        
+        if (Object.keys(completionContext).length > 0) {
+          message += `\nCompletion context updated with ${Object.keys(completionContext).length} field(s)`;
         }
 
         return {
@@ -475,7 +506,7 @@ export const toolCapabilities = {
     description: "Remove a dependency relationship between two actions",
   },
   update_action: {
-    description: "Update an existing action's properties including title and completion status",
+    description: "Update an existing action's properties including title, completion status, and completion context for dynamic changelog generation",
   },
   update_parent: {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",

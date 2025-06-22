@@ -78,7 +78,7 @@ export async function initializePGlite() {
               migrationSQL = migrationSQL
                 .replace(/-- Enable pgvector extension for vector embeddings\nCREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint/g, '')
                 .replace(/vector\(1536\)/g, 'text')
-                .replace(/-- Create IVFFLAT index for fast similarity search on embedding vectors.*?WITH \(lists = 100\);/gs, '');
+                .replace(/-- Create IVFFLAT index for fast similarity search on embedding vectors[\s\S]*?WITH \(lists = 100\);/g, '');
             }
             
             // Replace UUID with text for PGlite compatibility (uuid generation will be handled in application code)

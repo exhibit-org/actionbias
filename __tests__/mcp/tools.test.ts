@@ -237,7 +237,7 @@ describe("MCP Tools", () => {
       registerTools(server);
       const handler = tools["update_action"];
       const res = await handler({ action_id: "a1" }, {});
-      expect(res.content[0].text).toContain("At least one field (title, description, vision, or done) must be provided");
+      expect(res.content[0].text).toContain("At least one field (title, description, vision, done, or completion context) must be provided");
     });
   });
 
