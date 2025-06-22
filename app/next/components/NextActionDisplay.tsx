@@ -273,10 +273,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       try {
         setCompleting(true);
         setError(null);
-        const response = await fetch(`/api/actions/${actionData.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ done: false })
+        const response = await fetch(`/api/actions/${actionData.id}/uncomplete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
@@ -300,23 +299,23 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       setError(null);
       
       // Prepare completion context data
-      const contextData = skipContext ? {} : {
-        completion_context: {
-          implementation_story: completionContext.implementationStory.trim() || undefined,
-          impact_story: completionContext.impactStory.trim() || undefined,
-          learning_story: completionContext.learningStory.trim() || undefined,
-          changelog_visibility: completionContext.changelogVisibility,
-        }
+      const completionData = skipContext ? {
+        implementation_story: "Action completed without detailed context",
+        impact_story: "Impact details not provided",
+        learning_story: "Learning insights not captured",
+        changelog_visibility: completionContext.changelogVisibility,
+      } : {
+        implementation_story: completionContext.implementationStory.trim() || "No implementation details provided",
+        impact_story: completionContext.impactStory.trim() || "No impact details provided", 
+        learning_story: completionContext.learningStory.trim() || "No learning insights provided",
+        changelog_visibility: completionContext.changelogVisibility,
       };
       
-      // Update action as complete with context
-      const response = await fetch(`/api/actions/${actionData.id}`, {
-        method: 'PUT',
+      // Complete action with required completion context
+      const response = await fetch(`/api/actions/${actionData.id}/complete`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          done: true,
-          ...contextData
-        })
+        body: JSON.stringify(completionData)
       });
       
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);

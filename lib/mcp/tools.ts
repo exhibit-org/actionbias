@@ -244,38 +244,27 @@ export function registerTools(server: any) {
   // update_action - Update an action
   server.tool(
     "update_action",
-    "Update an existing action's properties including title, completion status, and completion context",
+    "Update an existing action's properties including title and description (use complete_action to mark actions as done)",
     {
       action_id: z.string().uuid().describe("The ID of the action to update"),
       title: z.string().min(1).optional().describe("The new title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      done: z.boolean().optional().describe("Whether the action is completed (true) or not (false)"),
-      implementation_story: z.string().optional().describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting."),
-      impact_story: z.string().optional().describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting."),
-      learning_story: z.string().optional().describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting."),
-      changelog_visibility: z.enum(["private", "team", "public"]).optional().describe("Who should see this completion context in changelog generation (default: 'team')"),
     },
-    async ({ action_id, title, description, vision, done, implementation_story, impact_story, learning_story, changelog_visibility }: { 
+    async ({ action_id, title, description, vision }: { 
       action_id: string; 
       title?: string; 
       description?: string; 
       vision?: string; 
-      done?: boolean;
-      implementation_story?: string;
-      impact_story?: string;
-      learning_story?: string;
-      changelog_visibility?: "private" | "team" | "public";
     }, extra: any) => {
       try {
         // Validate that at least one field is provided
-        if (title === undefined && description === undefined && vision === undefined && done === undefined &&
-            implementation_story === undefined && impact_story === undefined && learning_story === undefined && changelog_visibility === undefined) {
+        if (title === undefined && description === undefined && vision === undefined) {
           return {
             content: [
               {
                 type: "text",
-                text: "Error: At least one field (title, description, vision, done, or completion context) must be provided",
+                text: "Error: At least one field (title, description, or vision) must be provided",
               },
             ],
           };
@@ -285,19 +274,6 @@ export function registerTools(server: any) {
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
         if (vision !== undefined) updateData.vision = vision;
-        if (done !== undefined) updateData.done = done;
-        
-        // Add completion context parameters
-        const completionContext: any = {};
-        if (implementation_story !== undefined) completionContext.implementation_story = implementation_story;
-        if (impact_story !== undefined) completionContext.impact_story = impact_story;
-        if (learning_story !== undefined) completionContext.learning_story = learning_story;
-        if (changelog_visibility !== undefined) completionContext.changelog_visibility = changelog_visibility;
-        
-        // Only add completion context if at least one field is provided
-        if (Object.keys(completionContext).length > 0) {
-          updateData.completion_context = completionContext;
-        }
         
         console.log(`Updating action ${action_id} with:`, updateData);
         
@@ -307,14 +283,6 @@ export function registerTools(server: any) {
           ...updateData
         });
         let message = `Updated action: ${action.data?.title}\nID: ${action.id}\nUpdated: ${action.updatedAt}`;
-        
-        if (done !== undefined) {
-          message += `\nStatus: ${done ? 'Completed' : 'Not completed'}`;
-        }
-        
-        if (Object.keys(completionContext).length > 0) {
-          message += `\nCompletion context updated with ${Object.keys(completionContext).length} field(s)`;
-        }
 
         return {
           content: [
@@ -331,6 +299,110 @@ export function registerTools(server: any) {
             {
               type: "text",
               text: `Error updating action: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // complete_action - Mark an action as completed with required completion context
+  server.tool(
+    "complete_action",
+    "Mark an action as completed with required completion context for dynamic changelog generation",
+    {
+      action_id: z.string().uuid().describe("The ID of the action to complete"),
+      implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting."),
+      impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting."),
+      learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting."),
+      changelog_visibility: z.enum(["private", "team", "public"]).default("team").describe("Who should see this completion context in changelog generation (default: 'team')"),
+    },
+    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility }: { 
+      action_id: string; 
+      implementation_story: string;
+      impact_story: string;
+      learning_story: string;
+      changelog_visibility: "private" | "team" | "public";
+    }, extra: any) => {
+      try {
+        console.log(`Completing action ${action_id} with completion context`);
+        
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const action = await ActionsService.updateAction({
+          action_id,
+          done: true,
+          completion_context: {
+            implementation_story,
+            impact_story,
+            learning_story,
+            changelog_visibility
+          }
+        });
+        
+        let message = `✅ Completed action: ${action.data?.title}\nID: ${action.id}\nCompleted: ${action.updatedAt}`;
+        message += `\n\n📋 Completion Context Captured:`;
+        message += `\n• Implementation: ${implementation_story.substring(0, 100)}${implementation_story.length > 100 ? '...' : ''}`;
+        message += `\n• Impact: ${impact_story.substring(0, 100)}${impact_story.length > 100 ? '...' : ''}`;
+        message += `\n• Learning: ${learning_story.substring(0, 100)}${learning_story.length > 100 ? '...' : ''}`;
+        message += `\n• Visibility: ${changelog_visibility}`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error completing action:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error completing action: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // uncomplete_action - Mark a completed action as incomplete again
+  server.tool(
+    "uncomplete_action",
+    "Mark a completed action as incomplete again (reopens action for further work)",
+    {
+      action_id: z.string().uuid().describe("The ID of the completed action to reopen"),
+    },
+    async ({ action_id }: { action_id: string }, extra: any) => {
+      try {
+        console.log(`Uncompleting action ${action_id}`);
+        
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const action = await ActionsService.updateAction({
+          action_id,
+          done: false
+        });
+        
+        let message = `🔄 Reopened action: ${action.data?.title}\nID: ${action.id}\nReopened: ${action.updatedAt}`;
+        message += `\n\nAction is now available for further work. Previous completion context is preserved.`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error uncompleting action:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error uncompleting action: ${error instanceof Error ? error.message : "Unknown error"}`,
             },
           ],
         };
@@ -506,7 +578,13 @@ export const toolCapabilities = {
     description: "Remove a dependency relationship between two actions",
   },
   update_action: {
-    description: "Update an existing action's properties including title, completion status, and completion context for dynamic changelog generation",
+    description: "Update an existing action's properties including title and description (use complete_action to mark actions as done)",
+  },
+  complete_action: {
+    description: "Mark an action as completed with required completion context for dynamic changelog generation",
+  },
+  uncomplete_action: {
+    description: "Mark a completed action as incomplete again (reopens action for further work)",
   },
   update_parent: {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
