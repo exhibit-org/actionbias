@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const params = feedQuerySchema.parse({
       limit: searchParams.get('limit'),
       offset: searchParams.get('offset'),
-      visibility: searchParams.get('visibility'),
+      visibility: searchParams.get('visibility') || undefined,
     });
     
     const db = getDb();
