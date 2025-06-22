@@ -401,6 +401,23 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         </button>
       </div>
       <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextChildId={nextChildId} />
+
+      {/* Dependent Actions Section */}
+      {actionData.dependents && actionData.dependents.length > 0 && (
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}` }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.text, marginBottom: '0.75rem' }}>Dependent Actions</h3>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {actionData.dependents.map(dependent => (
+              <li key={dependent.id} style={{ marginBottom: '0.5rem' }}>
+                <a href={`/${dependent.id}`} style={{ color: colors.textSubtle, textDecoration: 'none', fontSize: '0.875rem' }} onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
+                  {dependent.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {showModal && (
         <div data-testid="suggestions-modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ backgroundColor: 'white', padding: '1rem', borderRadius: '0.5rem', maxWidth: '90%', width: '24rem', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
