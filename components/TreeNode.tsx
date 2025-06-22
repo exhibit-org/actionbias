@@ -94,12 +94,12 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           disabled={!hasChildren}
           aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No children'}
         >
-          {hasChildren ? (isExpanded ? '▼' : '▶') : '•'}
+          {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
         </button>
         
         {/* Completion status indicator */}
         <span className={`status-indicator ${node.done ? 'done' : 'pending'}`}>
-          {node.done ? '✓' : '○'}
+          {node.done ? '✓' : ''}
         </span>
         
         {/* Action title */}
@@ -142,12 +142,12 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         
         .tree-node-item {
           display: flex;
-          align-items: center;
-          padding: 2px 8px 2px 0;
+          align-items: flex-start;
+          padding: 4px 8px 4px 0;
           cursor: pointer;
           border-radius: 3px;
           transition: background-color 0.15s ease;
-          min-height: 20px;
+          min-height: 24px;
         }
         
         .tree-node-item:hover {
@@ -169,7 +169,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           padding: 0;
           margin-right: 4px;
           width: 12px;
-          height: 12px;
+          height: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -178,6 +178,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           color: #666;
           transition: transform 0.15s ease;
           flex-shrink: 0;
+          margin-top: 1px;
         }
         
         .disclosure-triangle:hover:not(:disabled) {
@@ -186,7 +187,8 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         
         .disclosure-triangle.no-children {
           cursor: default;
-          opacity: 0.3;
+          opacity: 0;
+          pointer-events: none;
         }
         
         .disclosure-triangle.expanded {
@@ -203,6 +205,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           flex-shrink: 0;
           width: 12px;
           text-align: center;
+          margin-top: 1px;
         }
         
         .status-indicator.done {
@@ -210,7 +213,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         }
         
         .status-indicator.pending {
-          color: #6c757d;
+          color: transparent;
         }
         
         .tree-node-item.current .status-indicator {
@@ -219,10 +222,11 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         
         .node-title {
           flex: 1;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          word-wrap: break-word;
+          hyphens: auto;
           font-weight: 400;
+          line-height: 1.3;
         }
         
         .tree-node-item.completed .node-title {
@@ -243,6 +247,10 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
         
         /* Accessibility */
         .disclosure-triangle:focus {
+          outline: none;
+        }
+        
+        .disclosure-triangle:focus-visible {
           outline: 2px solid #007acc;
           outline-offset: 1px;
         }
