@@ -1128,6 +1128,12 @@ export class ActionsService {
       throw new Error(`Action with ID ${actionId} not found`);
     }
 
+    // Debug: Log what we're actually getting from the database
+    console.log('🔍 DEBUG: Raw action object keys:', Object.keys(action[0]));
+    console.log('🔍 DEBUG: parentContextSummary (camelCase):', action[0].parentContextSummary);
+    console.log('🔍 DEBUG: parent_context_summary (snake_case):', (action[0] as any).parent_context_summary);
+    console.log('🔍 DEBUG: Full action object:', JSON.stringify(action[0], null, 2));
+
     // Get parent relationship
     const parentEdgesResult = await getDb().select().from(edges).where(
       and(eq(edges.dst, actionId), eq(edges.kind, "child"))
