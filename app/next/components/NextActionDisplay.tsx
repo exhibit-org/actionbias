@@ -151,6 +151,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
     prompt += `# Broader Vision\n`;
     prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
+    prompt += `# Resource URLs\n`;
+    prompt += `- action://tree (full action hierarchy)\n`;
+    prompt += `- action://next (current priority action)\n`;
+    prompt += `- action://${action.id} (this action's details)\n\n`;
     prompt += `# Repository Quick Setup\n`;
     prompt += `pnpm install\npnpm db:setup\npnpm dev\n\n`;
     prompt += `Refer to README.md for full details.`;

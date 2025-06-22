@@ -473,4 +473,50 @@ describe('NextActionDisplay Error Handling', () => {
       expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
     });
   });
+
+  it('should include resource URLs in codex prompt', async () => {
+    // Mock navigator.clipboard.writeText
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(undefined),
+      },
+    });
+    const writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText');
+
+    // First call succeeds for initial fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: mockNextActionData
+      })
+    });
+
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    render(<NextActionDisplay colors={mockColors} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Copy Action Instructions for Codex')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Copy Action Instructions for Codex'));
+
+    await waitFor(() => {
+      expect(writeTextSpy).toHaveBeenCalled();
+    });
+
+    const copiedText = writeTextSpy.mock.calls[0][0];
+    expect(copiedText).toContain('# Resource URLs');
+    expect(copiedText).toContain('- action://tree (full action hierarchy)');
+    expect(copiedText).toContain('- action://next (current priority action)');
+    expect(copiedText).toContain(`- action://${mockNextActionData.id} (this action's details)`);
+  });
 });
