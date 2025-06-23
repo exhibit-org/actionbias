@@ -34,19 +34,21 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
 
   // Recursive function to render action tree
   const renderAction = (action: any, depth: number = 0): React.ReactNode => {
-    const indentLevel = depth * 1.5; // 1.5rem per level
+    // Indent so child triangle aligns with parent text
+    // Parent has: triangle (16px) + gap (0.15rem) + checkmark (16px) + gap (0.15rem)
+    const indentLevel = depth > 0 ? `calc(${depth} * (16px + 0.15rem + 16px + 0.15rem))` : '0';
     const hasChildren = action.children && action.children.length > 0;
     const isExpanded = expandedNodes.has(action.id);
     
     return (
-      <div key={action.id} style={{ marginLeft: `${indentLevel}rem` }}>
+      <div key={action.id} style={{ marginLeft: indentLevel }}>
         <div style={{
           marginBottom: '0.25rem'
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.25rem'
+            gap: '0.15rem'
           }}>
             {hasChildren ? (
               <button
@@ -111,7 +113,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             <a
               href={`/tree/${action.id}`}
               style={{ 
-                marginLeft: 'calc(16px + 0.25rem + 16px + 0.25rem)', 
+                marginLeft: 'calc(16px + 0.15rem + 16px + 0.15rem)', 
                 fontSize: '0.75rem', 
                 color: colors.textSubtle,
                 textDecoration: 'none',
