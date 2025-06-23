@@ -3,8 +3,13 @@ import { z } from "zod";
 import { ActionsService } from "../../../../../lib/services/actions";
 
 const treeQuerySchema = z.object({
-  includeCompleted: z.coerce.boolean().default(false),
-});
+  includeCompleted: z.string().optional().transform(val => {
+    if (val === null || val === undefined) return false;
+    return val === 'true';
+  }),
+}).transform(data => ({
+  includeCompleted: data.includeCompleted ?? false
+}));
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for large trees

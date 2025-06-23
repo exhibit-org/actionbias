@@ -3,8 +3,13 @@ import { z } from "zod";
 import { ActionsService } from "../../../../lib/services/actions";
 
 const treeQuerySchema = z.object({
-  includeCompleted: z.coerce.boolean().default(false),
-});
+  includeCompleted: z.string().optional().transform(val => {
+    if (val === null || val === undefined) return false;
+    return val === 'true';
+  }),
+}).transform(data => ({
+  includeCompleted: data.includeCompleted ?? false
+}));
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes for large trees
@@ -12,9 +17,14 @@ export const maxDuration = 300; // 5 minutes for large trees
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const includeCompletedParam = searchParams.get('includeCompleted');
+    console.log('[API] Raw includeCompleted param:', includeCompletedParam);
+    
     const params = treeQuerySchema.parse({
-      includeCompleted: searchParams.get('includeCompleted'),
+      includeCompleted: includeCompletedParam,
     });
+    
+    console.log('[API] Parsed params:', params);
     
     // Add timeout protection like the MCP resource
     const timeoutMs = 45000; // 45 seconds
