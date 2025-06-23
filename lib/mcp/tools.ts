@@ -69,17 +69,25 @@ export function registerTools(server: any) {
   // create_action - Create a new action
   server.tool(
     "create_action",
-    "Create a new action in the database with optional parent and dependencies",
+    "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
     {
       title: z.string().min(1).describe("The title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      parent_id: z.string().uuid().optional().describe("Optional parent action ID to create a child relationship"),
+      parent_id: z.string().uuid().describe("Required parent action ID to create a child relationship (use suggest_parent tool to find appropriate parent)"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
     },
-    async ({ title, description, vision, parent_id, depends_on_ids }: { title: string; description?: string; vision?: string; parent_id?: string; depends_on_ids?: string[] }, extra: any) => {
+    async ({ title, description, vision, parent_id, depends_on_ids }: { title: string; description?: string; vision?: string; parent_id: string; depends_on_ids?: string[] }, extra: any) => {
       try {
         console.log(`Creating action with title: ${title}`);
+        
+        // Validate parent_id exists
+        const db = getDb();
+        const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+        
+        if (parentAction.length === 0) {
+          throw new Error(`Parent action with ID ${parent_id} not found. Use suggest_parent tool to find a valid parent.`);
+        }
         
         // Call ActionsService directly to avoid HTTP authentication issues
         const result = await ActionsService.createAction({ title, description, vision, parent_id, depends_on_ids });
@@ -87,9 +95,7 @@ export function registerTools(server: any) {
         const { action, dependencies_count } = result;
         let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
         
-        if (parent_id) {
-          message += `\nParent: ${parent_id}`;
-        }
+        message += `\nParent: ${parent_id}`;
         
         if (dependencies_count > 0) {
           message += `\nDependencies: ${dependencies_count} actions`;
@@ -758,7 +764,7 @@ export function registerTools(server: any) {
 
 export const toolCapabilities = {
   create_action: {
-    description: "Create a new action in the database with optional parent and dependencies",
+    description: "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
   },
   add_dependency: {
     description: "Create a dependency relationship between two existing actions",
