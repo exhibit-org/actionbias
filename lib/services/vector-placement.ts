@@ -79,9 +79,14 @@ export class VectorPlacementService {
       const allActions = await ActionsService.listActions({});
       const actionMap = new Map<string, any>();
       
-      allActions.forEach((action: any) => {
-        actionMap.set(action.id, action);
-      });
+      // Safety check: ensure allActions is an array
+      if (Array.isArray(allActions)) {
+        allActions.forEach((action: any) => {
+          actionMap.set(action.id, action);
+        });
+      } else {
+        console.error('ActionsService.listActions returned non-array:', typeof allActions, allActions);
+      }
 
       // Build parent relationships from edges table
       const parentMap = await this.buildParentMap();
