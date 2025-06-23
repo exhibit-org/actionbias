@@ -341,6 +341,86 @@ export function registerResources(server: any) {
     }
   );
 
+  // action://tree/{id} - Hierarchical view of actions scoped to a specific subtree
+  server.resource(
+    "Hierarchical view of actions showing parent-child relationships within a specific subtree (excludes completed actions by default)",
+    new ResourceTemplate("action://tree/{id}", { list: undefined }),
+    async (uri: any, { id }: { id: string | string[] }) => {
+      try {
+        // Handle id parameter which can be string or string[]
+        const rootActionId = Array.isArray(id) ? id[0] : id;
+        
+        if (!rootActionId || rootActionId === '{id}') {
+          throw new Error("Root action ID is required - URI should be like 'action://tree/123'");
+        }
+        
+        // Parse URI parameters
+        let includeCompleted = false;
+        
+        const uriString = uri.toString();
+        if (uriString.includes('?')) {
+          try {
+            const url = new URL(uriString);
+            
+            // Parse includeCompleted parameter
+            const includeCompletedParam = url.searchParams.get('includeCompleted');
+            if (includeCompletedParam !== null) {
+              includeCompleted = includeCompletedParam === 'true';
+            }
+          } catch (urlError) {
+            console.log('Could not parse URI parameters, using defaults:', urlError);
+          }
+        }
+        
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  rootActions: [],
+                  rootAction: rootActionId
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        console.log('[RESOURCE] Starting getActionTreeResourceScoped', { rootActionId, includeCompleted });
+        
+        // Add timeout protection for the scoped tree resource
+        const timeoutMs = 45000; // 45 seconds, leaving buffer for the 60s maxDuration
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Scoped tree resource timed out after 45 seconds')), timeoutMs);
+        });
+        
+        const result = await Promise.race([
+          ActionsService.getActionTreeResourceScoped(rootActionId, includeCompleted),
+          timeoutPromise
+        ]) as any;
+        
+        console.log('[RESOURCE] Completed getActionTreeResourceScoped');
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(result, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching scoped action tree resource:', error);
+        throw new Error(`Failed to fetch scoped action tree: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
   // action://next/{id} - Get the next actionable task scoped to a specific subtree
   server.resource(
     "Get the next action that should be worked on within a specific subtree, based on dependencies",
@@ -434,6 +514,9 @@ export const resourceCapabilities = {
   },
   "action://tree": {
     description: "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  },
+  "action://tree/{id}": {
+    description: "Hierarchical view of actions within a specific subtree, scoped to the given action ID and its descendants (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
   "action://dependencies": {
     description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",

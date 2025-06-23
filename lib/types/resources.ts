@@ -31,6 +31,8 @@ export interface ActionListResource {
 // action://tree  
 export interface ActionTreeResource {
   rootActions: ActionNode[];
+  rootAction?: string; // For scoped trees, the ID of the root action
+  scope?: string; // For scoped trees, the ID of the scope action
 }
 
 export interface ActionNode {

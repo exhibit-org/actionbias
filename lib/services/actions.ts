@@ -1001,6 +1001,206 @@ export class ActionsService {
     }
   }
 
+  /**
+   * Get all descendant action IDs for a given root action
+   * Uses recursive traversal of the parent-child hierarchy
+   */
+  private static async getAllDescendants(rootActionId: string): Promise<string[]> {
+    const descendants: string[] = [];
+    const visited = new Set<string>();
+    
+    // Get all child edges
+    const childEdges = await getDb()
+      .select()
+      .from(edges)
+      .where(eq(edges.kind, "child"));
+    
+    // Build children map
+    const childrenMap = new Map<string, string[]>();
+    for (const edge of childEdges) {
+      if (edge.src && edge.dst) {
+        if (!childrenMap.has(edge.src)) {
+          childrenMap.set(edge.src, []);
+        }
+        childrenMap.get(edge.src)!.push(edge.dst);
+      }
+    }
+    
+    // Recursive function to collect descendants
+    function collectDescendants(actionId: string) {
+      if (visited.has(actionId)) {
+        return; // Prevent infinite loops
+      }
+      visited.add(actionId);
+      
+      const children = childrenMap.get(actionId) || [];
+      for (const childId of children) {
+        descendants.push(childId);
+        collectDescendants(childId);
+      }
+    }
+    
+    collectDescendants(rootActionId);
+    return descendants;
+  }
+
+  static async getActionTreeResourceScoped(rootActionId: string, includeCompleted: boolean = false): Promise<ActionTreeResource> {
+    console.log('[SERVICE] Starting scoped tree resource for root:', rootActionId);
+    
+    try {
+      // First, verify the root action exists
+      const rootActionResult = await getDb()
+        .select()
+        .from(actions)
+        .where(eq(actions.id, rootActionId))
+        .limit(1);
+        
+      if (rootActionResult.length === 0) {
+        throw new Error(`Root action ${rootActionId} not found`);
+      }
+      
+      const rootAction = rootActionResult[0];
+      
+      // Skip if root action is completed and includeCompleted is false
+      if (!includeCompleted && rootAction.done) {
+        return { 
+          rootActions: [],
+          rootAction: rootActionId,
+          scope: rootActionId
+        };
+      }
+      
+      // Get all descendants of the root action
+      const descendantIds = await this.getAllDescendants(rootActionId);
+      const scopedActionIds = [rootActionId, ...descendantIds];
+      
+      console.log('[SERVICE] Found', descendantIds.length, 'descendants for root action');
+      
+      // Get all actions in the scope
+      let actionQuery = getDb()
+        .select()
+        .from(actions)
+        .where(sql`${actions.id} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`)
+        .limit(500);
+      
+      if (!includeCompleted) {
+        actionQuery = actionQuery.where(eq(actions.done, false));
+      }
+      
+      // Execute queries in parallel for better performance
+      const [scopedActions, childEdgesResult, dependencyEdgesResult] = await Promise.all([
+        actionQuery.orderBy(actions.createdAt),
+        getDb()
+          .select()
+          .from(edges)
+          .where(and(
+            eq(edges.kind, "child"),
+            sql`${edges.src} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`,
+            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`
+          )),
+        getDb()
+          .select()
+          .from(edges)
+          .where(and(
+            eq(edges.kind, "depends_on"),
+            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`
+          ))
+      ]);
+      
+      console.log('[SERVICE] Got scoped actions:', scopedActions.length);
+      
+      // Early return if no actions in scope
+      if (scopedActions.length === 0) {
+        return { 
+          rootActions: [],
+          rootAction: rootActionId,
+          scope: rootActionId
+        };
+      }
+      
+      const allEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+      const dependencyEdges = Array.isArray(dependencyEdgesResult) ? dependencyEdgesResult : [];
+
+      // Build lookup maps
+      const actionMap = new Map(scopedActions.map((action: any) => [action.id, action]));
+      const childrenMap = new Map<string, string[]>();
+      const parentMap = new Map<string, string>();
+      const dependenciesMap = new Map<string, string[]>();
+
+      // Build parent-child relationships (only within scope)
+      for (const edge of allEdges) {
+        if (edge.src && edge.dst) {
+          if (!childrenMap.has(edge.src)) {
+            childrenMap.set(edge.src, []);
+          }
+          childrenMap.get(edge.src)!.push(edge.dst);
+          parentMap.set(edge.dst, edge.src);
+        }
+      }
+      
+      // Build dependency relationships
+      for (const edge of dependencyEdges) {
+        if (edge.src && edge.dst) {
+          if (!dependenciesMap.has(edge.dst)) {
+            dependenciesMap.set(edge.dst, []);
+          }
+          dependenciesMap.get(edge.dst)!.push(edge.src);
+        }
+      }
+
+      // Tree building with depth limit
+      const MAX_DEPTH = 10;
+      function buildNode(actionId: string, depth: number = 0): ActionNode | null {
+        if (depth > MAX_DEPTH) {
+          console.warn('[SERVICE] Max depth reached for action:', actionId);
+          return null;
+        }
+        
+        const action = actionMap.get(actionId) as any;
+        if (!action) {
+          return null;
+        }
+        
+        // Skip completed actions unless includeCompleted is true
+        if (!includeCompleted && action.done) {
+          return null;
+        }
+        
+        const children = childrenMap.get(actionId) || [];
+        const dependencies = dependenciesMap.get(actionId) || [];
+
+        // Filter children to exclude completed ones (unless includeCompleted is true)
+        const filteredChildren = children
+          .map(childId => buildNode(childId, depth + 1))
+          .filter((child): child is ActionNode => child !== null);
+
+        return {
+          id: actionId,
+          title: action.data?.title || 'untitled',
+          done: action.done,
+          created_at: action.createdAt.toISOString(),
+          children: filteredChildren,
+          dependencies,
+        };
+      }
+
+      // Build the scoped tree starting from the root action
+      const rootNode = buildNode(rootActionId);
+      
+      console.log('[SERVICE] Built scoped tree');
+      
+      return {
+        rootActions: rootNode ? [rootNode] : [],
+        rootAction: rootActionId,
+        scope: rootActionId
+      };
+      
+    } catch (error) {
+      console.error('[SERVICE] Error in getActionTreeResourceScoped:', error);
+      throw new Error(`Failed to build scoped action tree: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   static async getActionDependenciesResource(includeCompleted: boolean = false): Promise<ActionDependenciesResource> {
     // Get all actions and filter if needed
     let actionQuery = getDb().select().from(actions);
