@@ -83,62 +83,11 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
   if (loading) {
     return (
       <div style={{
-        minHeight: '100vh',
-        backgroundColor: colors.bg,
+        padding: '2rem',
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        display: 'flex',
-        flexDirection: 'column'
+        color: colors.textMuted
       }}>
-        {/* Header Skeleton */}
-        <div style={{
-          backgroundColor: 'white',
-          borderBottom: `1px solid ${colors.border}`,
-          padding: '1rem'
-        }}>
-          <div style={{
-            maxWidth: '48rem',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: colors.border,
-              borderRadius: '50%',
-              flexShrink: 0
-            }}></div>
-            <div>
-              <div style={{ height: '1.125rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '200px', marginBottom: '0.25rem' }}></div>
-              <div style={{ height: '0.875rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '300px' }}></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Loading */}
-        <div style={{
-          flex: '1',
-          overflow: 'auto',
-          padding: '2rem 1rem 1rem 1rem'
-        }}>
-          <div style={{
-            maxWidth: '48rem',
-            margin: '0 auto'
-          }}>
-            <div style={{
-              backgroundColor: colors.surface,
-              border: `1px solid ${colors.border}`,
-              borderRadius: '0.5rem',
-              padding: '1.5rem'
-            }}>
-              <div style={{ height: '1.5rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '60%', marginBottom: '1rem' }}></div>
-              <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '40%', marginBottom: '0.5rem' }}></div>
-              <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '50%', marginBottom: '0.5rem' }}></div>
-              <div style={{ height: '1rem', backgroundColor: colors.border, borderRadius: '0.25rem', width: '45%' }}></div>
-            </div>
-          </div>
-        </div>
+        Loading...
       </div>
     );
   }
@@ -146,278 +95,42 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
   if (error) {
     return (
       <div style={{
-        minHeight: '100vh',
-        backgroundColor: colors.bg,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        display: 'flex',
-        flexDirection: 'column'
+        padding: '2rem',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
-        <div style={{
-          flex: '1',
-          overflow: 'auto',
-          padding: '2rem 1rem 1rem 1rem'
-        }}>
-          <div style={{
-            maxWidth: '48rem',
-            margin: '0 auto'
-          }}>
-            <div style={{ 
-              backgroundColor: colors.surface, 
-              border: `1px solid ${colors.border}`, 
-              borderRadius: '0.5rem', 
-              padding: '1.5rem', 
-              borderLeft: `4px solid ${colors.borderAccent}` 
-            }}>
-              <h2 style={{ 
-                fontSize: '1.125rem', 
-                fontWeight: '600', 
-                color: colors.text, 
-                marginBottom: '0.5rem' 
-              }}>
-                Error Loading Scoped Tree
-              </h2>
-              <p style={{ color: colors.textMuted, marginBottom: '1rem' }}>{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                style={{ 
-                  padding: '0.5rem 1rem', 
-                  backgroundColor: colors.borderAccent, 
-                  color: 'white', 
-                  borderRadius: '0.25rem', 
-                  border: 'none', 
-                  cursor: 'pointer', 
-                  fontSize: '0.875rem' 
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.opacity = '0.8'}
-                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        </div>
+        <p style={{ color: colors.textMuted, marginBottom: '1rem' }}>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ 
+            padding: '0.5rem 1rem', 
+            backgroundColor: colors.borderAccent, 
+            color: 'white', 
+            borderRadius: '0.25rem', 
+            border: 'none', 
+            cursor: 'pointer', 
+            fontSize: '0.875rem' 
+          }}
+          onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.opacity = '0.8'}
+          onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.opacity = '1'}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
     <div style={{
-      minHeight: '100vh',
-      backgroundColor: colors.bg,
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      display: 'flex',
-      flexDirection: 'column'
+      padding: '2rem',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
-      {/* Project Scope Header */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: `1px solid ${colors.border}`,
-        padding: '1rem'
-      }}>
-        <div style={{
-          maxWidth: '48rem',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem'
-        }}>
-          <div style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: colors.borderAccent,
-            borderRadius: '50%',
-            flexShrink: 0
-          }}></div>
-          <div>
-            <h1 style={{
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              color: colors.text,
-              margin: '0 0 0.25rem 0'
-            }}>
-              Project Tree: {scopeTitle}
-            </h1>
-            <p style={{
-              fontSize: '0.875rem',
-              color: colors.textMuted,
-              margin: 0
-            }}>
-              Scoped to this project • <a 
-                href={`/${rootActionId}`}
-                style={{ 
-                  color: colors.textSubtle, 
-                  textDecoration: 'none' 
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-              >
-                View action details
-              </a> • <a 
-                href="/next"
-                style={{ 
-                  color: colors.textSubtle, 
-                  textDecoration: 'none' 
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-              >
-                All projects
-              </a>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area - Scrollable */}
-      <div style={{
-        flex: '1',
-        overflow: 'auto',
-        padding: '2rem 1rem 1rem 1rem'
-      }}>
-        <div style={{
-          maxWidth: '48rem',
-          margin: '0 auto'
-        }}>
-          {treeData && treeData.rootActions.length > 0 ? (
-            <div style={{
-              backgroundColor: 'white',
-              border: `1px solid ${colors.border}`,
-              borderRadius: '0.5rem',
-              padding: '1.5rem'
-            }}>
-              <h2 style={{
-                fontSize: '1rem',
-                fontWeight: '600',
-                color: colors.text,
-                marginBottom: '1rem'
-              }}>
-                Action Tree Structure
-              </h2>
-              <div style={{
-                fontSize: '0.875rem',
-                color: colors.textMuted,
-                marginBottom: '1rem',
-                padding: '0.75rem',
-                backgroundColor: colors.surface,
-                borderRadius: '0.25rem',
-                border: `1px solid ${colors.border}`
-              }}>
-                <strong>Scope:</strong> {scopeTitle} ({treeData.rootActions.length} action{treeData.rootActions.length !== 1 ? 's' : ''}) (excluding completed)
-              </div>
-              <ActionTree actions={treeData.rootActions} colors={colors} />
-            </div>
-          ) : (
-            <div style={{ 
-              backgroundColor: colors.surface, 
-              border: `1px solid ${colors.border}`, 
-              borderRadius: '0.5rem', 
-              padding: '1.5rem', 
-              borderLeft: `4px solid ${colors.borderAccent}` 
-            }}>
-              <h2 style={{ 
-                fontSize: '1.125rem', 
-                fontWeight: '600', 
-                color: colors.text, 
-                marginBottom: '0.5rem' 
-              }}>
-                No Actions in Scope
-              </h2>
-              <p style={{ color: colors.textMuted, marginBottom: '1rem' }}>
-                "{scopeTitle}" has no visible actions. This might mean all actions are completed or the project is empty.
-              </p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <a 
-                  href={`/${rootActionId}`}
-                  style={{ 
-                    display: 'inline-block',
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: colors.borderAccent, 
-                    color: 'white', 
-                    borderRadius: '0.25rem', 
-                    textDecoration: 'none',
-                    fontSize: '0.875rem' 
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '0.8'}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.opacity = '1'}
-                >
-                  View Action Details
-                </a>
-                <a 
-                  href={`/api/actions/tree/${rootActionId}?includeCompleted=false`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ 
-                    display: 'inline-block',
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: colors.surface, 
-                    color: colors.text,
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: '0.25rem', 
-                    textDecoration: 'none',
-                    fontSize: '0.875rem' 
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.backgroundColor = colors.border}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.backgroundColor = colors.surface}
-                >
-                  View Tree Data (API)
-                </a>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Persistent Footer */}
-      <footer style={{
-        backgroundColor: '#ffffff',
-        borderTop: `1px solid ${colors.border}`,
-        padding: '1.5rem 1rem',
-        marginTop: 'auto'
-      }}>
-        <div style={{
-          maxWidth: '48rem',
-          margin: '0 auto',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            marginBottom: '1rem'
-          }}>
-            <h3 style={{
-              fontSize: '1.125rem',
-              fontWeight: '600',
-              color: colors.text,
-              margin: '0 0 0.5rem 0'
-            }}>
-              ActionBias
-            </h3>
-            <p style={{
-              fontSize: '0.875rem',
-              color: colors.textMuted,
-              margin: '0 0 0.75rem 0',
-              lineHeight: '1.5'
-            }}>
-              Cross-LLM persistent planning system for focused action taking
-            </p>
-            <p style={{
-              fontSize: '0.75rem',
-              color: colors.textSubtle,
-              margin: 0,
-              lineHeight: '1.4'
-            }}>
-              Stay focused on what matters most. Break down complex projects into actionable steps with context-aware prioritization.
-            </p>
-          </div>
-          
-          <div style={{
-            fontSize: '0.75rem',
-            color: colors.textFaint,
-            borderTop: `1px solid ${colors.border}`,
-            paddingTop: '0.75rem'
-          }}>
-            Single-user instance • <a href="https://github.com/exhibit-org/actionbias" style={{ color: colors.textSubtle, textDecoration: 'none' }}>Open Source</a>
-          </div>
-        </div>
-      </footer>
+      {treeData && treeData.rootActions.length > 0 ? (
+        <ActionTree actions={treeData.rootActions} colors={colors} />
+      ) : (
+        <p style={{ color: colors.textMuted }}>
+          "{scopeTitle}" has no visible actions. This might mean all actions are completed or the project is empty.
+        </p>
+      )}
     </div>
   );
 }

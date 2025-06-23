@@ -40,18 +40,12 @@ export default function ActionTree({ actions, colors }: ActionTreeProps) {
     return (
       <div key={action.id} style={{ marginLeft: `${indentLevel}rem` }}>
         <div style={{
-          marginBottom: '0.5rem',
-          padding: '0.75rem',
-          backgroundColor: 'white',
-          border: `1px solid ${colors.border}`,
-          borderRadius: '0.25rem',
-          borderLeft: action.done ? `4px solid ${colors.textFaint}` : `4px solid ${colors.borderAccent}`
+          marginBottom: '0.25rem'
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.25rem'
+            gap: '0.5rem'
           }}>
             {hasChildren && (
               <button
@@ -83,7 +77,9 @@ export default function ActionTree({ actions, colors }: ActionTreeProps) {
             <span style={{
               fontSize: '0.75rem',
               color: action.done ? colors.textFaint : colors.borderAccent,
-              fontWeight: '500'
+              fontWeight: '500',
+              width: '16px',
+              display: 'inline-block'
             }}>
               {action.done ? '✓' : ''}
             </span>
@@ -133,16 +129,18 @@ export default function ActionTree({ actions, colors }: ActionTreeProps) {
             </div>
           </div>
           {hasChildren && (
-            <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', color: colors.textSubtle }}>
-                {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
-              </span>
+            <div style={{ 
+              marginLeft: 'calc(16px + 0.5rem + 16px + 0.5rem)', 
+              fontSize: '0.75rem', 
+              color: colors.textSubtle 
+            }}>
+              {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
             </div>
           )}
         </div>
         {/* Render children recursively - only if expanded */}
         {hasChildren && isExpanded && (
-          <div style={{ marginTop: '0.5rem' }}>
+          <div style={{ marginTop: '0.25rem' }}>
             {action.children.map((child: any) => renderAction(child, depth + 1))}
           </div>
         )}
