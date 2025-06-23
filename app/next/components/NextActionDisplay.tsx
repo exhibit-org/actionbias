@@ -42,6 +42,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     changelogVisibility: 'team' as 'private' | 'team' | 'public'
   });
   const [savingContext, setSavingContext] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -417,6 +419,36 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     });
   };
 
+  const handleDelete = async () => {
+    if (!actionData) return;
+    
+    try {
+      setDeleting(true);
+      setError(null);
+      
+      const response = await fetch(`/api/actions/${actionData.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          child_handling: 'delete_recursive'
+        })
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to delete action');
+      
+      // Redirect to home page after successful deletion
+      window.location.href = '/';
+      
+    } catch (err) {
+      console.error('Error deleting action:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete action');
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   if (loading) {
     return <ActionPageSkeleton colors={colors} isMobile={isMobile} />;
   }
@@ -462,6 +494,18 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               )}
             </button>
             <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.text, margin: 0, flex: 1 }}>{actionData.title}</h2>
+            <button onClick={() => setShowDeleteModal(true)} disabled={deleting} aria-label="Delete Action" style={{ width: '20px', height: '20px', backgroundColor: deleting ? colors.textFaint : colors.surface, border: `2px solid ${deleting ? colors.textFaint : '#dc2626'}`, borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: deleting ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.2s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }} onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#b91c1c'; e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)'; } }} onMouseLeave={e => { if (!deleting) { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)'; } }}>
+              {deleting ? (
+                <svg style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite', color: '#dc2626' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.355 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg style={{ width: '12px', height: '12px', color: '#dc2626' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
+            </button>
           </div>
           <div style={{ marginTop: '0.5rem' }}>
             <EditableField value={actionData.description || ''} placeholder="Click to add description..." colors={colors} onSave={updateDescription} />
@@ -692,6 +736,79 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               🚀 <strong>Build on Success:</strong> Leverage approaches that worked well in dependencies<br/>
               ⚠️ <strong>Learn from Challenges:</strong> Address issues that were discovered in dependency work
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'white', padding: '1.5rem', borderRadius: '0.5rem', maxWidth: '90%', width: '28rem', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <svg style={{ width: '20px', height: '20px', color: '#dc2626', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <h3 style={{ marginTop: 0, marginBottom: 0, color: colors.text, fontSize: '1.125rem', fontWeight: '600' }}>
+                Delete Action
+              </h3>
+            </div>
+            <p style={{ marginBottom: '1.5rem', color: colors.textSubtle, fontSize: '0.875rem', lineHeight: '1.4' }}>
+              Are you sure you want to delete <strong>"{actionData?.title}"</strong>?
+            </p>
+            <p style={{ marginBottom: '1.5rem', color: colors.textSubtle, fontSize: '0.875rem', lineHeight: '1.4' }}>
+              This action will be permanently removed and cannot be recovered. Any child actions will also be deleted.
+            </p>
+            
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  backgroundColor: 'transparent', 
+                  color: colors.textSubtle, 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.25rem', 
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDelete}
+                disabled={deleting}
+                style={{ 
+                  padding: '0.5rem 1rem', 
+                  backgroundColor: '#dc2626', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.25rem', 
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {deleting ? (
+                  <>
+                    <svg style={{ width: '14px', height: '14px', animation: 'spin 1s linear infinite', color: 'white' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.355 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Action
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
