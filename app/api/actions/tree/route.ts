@@ -17,14 +17,9 @@ export const maxDuration = 300; // 5 minutes for large trees
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const includeCompletedParam = searchParams.get('includeCompleted');
-    console.log('[API] Raw includeCompleted param:', includeCompletedParam);
-    
     const params = treeQuerySchema.parse({
-      includeCompleted: includeCompletedParam,
+      includeCompleted: searchParams.get('includeCompleted'),
     });
-    
-    console.log('[API] Parsed params:', params);
     
     // Add timeout protection like the MCP resource
     const timeoutMs = 45000; // 45 seconds
