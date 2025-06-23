@@ -14,7 +14,6 @@ export function registerResources(server: any) {
         // Parse URI parameters if present - default to reasonable limits
         let limit = 20;
         let offset = 0;
-        let done: boolean | undefined = undefined;
         let includeCompleted = false;
         
         // Try to extract parameters from URI if it contains query string
@@ -24,12 +23,6 @@ export function registerResources(server: any) {
             const url = new URL(uriString);
             limit = parseInt(url.searchParams.get('limit') || '20');
             offset = parseInt(url.searchParams.get('offset') || '0');
-            
-            // Parse done parameter
-            const doneParam = url.searchParams.get('done');
-            if (doneParam !== null) {
-              done = doneParam === 'true';
-            }
             
             // Parse includeCompleted parameter
             const includeCompletedParam = url.searchParams.get('includeCompleted');
@@ -59,7 +52,7 @@ export function registerResources(server: any) {
           };
         }
         
-        const result = await ActionsService.getActionListResource({ limit, offset, done, includeCompleted });
+        const result = await ActionsService.getActionListResource({ limit, offset, includeCompleted });
         
         return {
           contents: [

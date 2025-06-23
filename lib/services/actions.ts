@@ -307,7 +307,6 @@ export interface CreateActionResult {
 export interface ListActionsParams {
   limit?: number;
   offset?: number;
-  done?: boolean;
   includeCompleted?: boolean;
 }
 
@@ -439,15 +438,15 @@ export class ActionsService {
   }
 
   static async listActions(params: ListActionsParams = {}) {
-    const { limit = 20, offset = 0, done } = params;
+    const { limit = 20, offset = 0, includeCompleted = false } = params;
     
     let query = getDb()
       .select()
       .from(actions);
     
-    // Add done filter if specified
-    if (done !== undefined) {
-      query = query.where(eq(actions.done, done)) as any;
+    // Default: exclude completed actions unless explicitly requested
+    if (!includeCompleted) {
+      query = query.where(eq(actions.done, false)) as any;
     }
     
     const actionList = await query
@@ -840,7 +839,7 @@ export class ActionsService {
   // Resource methods for MCP resources
 
   static async getActionListResource(params: ListActionsParams = {}): Promise<ActionListResource> {
-    const { limit = 20, offset = 0, done, includeCompleted = false } = params;
+    const { limit = 20, offset = 0, includeCompleted = false } = params;
     
     // Build base query
     let totalQuery = getDb().select({ count: count() }).from(actions);
@@ -848,12 +847,8 @@ export class ActionsService {
       .select()
       .from(actions);
     
-    // Add done filter if specified
-    if (done !== undefined) {
-      totalQuery = totalQuery.where(eq(actions.done, done));
-      actionQuery = actionQuery.where(eq(actions.done, done));
-    } else if (!includeCompleted) {
-      // Default: exclude completed actions unless explicitly requested
+    // Default: exclude completed actions unless explicitly requested
+    if (!includeCompleted) {
       totalQuery = totalQuery.where(eq(actions.done, false));
       actionQuery = actionQuery.where(eq(actions.done, false));
     }
@@ -880,7 +875,6 @@ export class ActionsService {
       total,
       offset,
       limit,
-      ...(done !== undefined && { filtered_by_done: done }),
     };
   }
 
