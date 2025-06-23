@@ -57,7 +57,27 @@ export class VectorService {
       LIMIT ${limit}
     `);
     
-    return results.rows.map((row: any) => ({
+    // Debug logging to identify result format
+    console.log('VectorService.findSimilarActions debug:', {
+      resultsType: typeof results,
+      resultsKeys: Object.keys(results || {}),
+      hasRows: 'rows' in (results || {}),
+      resultsLength: results?.length,
+      results: results
+    });
+    
+    // Handle different database result formats
+    let rows: any[] = [];
+    if (results.rows && Array.isArray(results.rows)) {
+      rows = results.rows;
+    } else if (Array.isArray(results)) {
+      rows = results;
+    } else {
+      console.error('Unexpected database result format:', typeof results, results);
+      return [];
+    }
+    
+    return rows.map((row: any) => ({
       id: row.id,
       title: row.title,
       description: row.description,
