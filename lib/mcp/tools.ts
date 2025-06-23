@@ -485,8 +485,8 @@ export function registerTools(server: any) {
         if (action_id) {
           excludeIds = [action_id];
           
-          // If no title provided (empty string or undefined), fetch action data from database
-          if (!title || title.trim() === "") {
+          // If no title provided (empty string, undefined, or placeholder), fetch action data from database
+          if (!title || title.trim() === "" || title === "_fetch_") {
             console.log(`Fetching action data for ID: ${action_id}`);
             try {
               // Use direct database query to get the action
@@ -580,7 +580,7 @@ export function registerTools(server: any) {
         }
         
         let message = `🔍 **Vector-Based Placement Analysis for:** "${actionData.title}"\n`;
-        if (action_id && (!title || title.trim() === "")) {
+        if (action_id && (!title || title.trim() === "" || title === "_fetch_")) {
           message += `📄 **Source:** Automatically fetched from action ${action_id}\n`;
         }
         message += `⚡ **Performance:** ${vectorResult.totalProcessingTimeMs.toFixed(1)}ms total (${vectorResult.embeddingTimeMs.toFixed(1)}ms embedding, ${vectorResult.searchTimeMs.toFixed(1)}ms search)\n`;
