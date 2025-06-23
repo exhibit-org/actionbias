@@ -1,5 +1,5 @@
 import { eq, and, count, inArray, sql } from "drizzle-orm";
-import { actions, actionDataSchema, edges } from "../../db/schema";
+import { actions, actionDataSchema, edges, completionContexts } from "../../db/schema";
 import { 
   ActionListResource, 
   ActionTreeResource, 
@@ -8,6 +8,7 @@ import {
   DependencyMapping,
   ActionDetailResource,
   ActionMetadata,
+  DependencyCompletionContext,
   Action 
 } from "../types/resources";
 import { getDb } from "../db/adapter";
@@ -1210,6 +1211,37 @@ export class ActionsService {
       ? await getDb().select().from(actions).where(inArray(actions.id, dependentIds))
       : [];
 
+    // Get completion context from dependencies for enhanced knowledge transfer
+    const dependencyCompletionContext: DependencyCompletionContext[] = [];
+    if (dependencyIds.length > 0) {
+      const completionContextResults = await getDb()
+        .select({
+          actionId: completionContexts.actionId,
+          implementationStory: completionContexts.implementationStory,
+          impactStory: completionContexts.impactStory,
+          learningStory: completionContexts.learningStory,
+          changelogVisibility: completionContexts.changelogVisibility,
+          completionTimestamp: completionContexts.completionTimestamp,
+          actionTitle: actions.title,
+        })
+        .from(completionContexts)
+        .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+        .where(inArray(completionContexts.actionId, dependencyIds))
+        .orderBy(completionContexts.completionTimestamp);
+
+      for (const context of completionContextResults) {
+        dependencyCompletionContext.push({
+          action_id: context.actionId,
+          action_title: context.actionTitle || 'untitled',
+          completion_timestamp: context.completionTimestamp.toISOString(),
+          implementation_story: context.implementationStory || undefined,
+          impact_story: context.impactStory || undefined,
+          learning_story: context.learningStory || undefined,
+          changelog_visibility: context.changelogVisibility || 'team',
+        });
+      }
+    }
+
     return {
       id: action[0].id,
       title: action[0].title || action[0].data?.title || 'untitled',
@@ -1224,6 +1256,7 @@ export class ActionsService {
       children: children.map(toActionMetadata),
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
+      dependency_completion_context: dependencyCompletionContext,
       // Parent summaries from database columns
       parent_context_summary: action[0].parentContextSummary,
       parent_vision_summary: action[0].parentVisionSummary,

@@ -80,6 +80,18 @@ export interface ActionDetailResource {
   children: ActionMetadata[];
   dependencies: ActionMetadata[]; // actions this depends on
   dependents: ActionMetadata[]; // actions that depend on this one
+  dependency_completion_context: DependencyCompletionContext[]; // completion context from dependencies
+}
+
+// Completion context from dependencies for enhanced knowledge transfer
+export interface DependencyCompletionContext {
+  action_id: string;
+  action_title: string;
+  completion_timestamp: string;
+  implementation_story?: string;
+  impact_story?: string;
+  learning_story?: string;
+  changelog_visibility: string;
 }
 
 export interface ActionMetadata {

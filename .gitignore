@@ -42,6 +42,7 @@ next-env.d.ts
 .pglite/
 .pglite-*-test/
 .pglite-adapter-test-*/
+.pglite-*-test-*/
 custom-adapter-test-*/
 dev.log
 test-*.mjs

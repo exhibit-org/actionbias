@@ -159,6 +159,34 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `${action.parent_context_summary || 'This action has no parent context.'}\n\n`;
     prompt += `## Broader Vision\n`;
     prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
+    
+    // Add completion context from dependencies
+    if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
+      prompt += `## Completion Context from Dependencies\n`;
+      prompt += `This action builds on work completed in its dependencies. Here's what was learned and accomplished:\n\n`;
+      
+      action.dependency_completion_context.forEach((context, index) => {
+        prompt += `### Dependency ${index + 1}: ${context.action_title}\n`;
+        prompt += `Completed: ${new Date(context.completion_timestamp).toLocaleDateString()}\n\n`;
+        
+        if (context.implementation_story) {
+          prompt += `**Implementation Approach:**\n${context.implementation_story}\n\n`;
+        }
+        
+        if (context.impact_story) {
+          prompt += `**Impact Achieved:**\n${context.impact_story}\n\n`;
+        }
+        
+        if (context.learning_story) {
+          prompt += `**Key Learnings:**\n${context.learning_story}\n\n`;
+        }
+        
+        prompt += `---\n\n`;
+      });
+      
+      prompt += `**💡 Use This Context:** Apply insights from dependency work to avoid repeated mistakes and build on successful approaches.\n\n`;
+    }
+    
     prompt += `## MCP Resources Available\n`;
     prompt += `- action://tree (full action hierarchy)\n`;
     prompt += `- action://next (current priority action)\n`;
@@ -177,6 +205,29 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
     prompt += `# Broader Vision\n`;
     prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
+    
+    // Add completion context from dependencies
+    if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
+      prompt += `# Completion Context from Dependencies\n`;
+      prompt += `This action builds on completed dependencies:\n\n`;
+      
+      action.dependency_completion_context.forEach((context, index) => {
+        prompt += `## ${context.action_title}\n`;
+        if (context.implementation_story) {
+          prompt += `**How it was built:** ${context.implementation_story}\n`;
+        }
+        if (context.impact_story) {
+          prompt += `**Impact:** ${context.impact_story}\n`;
+        }
+        if (context.learning_story) {
+          prompt += `**Learnings:** ${context.learning_story}\n`;
+        }
+        prompt += `\n`;
+      });
+      
+      prompt += `Apply these insights to avoid repeating mistakes and build on successful approaches.\n\n`;
+    }
+    
     prompt += `# Resource URLs\n`;
     prompt += `- action://tree (full action hierarchy)\n`;
     prompt += `- action://next (current priority action)\n`;
@@ -490,6 +541,148 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Dependency Completion Context Section */}
+      {actionData.dependency_completion_context && actionData.dependency_completion_context.length > 0 && (
+        <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}` }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '600', color: colors.text, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            🔗 Completion Context from Dependencies
+          </h3>
+          <p style={{ fontSize: '0.875rem', color: colors.textSubtle, marginBottom: '1rem', lineHeight: '1.4' }}>
+            This action builds on work completed in its dependencies. Here's what was learned and accomplished:
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {actionData.dependency_completion_context.map((context, index) => (
+              <div key={context.action_id} style={{ 
+                backgroundColor: colors.bg, 
+                border: `1px solid ${colors.border}`, 
+                borderRadius: '0.5rem', 
+                padding: '1rem' 
+              }}>
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <h4 style={{ 
+                    fontSize: '0.875rem', 
+                    fontWeight: '600', 
+                    color: colors.text, 
+                    marginBottom: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    📋 {context.action_title}
+                  </h4>
+                  <p style={{ 
+                    fontSize: '0.75rem', 
+                    color: colors.textSubtle, 
+                    margin: 0 
+                  }}>
+                    Completed: {new Date(context.completion_timestamp).toLocaleString()} • 
+                    <a href={`/${context.action_id}`} style={{ color: colors.textSubtle, textDecoration: 'underline' }}>
+                      View Action
+                    </a>
+                  </p>
+                </div>
+
+                {context.implementation_story && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      fontWeight: '600', 
+                      color: colors.text, 
+                      marginBottom: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      🔧 Implementation Approach
+                    </div>
+                    <p style={{ 
+                      fontSize: '0.875rem', 
+                      color: colors.text, 
+                      margin: 0, 
+                      lineHeight: '1.4',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {context.implementation_story}
+                    </p>
+                  </div>
+                )}
+
+                {context.impact_story && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      fontWeight: '600', 
+                      color: colors.text, 
+                      marginBottom: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      📈 Impact Achieved
+                    </div>
+                    <p style={{ 
+                      fontSize: '0.875rem', 
+                      color: colors.text, 
+                      margin: 0, 
+                      lineHeight: '1.4',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {context.impact_story}
+                    </p>
+                  </div>
+                )}
+
+                {context.learning_story && (
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      fontWeight: '600', 
+                      color: colors.text, 
+                      marginBottom: '0.25rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}>
+                      💡 Key Learnings
+                    </div>
+                    <p style={{ 
+                      fontSize: '0.875rem', 
+                      color: colors.text, 
+                      margin: 0, 
+                      lineHeight: '1.4',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {context.learning_story}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '0.75rem', 
+            backgroundColor: colors.surface, 
+            border: `1px solid ${colors.border}`, 
+            borderRadius: '0.375rem' 
+          }}>
+            <p style={{ 
+              fontSize: '0.75rem', 
+              color: colors.text, 
+              margin: 0, 
+              fontWeight: '500',
+              lineHeight: '1.4'
+            }}>
+              💡 <strong>Use This Context:</strong> Apply insights from dependency work to avoid repeated mistakes<br/>
+              🚀 <strong>Build on Success:</strong> Leverage approaches that worked well in dependencies<br/>
+              ⚠️ <strong>Learn from Challenges:</strong> Address issues that were discovered in dependency work
+            </p>
+          </div>
         </div>
       )}
 
