@@ -14,6 +14,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Full grayscale color scheme with enhanced visual hierarchy
   const colors = {
@@ -27,9 +28,23 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
     textFaint: '#9ca3af'     // Light gray for faint text/metadata
   };
 
+  const toggleExpanded = (actionId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(actionId)) {
+        newSet.delete(actionId);
+      } else {
+        newSet.add(actionId);
+      }
+      return newSet;
+    });
+  };
+
   // Recursive function to render action tree
   const renderAction = (action: any, depth: number = 0): React.ReactNode => {
     const indentLevel = depth * 1.5; // 1.5rem per level
+    const hasChildren = action.children && action.children.length > 0;
+    const isExpanded = expandedNodes.has(action.id);
     
     return (
       <div key={action.id} style={{ marginLeft: `${indentLevel}rem` }}>
@@ -47,6 +62,33 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
             gap: '0.5rem',
             marginBottom: '0.25rem'
           }}>
+            {hasChildren && (
+              <button
+                onClick={() => toggleExpanded(action.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '16px',
+                  height: '16px',
+                  fontSize: '0.75rem',
+                  color: colors.textSubtle,
+                  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease'
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = colors.borderAccent}
+                onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = colors.textSubtle}
+              >
+                ▶
+              </button>
+            )}
+            {!hasChildren && (
+              <div style={{ width: '16px', height: '16px' }}></div>
+            )}
             <span style={{
               fontSize: '0.75rem',
               color: action.done ? colors.textFaint : colors.borderAccent,
@@ -68,7 +110,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
               {action.title}
             </a>
           </div>
-          {action.children && action.children.length > 0 && (
+          {hasChildren && (
             <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', color: colors.textSubtle }}>
                 {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
@@ -76,8 +118,8 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </div>
-        {/* Render children recursively */}
-        {action.children && action.children.length > 0 && (
+        {/* Render children recursively - only if expanded */}
+        {hasChildren && isExpanded && (
           <div style={{ marginTop: '0.5rem' }}>
             {action.children.map((child: any) => renderAction(child, depth + 1))}
           </div>
