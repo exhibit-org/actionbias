@@ -460,16 +460,16 @@ export function registerTools(server: any) {
   // suggest_parent - Get intelligent placement suggestion for a new action
   server.tool(
     "suggest_parent",
-    "Get an intelligent placement suggestion for a new action using vector similarity search",
+    "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details (title, description, vision) or just an action_id to fetch data automatically.",
     {
-      title: z.string().min(1).describe("The title for the new action"),
+      title: z.string().default("").describe("The title for the new action (optional if action_id is provided)"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
       vision: z.string().optional().describe("The desired outcome when the action is complete"),
-      action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions (for existing actions)"),
+      action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions, or provide to fetch action data automatically"),
       similarity_threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.5). Higher values = stricter matching"),
       limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of parent suggestions to return (default: 10)"),
     },
-    async ({ title, description, vision, action_id, similarity_threshold = 0.5, limit = 10 }: { 
+    async ({ title = "", description, vision, action_id, similarity_threshold = 0.5, limit = 10 }: { 
       title: string; 
       description?: string; 
       vision?: string; 
@@ -478,12 +478,76 @@ export function registerTools(server: any) {
       limit?: number;
     }, extra: any) => {
       try {
-        console.log(`Getting vector-based placement suggestion for action: ${title}`);
+        let actionData = { title, description, vision };
+        let excludeIds: string[] = [];
+        
+        // If action_id is provided, either fetch the action data or use it for exclusion
+        if (action_id) {
+          excludeIds = [action_id];
+          
+          // If no title provided (empty string or undefined), fetch action data from database
+          if (!title || title.trim() === "") {
+            console.log(`Fetching action data for ID: ${action_id}`);
+            try {
+              // Use direct database query to get the action
+              const actionResult = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+              if (actionResult.length === 0) {
+                return {
+                  content: [
+                    {
+                      type: "text",
+                      text: `Error: Action with ID ${action_id} not found`,
+                    },
+                  ],
+                };
+              }
+              
+              const action = actionResult[0];
+              actionData = {
+                title: action.data?.title || action.title || 'untitled',
+                description: description || action.data?.description || action.description,
+                vision: vision || action.data?.vision || action.vision
+              };
+              
+              console.log(`Fetched action data: ${actionData.title}`);
+            } catch (fetchError) {
+              console.error('Error fetching action data:', fetchError);
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: `Error fetching action data: ${fetchError instanceof Error ? fetchError.message : "Unknown error"}`,
+                  },
+                ],
+              };
+            }
+          }
+        }
+        
+        // Validate that we have a title either provided or fetched
+        if (!actionData.title || actionData.title.trim() === "") {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Error: Either 'title' parameter or 'action_id' (to fetch title automatically) must be provided",
+              },
+            ],
+          };
+        }
+        
+        console.log(`Getting vector-based placement suggestion for action: ${actionData.title}`);
         
         // Use VectorPlacementService to find parent suggestions
-        const excludeIds = action_id ? [action_id] : [];
+        // Ensure all fields are strings (not undefined) for the EmbeddingInput type
+        const embeddingInput = {
+          title: actionData.title,
+          description: actionData.description || undefined,
+          vision: actionData.vision || undefined
+        };
+        
         const vectorResult = await VectorPlacementService.findVectorParentSuggestions(
-          { title, description, vision },
+          embeddingInput,
           {
             limit,
             similarityThreshold: similarity_threshold,
@@ -515,7 +579,10 @@ export function registerTools(server: any) {
           };
         }
         
-        let message = `🔍 **Vector-Based Placement Analysis for:** "${title}"\n`;
+        let message = `🔍 **Vector-Based Placement Analysis for:** "${actionData.title}"\n`;
+        if (action_id && (!title || title.trim() === "")) {
+          message += `📄 **Source:** Automatically fetched from action ${action_id}\n`;
+        }
         message += `⚡ **Performance:** ${vectorResult.totalProcessingTimeMs.toFixed(1)}ms total (${vectorResult.embeddingTimeMs.toFixed(1)}ms embedding, ${vectorResult.searchTimeMs.toFixed(1)}ms search)\n`;
         message += `🎛️ **Threshold:** Similarity ≥ ${similarity_threshold}\n\n`;
         
@@ -566,6 +633,7 @@ export function registerTools(server: any) {
     },
   );
 
+
 }
 
 export const toolCapabilities = {
@@ -594,6 +662,6 @@ export const toolCapabilities = {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
   },
   suggest_parent: {
-    description: "Get an intelligent placement suggestion for a new action using vector similarity search",
+    description: "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
   },
 };
