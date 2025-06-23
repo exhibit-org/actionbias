@@ -465,13 +465,15 @@ export function registerTools(server: any) {
       title: z.string().min(1).describe("The title for the new action"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
       vision: z.string().optional().describe("The desired outcome when the action is complete"),
+      action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions (for existing actions)"),
       similarity_threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.5). Higher values = stricter matching"),
       limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of parent suggestions to return (default: 10)"),
     },
-    async ({ title, description, vision, similarity_threshold = 0.5, limit = 10 }: { 
+    async ({ title, description, vision, action_id, similarity_threshold = 0.5, limit = 10 }: { 
       title: string; 
       description?: string; 
       vision?: string; 
+      action_id?: string;
       similarity_threshold?: number;
       limit?: number;
     }, extra: any) => {
@@ -479,12 +481,13 @@ export function registerTools(server: any) {
         console.log(`Getting vector-based placement suggestion for action: ${title}`);
         
         // Use VectorPlacementService to find parent suggestions
+        const excludeIds = action_id ? [action_id] : [];
         const vectorResult = await VectorPlacementService.findVectorParentSuggestions(
           { title, description, vision },
           {
             limit,
             similarityThreshold: similarity_threshold,
-            excludeIds: [],
+            excludeIds,
             includeHierarchyPaths: true
           }
         );
