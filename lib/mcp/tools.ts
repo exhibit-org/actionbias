@@ -489,6 +489,29 @@ export function registerTools(server: any) {
           }
         );
         
+        // Debug logging for MCP tool
+        console.log('MCP suggest_parent debug:', {
+          vectorResultType: typeof vectorResult,
+          vectorResultKeys: Object.keys(vectorResult || {}),
+          candidatesType: typeof vectorResult?.candidates,
+          candidatesIsArray: Array.isArray(vectorResult?.candidates),
+          candidatesLength: vectorResult?.candidates?.length,
+          vectorResult: vectorResult
+        });
+        
+        // Safety check for vectorResult structure
+        if (!vectorResult || !vectorResult.candidates || !Array.isArray(vectorResult.candidates)) {
+          console.error('Invalid vectorResult structure:', vectorResult);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Error: Invalid response from vector placement service. vectorResult: ${JSON.stringify(vectorResult)}`,
+              },
+            ],
+          };
+        }
+        
         let message = `🔍 **Vector-Based Placement Analysis for:** "${title}"\n`;
         message += `⚡ **Performance:** ${vectorResult.totalProcessingTimeMs.toFixed(1)}ms total (${vectorResult.embeddingTimeMs.toFixed(1)}ms embedding, ${vectorResult.searchTimeMs.toFixed(1)}ms search)\n`;
         message += `🎛️ **Threshold:** Similarity ≥ ${similarity_threshold}\n\n`;
