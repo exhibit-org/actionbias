@@ -27,6 +27,65 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
     textFaint: '#9ca3af'     // Light gray for faint text/metadata
   };
 
+  // Recursive function to render action tree
+  const renderAction = (action: any, depth: number = 0): React.ReactNode => {
+    const indentLevel = depth * 1.5; // 1.5rem per level
+    
+    return (
+      <div key={action.id} style={{ marginLeft: `${indentLevel}rem` }}>
+        <div style={{
+          marginBottom: '0.5rem',
+          padding: '0.75rem',
+          backgroundColor: 'white',
+          border: `1px solid ${colors.border}`,
+          borderRadius: '0.25rem',
+          borderLeft: action.done ? `4px solid ${colors.textFaint}` : `4px solid ${colors.borderAccent}`
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.25rem'
+          }}>
+            <span style={{
+              fontSize: '0.75rem',
+              color: action.done ? colors.textFaint : colors.borderAccent,
+              fontWeight: '500'
+            }}>
+              {action.done ? '✓' : '○'}
+            </span>
+            <a 
+              href={`/${action.id}`}
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: action.done ? colors.textFaint : colors.text,
+                textDecoration: 'none'
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+            >
+              {action.title}
+            </a>
+          </div>
+          {action.children && action.children.length > 0 && (
+            <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', color: colors.textSubtle }}>
+                {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
+        </div>
+        {/* Render children recursively */}
+        {action.children && action.children.length > 0 && (
+          <div style={{ marginTop: '0.5rem' }}>
+            {action.children.map((child: any) => renderAction(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     const fetchScopedTree = async () => {
       try {
@@ -303,51 +362,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
               }}>
                 <strong>Scope:</strong> {scopeTitle} ({treeData.rootActions.length} action{treeData.rootActions.length !== 1 ? 's' : ''})
               </div>
-              {treeData.rootActions.map((action: any) => (
-                <div key={action.id} style={{
-                  marginBottom: '0.5rem',
-                  padding: '0.75rem',
-                  backgroundColor: 'white',
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '0.25rem',
-                  borderLeft: action.done ? `4px solid ${colors.textFaint}` : `4px solid ${colors.borderAccent}`
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '0.25rem'
-                  }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: action.done ? colors.textFaint : colors.borderAccent,
-                      fontWeight: '500'
-                    }}>
-                      {action.done ? '✓' : '○'}
-                    </span>
-                    <a 
-                      href={`/${action.id}`}
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        color: action.done ? colors.textFaint : colors.text,
-                        textDecoration: 'none'
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-                    >
-                      {action.title}
-                    </a>
-                  </div>
-                  {action.children && action.children.length > 0 && (
-                    <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: colors.textSubtle }}>
-                        {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {treeData.rootActions.map((action: any) => renderAction(action))}
             </div>
           ) : (
             <div style={{ 
