@@ -30,7 +30,7 @@ export default async function ActionPage({ params }: Props) {
   };
 
   return (
-    <ActionPageLayout colors={colors} currentActionId={resolvedParams.id}>
+    <ActionPageLayout colors={colors}>
       <NextActionDisplay colors={colors} actionId={resolvedParams.id} />
     </ActionPageLayout>
   );
