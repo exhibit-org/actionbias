@@ -19,6 +19,7 @@ import { SummaryService } from './summary';
 import { SubtreeSummaryService } from './subtree-summary';
 import { ParentSummaryService } from './parent-summary';
 import { CompletionContextService } from './completion-context';
+import { ActionSearchService } from './action-search';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
@@ -295,6 +296,15 @@ export interface CreateActionParams {
   vision?: string;
   parent_id?: string;
   depends_on_ids?: string[];
+  override_duplicate_check?: boolean;
+}
+
+export interface DuplicateActionInfo {
+  id: string;
+  title: string;
+  description?: string;
+  similarity: number;
+  path?: string[];
 }
 
 export interface CreateActionResult {
@@ -302,6 +312,11 @@ export interface CreateActionResult {
   parent_id?: string;
   applied_parent_id?: string;
   dependencies_count: number;
+  duplicate_warning?: {
+    message: string;
+    potential_duplicates: DuplicateActionInfo[];
+    suggestion: string;
+  };
 }
 
 export interface ListActionsParams {
@@ -356,13 +371,66 @@ export class ActionsService {
   static async createAction(
     params: CreateActionParams
   ): Promise<CreateActionResult> {
-    const { title, description, vision, parent_id, depends_on_ids } = params;
+    const { title, description, vision, parent_id, depends_on_ids, override_duplicate_check } = params;
     
     // Validate parent exists if provided
     if (parent_id) {
       const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
       if (parentAction.length === 0) {
         throw new Error(`Parent action with ID ${parent_id} not found`);
+      }
+    }
+
+    // Check for duplicates unless explicitly overridden
+    if (!override_duplicate_check) {
+      try {
+        // Search for similar actions using hybrid search
+        const searchResults = await ActionSearchService.searchActions(title, {
+          limit: 5,
+          similarityThreshold: 0.8, // High threshold for duplicate detection
+          includeCompleted: false,
+          searchMode: 'hybrid'
+        });
+
+        // Check if any results have very high similarity
+        const potentialDuplicates = searchResults.results.filter(result => {
+          // For vector matches, check similarity score
+          if (result.similarity && result.similarity >= 0.8) {
+            return true;
+          }
+          // For keyword matches, check if title is very similar
+          if (result.title.toLowerCase() === title.toLowerCase()) {
+            return true;
+          }
+          return false;
+        });
+
+        if (potentialDuplicates.length > 0) {
+          // Map duplicates to include path information
+          const duplicatesWithPaths = potentialDuplicates.map(dup => ({
+            id: dup.id,
+            title: dup.title,
+            description: dup.description,
+            similarity: dup.similarity || 1.0,
+            path: dup.hierarchyPath
+          }));
+
+          // Return early with duplicate warning
+          return {
+            action: null as any, // No action created
+            parent_id,
+            applied_parent_id: undefined,
+            dependencies_count: 0,
+            duplicate_warning: {
+              message: `Potential duplicate actions detected. The action "${title}" appears to be similar to existing actions.`,
+              potential_duplicates: duplicatesWithPaths,
+              suggestion: "Review the existing actions above. If you still want to create this action, use the 'override_duplicate_check' parameter."
+            }
+          };
+        }
+      } catch (error) {
+        // Log but don't fail if duplicate detection fails
+        console.warn('Duplicate detection failed, proceeding with action creation:', error);
       }
     }
 

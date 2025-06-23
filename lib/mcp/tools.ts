@@ -76,8 +76,9 @@ export function registerTools(server: any) {
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
       parent_id: z.string().uuid().describe("Required parent action ID to create a child relationship (use suggest_parent tool to find appropriate parent)"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
+      override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
     },
-    async ({ title, description, vision, parent_id, depends_on_ids }: { title: string; description?: string; vision?: string; parent_id: string; depends_on_ids?: string[] }, extra: any) => {
+    async ({ title, description, vision, parent_id, depends_on_ids, override_duplicate_check }: { title: string; description?: string; vision?: string; parent_id: string; depends_on_ids?: string[]; override_duplicate_check?: boolean }, extra: any) => {
       try {
         console.log(`Creating action with title: ${title}`);
         
@@ -90,7 +91,44 @@ export function registerTools(server: any) {
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues
-        const result = await ActionsService.createAction({ title, description, vision, parent_id, depends_on_ids });
+        const result = await ActionsService.createAction({ 
+          title, 
+          description, 
+          vision, 
+          parent_id, 
+          depends_on_ids,
+          override_duplicate_check 
+        });
+
+        // Check if duplicate warning was returned
+        if (result.duplicate_warning) {
+          let warningMessage = `⚠️ **Duplicate Detection Warning**\n\n`;
+          warningMessage += `${result.duplicate_warning.message}\n\n`;
+          warningMessage += `**Potential Duplicates Found:**\n\n`;
+          
+          result.duplicate_warning.potential_duplicates.forEach((dup, index) => {
+            warningMessage += `${index + 1}. **${dup.title}** (${(dup.similarity * 100).toFixed(1)}% similarity)\n`;
+            warningMessage += `   ID: ${dup.id}\n`;
+            if (dup.description) {
+              warningMessage += `   Description: ${dup.description.substring(0, 100)}${dup.description.length > 100 ? '...' : ''}\n`;
+            }
+            if (dup.path && dup.path.length > 0) {
+              warningMessage += `   Path: ${dup.path.join(' → ')}\n`;
+            }
+            warningMessage += `\n`;
+          });
+          
+          warningMessage += `**Suggestion:** ${result.duplicate_warning.suggestion}`;
+          
+          return {
+            content: [
+              {
+                type: "text",
+                text: warningMessage,
+              },
+            ],
+          };
+        }
 
         const { action, dependencies_count } = result;
         let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;

@@ -6,6 +6,7 @@ import { actionDataSchema } from "../../../db/schema";
 const createActionSchema = actionDataSchema.extend({
   parent_id: z.string().uuid().optional(),
   depends_on_ids: z.array(z.string().uuid()).optional(),
+  override_duplicate_check: z.boolean().optional(),
 });
 
 const listActionsSchema = z.object({
@@ -20,6 +21,15 @@ export async function POST(request: NextRequest) {
     const params = createActionSchema.parse(body);
     
     const result = await ActionsService.createAction(params);
+    
+    // Check if duplicate warning was returned
+    if (result.duplicate_warning) {
+      return NextResponse.json({
+        success: false,
+        duplicate_warning: result.duplicate_warning,
+        data: null
+      }, { status: 409 }); // 409 Conflict
+    }
     
     return NextResponse.json({
       success: true,
