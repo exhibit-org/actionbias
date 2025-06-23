@@ -58,7 +58,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
         setScopeTitle(scopeData.data.title);
 
         // Then fetch the scoped tree data
-        const treeResponse = await fetch(`/api/tree/${id}?includeCompleted=false`);
+        const treeResponse = await fetch(`/api/actions/tree/${id}?includeCompleted=false`);
         if (!treeResponse.ok) {
           throw new Error(`Failed to fetch scoped tree: ${treeResponse.status}`);
         }
@@ -386,7 +386,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
                   View Action Details
                 </a>
                 <a 
-                  href={`/api/tree/${rootActionId}?includeCompleted=true`}
+                  href={`/api/actions/tree/${rootActionId}?includeCompleted=true`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ 
