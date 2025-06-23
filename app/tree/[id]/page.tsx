@@ -128,7 +128,11 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
         minHeight: '80vh'
       }}>
         {treeData && treeData.rootActions.length > 0 ? (
-          <ActionTree actions={treeData.rootActions} colors={colors} />
+          <ActionTree 
+            actions={treeData.rootActions} 
+            colors={colors} 
+            initiallyExpanded={treeData.rootActions.map(action => action.id)}
+          />
         ) : (
           <p style={{ color: colors.textMuted }}>
             "{scopeTitle}" has no visible actions. This might mean all actions are completed or the project is empty.

@@ -14,10 +14,11 @@ interface ActionTreeProps {
     textSubtle: string;
     textFaint: string;
   };
+  initiallyExpanded?: string[];
 }
 
-export default function ActionTree({ actions, colors }: ActionTreeProps) {
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+export default function ActionTree({ actions, colors, initiallyExpanded = [] }: ActionTreeProps) {
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(initiallyExpanded));
 
   const toggleExpanded = (actionId: string) => {
     setExpandedNodes(prev => {
