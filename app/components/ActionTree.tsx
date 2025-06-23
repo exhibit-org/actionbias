@@ -46,9 +46,9 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem'
+            gap: '0.25rem'
           }}>
-            {hasChildren && (
+            {hasChildren ? (
               <button
                 onClick={() => toggleExpanded(action.id)}
                 style={{
@@ -71,9 +71,18 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
               >
                 ▶
               </button>
-            )}
-            {!hasChildren && (
-              <div style={{ width: '16px', height: '16px' }}></div>
+            ) : (
+              <div style={{ 
+                width: '16px', 
+                height: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                color: colors.textSubtle
+              }}>
+                ▷
+              </div>
             )}
             <span style={{
               fontSize: '0.75rem',
@@ -102,7 +111,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             <a
               href={`/tree/${action.id}`}
               style={{ 
-                marginLeft: 'calc(16px + 0.5rem + 16px + 0.5rem)', 
+                marginLeft: 'calc(16px + 0.25rem + 16px + 0.25rem)', 
                 fontSize: '0.75rem', 
                 color: colors.textSubtle,
                 textDecoration: 'none',
