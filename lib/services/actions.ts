@@ -903,7 +903,9 @@ export class ActionsService {
         getDb().select().from(edges).where(eq(edges.kind, "depends_on")).limit(1000)
       ]);
       
-      console.log('[SERVICE] Got actions:', allActions.length);
+      const completedCount = allActions.filter((a: any) => a.done).length;
+      const incompleteCount = allActions.filter((a: any) => !a.done).length;
+      console.log(`[SERVICE] Got actions: ${allActions.length} total (${completedCount} completed, ${incompleteCount} incomplete), includeCompleted: ${includeCompleted}`);
       
       // Early return if no actions
       if (allActions.length === 0) {
@@ -989,7 +991,9 @@ export class ActionsService {
         .map((id: any) => buildNode(id))
         .filter((node: ActionNode | null): node is ActionNode => node !== null);
 
-      console.log('[SERVICE] Built tree with root nodes:', rootNodes.length);
+      const completedRootNodes = rootNodes.filter((n: any) => n.done).length;
+      const incompleteRootNodes = rootNodes.filter((n: any) => !n.done).length;
+      console.log(`[SERVICE] Built tree with root nodes: ${rootNodes.length} total (${completedRootNodes} completed, ${incompleteRootNodes} incomplete)`);
       
       return {
         rootActions: rootNodes,
