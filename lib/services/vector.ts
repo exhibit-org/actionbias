@@ -52,6 +52,7 @@ export class VectorService {
       FROM ${actions}
       WHERE ${actions.embeddingVector} IS NOT NULL
         AND 1 - (${actions.embeddingVector} <=> ${sql.raw(`'${vectorString}'::vector`)}) >= ${threshold}
+        AND ${actions.done} = false
         ${exclusionCondition}
       ORDER BY ${actions.embeddingVector} <=> ${sql.raw(`'${vectorString}'::vector`)}
       LIMIT ${limit}
