@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
 import { VectorPlacementService } from "../services/vector-placement";
+import { ActionSearchService } from "../services/action-search";
 import { getDb } from "../db/adapter";
 import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -633,6 +634,125 @@ export function registerTools(server: any) {
     },
   );
 
+  // search_actions - Search for actions using vector embeddings and keyword matching
+  server.tool(
+    "search_actions",
+    "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+    {
+      query: z.string().min(1).describe("Search query - can be keywords, phrases, or natural language description of what you're looking for"),
+      limit: z.number().min(1).max(50).default(10).optional().describe("Maximum number of results to return (default: 10)"),
+      search_mode: z.enum(["vector", "keyword", "hybrid"]).default("hybrid").optional().describe("Search mode: 'vector' for semantic similarity, 'keyword' for exact/fuzzy text matching, 'hybrid' for both (default: hybrid)"),
+      similarity_threshold: z.number().min(0).max(1).default(0.3).optional().describe("Minimum similarity threshold for vector search (0-1, default: 0.3). Lower values = more results"),
+      include_completed: z.boolean().default(false).optional().describe("Include completed actions in results (default: false)"),
+      exclude_ids: z.array(z.string().uuid()).optional().describe("Action IDs to exclude from search results"),
+    },
+    async ({ query, limit = 10, search_mode = "hybrid", similarity_threshold = 0.3, include_completed = false, exclude_ids = [] }: { 
+      query: string; 
+      limit?: number; 
+      search_mode?: "vector" | "keyword" | "hybrid";
+      similarity_threshold?: number;
+      include_completed?: boolean;
+      exclude_ids?: string[];
+    }, extra: any) => {
+      try {
+        console.log(`[MCP search_actions] Searching for: "${query}" (mode: ${search_mode})`);
+        
+        const searchResult = await ActionSearchService.searchActions(query, {
+          limit,
+          similarityThreshold: similarity_threshold,
+          includeCompleted: include_completed,
+          searchMode: search_mode,
+          excludeIds: exclude_ids
+        });
+
+        let message = `🔍 **Search Results for:** "${query}"\n`;
+        message += `🎯 **Mode:** ${search_mode} search\n`;
+        message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total`;
+        
+        if (searchResult.metadata.embeddingTimeMs) {
+          message += ` (${searchResult.metadata.embeddingTimeMs.toFixed(1)}ms embedding, ${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+        } else {
+          message += ` (${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+        }
+        message += `\n`;
+        
+        message += `📊 **Found:** ${searchResult.totalMatches} result${searchResult.totalMatches !== 1 ? 's' : ''}`;
+        if (searchResult.metadata.vectorMatches > 0 || searchResult.metadata.keywordMatches > 0) {
+          message += ` (${searchResult.metadata.vectorMatches} vector, ${searchResult.metadata.keywordMatches} keyword, ${searchResult.metadata.hybridMatches} hybrid)`;
+        }
+        message += `\n\n`;
+        
+        if (searchResult.results.length > 0) {
+          message += `✅ **Results:**\n\n`;
+          
+          searchResult.results.forEach((result, index) => {
+            const matchIcon = result.matchType === 'vector' ? '🧠' : result.matchType === 'keyword' ? '🔤' : '🎯';
+            const scoreDisplay = result.matchType === 'vector' ? 
+              `${(result.similarity! * 100).toFixed(1)}% similarity` : 
+              `score: ${result.score.toFixed(2)}`;
+            
+            message += `${index + 1}. ${matchIcon} **${result.title}** (${scoreDisplay})${result.done ? ' ✅' : ''}\n`;
+            message += `   ID: ${result.id}\n`;
+            
+            if (result.description) {
+              message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
+            }
+            
+            if (result.keywordMatches && result.keywordMatches.length > 0) {
+              message += `   Keywords: ${result.keywordMatches.join(', ')}\n`;
+            }
+            
+            if (result.hierarchyPath && result.hierarchyPath.length > 1) {
+              message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
+            }
+            
+            message += `   ${result.matchType} match\n`;
+            message += `\n`;
+          });
+          
+          if (searchResult.results.length > 0) {
+            const topResult = searchResult.results[0];
+            message += `🏆 **Top Result:** "${topResult.title}" (ID: ${topResult.id})\n`;
+            message += `📈 **Best Match:** ${topResult.matchType} search with `;
+            if (topResult.matchType === 'vector') {
+              message += `${(topResult.similarity! * 100).toFixed(1)}% semantic similarity`;
+            } else {
+              message += `score ${topResult.score.toFixed(2)}`;
+            }
+          }
+        } else {
+          message += `❌ **No results found**\n`;
+          message += `   Try:\n`;
+          message += `   • Different keywords or phrases\n`;
+          message += `   • Lower similarity threshold (current: ${similarity_threshold})\n`;
+          message += `   • Including completed actions (--include_completed=true)\n`;
+          message += `   • Different search mode (vector, keyword, or hybrid)\n`;
+        }
+        
+        message += `\n\n🧠 **Powered by:** OpenAI embeddings + PostgreSQL pgvector + fuzzy text matching`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('[MCP search_actions] Search failed:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error searching actions: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 
 }
 
@@ -663,5 +783,8 @@ export const toolCapabilities = {
   },
   suggest_parent: {
     description: "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
+  },
+  search_actions: {
+    description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
   },
 };
