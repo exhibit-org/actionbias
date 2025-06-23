@@ -35,6 +35,19 @@ export async function GET(
       );
     }
     
+    // Validate that the ID looks like a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(rootActionId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid action ID format: "${rootActionId}". Expected a UUID.`,
+          data: { rootActions: [], rootAction: rootActionId, scope: rootActionId }
+        },
+        { status: 400 }
+      );
+    }
+    
     // Add timeout protection like the MCP resource
     const timeoutMs = 45000; // 45 seconds
     const timeoutPromise = new Promise((_, reject) => {

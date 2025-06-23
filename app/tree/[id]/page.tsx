@@ -37,9 +37,18 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
         const { id } = await params;
         setRootActionId(id);
         
+        // Validate that the ID looks like a UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(id)) {
+          throw new Error(`Invalid action ID format: "${id}". Expected a UUID.`);
+        }
+        
         // First, get the scope action details to show its title
         const scopeResponse = await fetch(`/api/actions/${id}`);
         if (!scopeResponse.ok) {
+          if (scopeResponse.status === 404) {
+            throw new Error(`Action not found: ${id}`);
+          }
           throw new Error(`Failed to fetch scope action: ${scopeResponse.status}`);
         }
         const scopeData = await scopeResponse.json();
