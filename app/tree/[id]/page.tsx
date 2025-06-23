@@ -14,7 +14,6 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [includeCompleted, setIncludeCompleted] = useState(false);
 
   // Full grayscale color scheme with enhanced visual hierarchy
   const colors = {
@@ -118,7 +117,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
         setScopeTitle(scopeData.data.title);
 
         // Then fetch the scoped tree data
-        const treeResponse = await fetch(`/api/actions/tree/${id}?includeCompleted=${includeCompleted}`);
+        const treeResponse = await fetch(`/api/actions/tree/${id}?includeCompleted=false`);
         if (!treeResponse.ok) {
           throw new Error(`Failed to fetch scoped tree: ${treeResponse.status}`);
         }
@@ -137,7 +136,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
     };
 
     fetchScopedTree();
-  }, [params, includeCompleted]);
+  }, [params]);
 
   if (loading) {
     return (
@@ -278,74 +277,52 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: colors.borderAccent,
-              borderRadius: '50%',
-              flexShrink: 0
-            }}></div>
-            <div>
-              <h1 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: colors.text,
-                margin: '0 0 0.25rem 0'
-              }}>
-                Project Tree: {scopeTitle}
-              </h1>
-              <p style={{
-                fontSize: '0.875rem',
-                color: colors.textMuted,
-                margin: 0
-              }}>
-                Scoped to this project • <a 
-                  href={`/${rootActionId}`}
-                  style={{ 
-                    color: colors.textSubtle, 
-                    textDecoration: 'none' 
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-                >
-                  View action details
-                </a> • <a 
-                  href="/next"
-                  style={{ 
-                    color: colors.textSubtle, 
-                    textDecoration: 'none' 
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-                >
-                  All projects
-                </a>
-              </p>
-            </div>
+          <div style={{
+            width: '12px',
+            height: '12px',
+            backgroundColor: colors.borderAccent,
+            borderRadius: '50%',
+            flexShrink: 0
+          }}></div>
+          <div>
+            <h1 style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: colors.text,
+              margin: '0 0 0.25rem 0'
+            }}>
+              Project Tree: {scopeTitle}
+            </h1>
+            <p style={{
+              fontSize: '0.875rem',
+              color: colors.textMuted,
+              margin: 0
+            }}>
+              Scoped to this project • <a 
+                href={`/${rootActionId}`}
+                style={{ 
+                  color: colors.textSubtle, 
+                  textDecoration: 'none' 
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+              >
+                View action details
+              </a> • <a 
+                href="/next"
+                style={{ 
+                  color: colors.textSubtle, 
+                  textDecoration: 'none' 
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+              >
+                All projects
+              </a>
+            </p>
           </div>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '0.875rem',
-            color: colors.text,
-            cursor: 'pointer'
-          }}>
-            <input
-              type="checkbox"
-              checked={includeCompleted}
-              onChange={(e) => setIncludeCompleted(e.target.checked)}
-              style={{
-                width: '16px',
-                height: '16px',
-                cursor: 'pointer'
-              }}
-            />
-            Show completed
-          </label>
         </div>
       </div>
 
@@ -383,7 +360,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
                 borderRadius: '0.25rem',
                 border: `1px solid ${colors.border}`
               }}>
-                <strong>Scope:</strong> {scopeTitle} ({treeData.rootActions.length} action{treeData.rootActions.length !== 1 ? 's' : ''}) {includeCompleted ? '(including completed)' : '(excluding completed)'}
+                <strong>Scope:</strong> {scopeTitle} ({treeData.rootActions.length} action{treeData.rootActions.length !== 1 ? 's' : ''}) (excluding completed)
               </div>
               {treeData.rootActions.map((action: any) => renderAction(action))}
             </div>
@@ -404,7 +381,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
                 No Actions in Scope
               </h2>
               <p style={{ color: colors.textMuted, marginBottom: '1rem' }}>
-                "{scopeTitle}" has no visible actions. This might mean all actions are completed or the project is empty. {!includeCompleted && 'Try enabling "Show completed" to see all actions.'}
+                "{scopeTitle}" has no visible actions. This might mean all actions are completed or the project is empty.
               </p>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <a 
@@ -424,7 +401,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
                   View Action Details
                 </a>
                 <a 
-                  href={`/api/actions/tree/${rootActionId}?includeCompleted=${includeCompleted}`}
+                  href={`/api/actions/tree/${rootActionId}?includeCompleted=false`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ 

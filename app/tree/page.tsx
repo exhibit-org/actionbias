@@ -10,7 +10,6 @@ export default function GlobalTreePage() {
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [includeCompleted, setIncludeCompleted] = useState(false);
 
   // Full grayscale color scheme with enhanced visual hierarchy
   const colors = {
@@ -31,7 +30,7 @@ export default function GlobalTreePage() {
         setError(null);
         
         // Fetch the global tree data
-        const treeResponse = await fetch(`/api/actions/tree?includeCompleted=${includeCompleted}`);
+        const treeResponse = await fetch(`/api/actions/tree?includeCompleted=false`);
         if (!treeResponse.ok) {
           throw new Error(`Failed to fetch global tree: ${treeResponse.status}`);
         }
@@ -50,7 +49,7 @@ export default function GlobalTreePage() {
     };
 
     fetchGlobalTree();
-  }, [includeCompleted]);
+  }, []);
 
   if (loading) {
     return (
@@ -191,64 +190,42 @@ export default function GlobalTreePage() {
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              backgroundColor: colors.borderAccent,
-              borderRadius: '50%',
-              flexShrink: 0
-            }}></div>
-            <div>
-              <h1 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: colors.text,
-                margin: '0 0 0.25rem 0'
-              }}>
-                Global Action Tree
-              </h1>
-              <p style={{
-                fontSize: '0.875rem',
-                color: colors.textMuted,
-                margin: 0
-              }}>
-                All projects and actions • <a 
-                  href="/next"
-                  style={{ 
-                    color: colors.textSubtle, 
-                    textDecoration: 'none' 
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-                >
-                  Next actions
-                </a>
-              </p>
-            </div>
+          <div style={{
+            width: '12px',
+            height: '12px',
+            backgroundColor: colors.borderAccent,
+            borderRadius: '50%',
+            flexShrink: 0
+          }}></div>
+          <div>
+            <h1 style={{
+              fontSize: '1.125rem',
+              fontWeight: '600',
+              color: colors.text,
+              margin: '0 0 0.25rem 0'
+            }}>
+              Global Action Tree
+            </h1>
+            <p style={{
+              fontSize: '0.875rem',
+              color: colors.textMuted,
+              margin: 0
+            }}>
+              All projects and actions • <a 
+                href="/next"
+                style={{ 
+                  color: colors.textSubtle, 
+                  textDecoration: 'none' 
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+              >
+                Next actions
+              </a>
+            </p>
           </div>
-          <label style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontSize: '0.875rem',
-            color: colors.text,
-            cursor: 'pointer'
-          }}>
-            <input
-              type="checkbox"
-              checked={includeCompleted}
-              onChange={(e) => setIncludeCompleted(e.target.checked)}
-              style={{
-                width: '16px',
-                height: '16px',
-                cursor: 'pointer'
-              }}
-            />
-            Show completed
-          </label>
         </div>
       </div>
 
@@ -286,7 +263,7 @@ export default function GlobalTreePage() {
                 borderRadius: '0.25rem',
                 border: `1px solid ${colors.border}`
               }}>
-                <strong>Total:</strong> {treeData.rootActions.length} project{treeData.rootActions.length !== 1 ? 's' : ''} {includeCompleted ? '(including completed)' : '(excluding completed)'}
+                <strong>Total:</strong> {treeData.rootActions.length} project{treeData.rootActions.length !== 1 ? 's' : ''} (excluding completed)
               </div>
               {treeData.rootActions.map((action: any) => (
                 <div key={action.id} style={{
