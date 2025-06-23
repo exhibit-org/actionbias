@@ -75,8 +75,8 @@ export class VectorPlacementService {
     let candidates: VectorParentCandidate[] = [];
     
     if (includeHierarchyPaths && similarActions.length > 0) {
-      // Get all actions to build hierarchy paths
-      const allActions = await ActionsService.listActions({});
+      // Get all actions to build hierarchy paths (no limit/offset to get all actions)
+      const allActions = await ActionsService.listActions({ limit: 10000 });
       const actionMap = new Map<string, any>();
       
       // Safety check: ensure allActions is an array
