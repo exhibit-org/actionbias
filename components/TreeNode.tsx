@@ -148,7 +148,11 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           border-radius: 3px;
           transition: background-color 0.15s ease;
           min-height: 24px;
-          color: #111827;
+          color: #111827 !important;
+        }
+        
+        .tree-node-item * {
+          color: #111827 !important;
         }
         
         .tree-node-item:hover {
