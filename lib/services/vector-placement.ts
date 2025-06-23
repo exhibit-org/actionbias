@@ -70,9 +70,29 @@ export class VectorPlacementService {
       excludeIds
     });
     const searchTimeMs = performance.now() - searchStartTime;
+    
+    // Debug logging
+    console.log('VectorPlacement debug:', {
+      similarActionsType: typeof similarActions,
+      similarActionsIsArray: Array.isArray(similarActions),
+      similarActionsLength: similarActions?.length,
+      similarActions: similarActions
+    });
 
     // Step 3: Build hierarchy paths for similar actions
     let candidates: VectorParentCandidate[] = [];
+    
+    // Safety check: ensure similarActions is a valid array
+    if (!Array.isArray(similarActions)) {
+      console.error('VectorService.findSimilarActions returned non-array:', typeof similarActions, similarActions);
+      return {
+        candidates: [],
+        queryEmbedding,
+        totalProcessingTimeMs: performance.now() - startTime,
+        searchTimeMs,
+        embeddingTimeMs
+      };
+    }
     
     if (includeHierarchyPaths && similarActions.length > 0) {
       // Get all actions to build hierarchy paths (no limit/offset to get all actions)
