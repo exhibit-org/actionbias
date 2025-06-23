@@ -96,19 +96,50 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
             }}>
               {action.done ? '✓' : ''}
             </span>
-            <a 
-              href={`/${action.id}`}
-              style={{
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                color: action.done ? colors.textFaint : colors.text,
-                textDecoration: 'none'
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-            >
-              {action.title}
-            </a>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flex: 1 }}>
+              <a 
+                href={`/${action.id}`}
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: action.done ? colors.textFaint : colors.text,
+                  textDecoration: 'none',
+                  flex: 1
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+              >
+                {action.title}
+              </a>
+              <a
+                href={`/tree/${action.id}`}
+                style={{
+                  fontSize: '0.7rem',
+                  color: colors.textSubtle,
+                  textDecoration: 'none',
+                  padding: '2px 6px',
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '4px',
+                  backgroundColor: 'white',
+                  transition: 'all 0.2s ease',
+                  flexShrink: 0
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.color = colors.borderAccent;
+                  el.style.borderColor = colors.borderAccent;
+                  el.style.backgroundColor = colors.bg;
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.color = colors.textSubtle;
+                  el.style.borderColor = colors.border;
+                  el.style.backgroundColor = 'white';
+                }}
+              >
+                tree
+              </a>
+            </div>
           </div>
           {hasChildren && (
             <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
