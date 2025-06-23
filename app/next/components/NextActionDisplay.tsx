@@ -59,13 +59,23 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             const parentResponse = await fetch(`/api/actions/${data.data.parent_id}`);
             if (parentResponse.ok) {
               const parentData = await parentResponse.json();
-              if (parentData.success && parentData.data?.children) {
-                const actionSiblings = parentData.data.children.filter((child: ActionMetadata) => child.id !== data.data.id);
+              if (parentData.success && parentData.data?.children && Array.isArray(parentData.data.children)) {
+                // Filter out the current action from the parent's children to get true siblings
+                const currentActionId = data.data.id;
+                const actionSiblings = parentData.data.children.filter((child: ActionMetadata) => {
+                  // Strict comparison: both should be defined and not equal
+                  return child && child.id && currentActionId && child.id !== currentActionId;
+                });
                 setSiblings(actionSiblings);
+              } else {
+                setSiblings([]);
               }
+            } else {
+              setSiblings([]);
             }
           } catch (siblingErr) {
             console.error('Error fetching siblings:', siblingErr);
+            setSiblings([]);
           }
         } else {
           setSiblings([]);
