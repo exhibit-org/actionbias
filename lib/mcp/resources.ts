@@ -201,17 +201,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://{id} - Individual action details with relationships
+  // action://item/{id} - Individual action details with relationships
   server.resource(
     "Individual action details with relationships",
-    new ResourceTemplate("action://{id}", { list: undefined }),
+    new ResourceTemplate("action://item/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Action ID is required - URI should be like 'action://123'");
+          throw new Error("Action ID is required - URI should be like 'action://item/123'");
         }
         
         // Check if database is available
@@ -520,7 +520,7 @@ export const resourceCapabilities = {
   "action://next/{id}": {
     description: "Get the next action that should be worked on within a specific subtree, scoped to the given action ID and its descendants",
   },
-  "action://{id}": {
+  "action://item/{id}": {
     description: "Individual action details with relationships",
   },
 };
