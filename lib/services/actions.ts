@@ -388,7 +388,7 @@ export class ActionsService {
         const searchResults = await ActionSearchService.searchActions(title, {
           limit: 5,
           similarityThreshold: 0.8, // High threshold for duplicate detection
-          includeCompleted: false,
+          includeCompleted: true, // Check against completed actions too
           searchMode: 'hybrid'
         });
 
