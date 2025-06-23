@@ -1080,7 +1080,7 @@ export class ActionsService {
       let actionQuery = getDb()
         .select()
         .from(actions)
-        .where(sql`${actions.id} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`)
+        .where(sql`${actions.id} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`)
         .limit(500);
       
       if (!includeCompleted) {
@@ -1095,15 +1095,15 @@ export class ActionsService {
           .from(edges)
           .where(and(
             eq(edges.kind, "child"),
-            sql`${edges.src} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`,
-            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`
+            sql`${edges.src} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`,
+            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`
           )),
         getDb()
           .select()
           .from(edges)
           .where(and(
             eq(edges.kind, "depends_on"),
-            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'`).join(',')}]`)})`
+            sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`
           ))
       ]);
       
