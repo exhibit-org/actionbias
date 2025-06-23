@@ -57,7 +57,18 @@ const mockNextActionData = {
       updated_at: '2023-01-01T00:00:00.000Z',
     }
   ],
-  dependents: []
+  dependents: [],
+  dependency_completion_context: [
+    {
+      action_id: 'dep-1',
+      action_title: 'Dependency Action',
+      completion_timestamp: '2023-01-01T00:00:00.000Z',
+      implementation_story: 'Used React hooks for state management',
+      impact_story: 'Improved component reusability by 50%',
+      learning_story: 'Learned that custom hooks reduce code duplication',
+      changelog_visibility: 'team'
+    }
+  ]
 };
 
 describe('NextActionDisplay Error Handling', () => {
@@ -518,5 +529,116 @@ describe('NextActionDisplay Error Handling', () => {
     expect(copiedText).toContain('- action://tree (full action hierarchy)');
     expect(copiedText).toContain('- action://next (current priority action)');
     expect(copiedText).toContain(`- action://${mockNextActionData.id} (this action's details)`);
+  });
+
+  it('should display dependency completion context when available', async () => {
+    // First call succeeds for initial fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: mockNextActionData
+      })
+    });
+
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    render(<NextActionDisplay colors={mockColors} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('🎯 Knowledge from Dependencies')).toBeInTheDocument();
+      expect(screen.getByText('Dependency Action')).toBeInTheDocument();
+      expect(screen.getByText('Used React hooks for state management')).toBeInTheDocument();
+      expect(screen.getByText('Improved component reusability by 50%')).toBeInTheDocument();
+      expect(screen.getByText('Learned that custom hooks reduce code duplication')).toBeInTheDocument();
+    });
+  });
+
+  it('should include completion context in clipboard prompts', async () => {
+    // Mock navigator.clipboard.writeText
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(undefined),
+      },
+    });
+    const writeTextSpy = jest.spyOn(navigator.clipboard, 'writeText');
+
+    // First call succeeds for initial fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: mockNextActionData
+      })
+    });
+
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    render(<NextActionDisplay colors={mockColors} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Copy Action Instructions for Claude Code')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Copy Action Instructions for Claude Code'));
+
+    await waitFor(() => {
+      expect(writeTextSpy).toHaveBeenCalled();
+    });
+
+    const copiedText = writeTextSpy.mock.calls[0][0];
+    expect(copiedText).toContain('# Knowledge from Dependencies');
+    expect(copiedText).toContain('Dependency Action');
+    expect(copiedText).toContain('Used React hooks for state management');
+    expect(copiedText).toContain('Improved component reusability by 50%');
+    expect(copiedText).toContain('Learned that custom hooks reduce code duplication');
+  });
+
+  it('should not display completion context section when no dependencies have context', async () => {
+    const actionWithoutContext = {
+      ...mockNextActionData,
+      dependency_completion_context: []
+    };
+
+    // First call succeeds for initial fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: actionWithoutContext
+      })
+    });
+
+    // Second call for sibling fetch
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        success: true,
+        data: { children: [] }
+      })
+    });
+
+    render(<NextActionDisplay colors={mockColors} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Action')).toBeInTheDocument();
+    });
+
+    // Should not show completion context section
+    expect(screen.queryByText('🎯 Knowledge from Dependencies')).not.toBeInTheDocument();
   });
 });

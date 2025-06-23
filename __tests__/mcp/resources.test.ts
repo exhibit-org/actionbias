@@ -228,12 +228,54 @@ describe("MCP Resources", () => {
       typeof call[1] !== 'string'
     );
     const handler = detailCall[2];
-    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", parent_context_summary: "test context", parent_vision_summary: "test vision" } as any;
+    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", parent_context_summary: "test context", parent_vision_summary: "test vision", dependency_completion_context: []  } as any;
     const expectedWithSummaries = { ...expected };
     mockedService.getActionDetailResource.mockResolvedValue(expected);
     const result = await handler(new URL("action://123"), { id: "123" });
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
-    expect(JSON.parse(result.contents[0].text)).toEqual(expectedWithSummaries);
+    expect(result.contents[0].mimeType).toBe("text/plain");
+  });
+
+  it("detail resource displays completion context prominently", async () => {
+    registerResources(server);
+    // Find the detail resource by looking for the one that's NOT a string URI
+    const detailCall = server.resource.mock.calls.find(call => 
+      typeof call[1] !== 'string'
+    );
+    const handler = detailCall[2];
+    const expected = { 
+      id: "123", 
+      title: "Test Action", 
+      children: [], 
+      dependencies: [], 
+      dependents: [], 
+      done: false, 
+      created_at: "now", 
+      updated_at: "now",
+      dependency_completion_context: [
+        {
+          action_id: "dep-1",
+          action_title: "Setup Database",
+          completion_timestamp: "2023-01-01T00:00:00.000Z",
+          implementation_story: "Used PostgreSQL with Drizzle ORM",
+          impact_story: "Improved data consistency and query performance",
+          learning_story: "Learned that migrations should be atomic",
+          changelog_visibility: "team"
+        }
+      ]
+    } as any;
+    mockedService.getActionDetailResource.mockResolvedValue(expected);
+    const result = await handler(new URL("action://123"), { id: "123" });
+    
+    expect(result.contents[0].mimeType).toBe("text/plain");
+    const content = result.contents[0].text;
+    
+    // Check that completion context appears prominently at the top
+    expect(content).toContain("🎯 COMPLETION CONTEXT FROM DEPENDENCIES");
+    expect(content).toContain("Setup Database");
+    expect(content).toContain("Used PostgreSQL with Drizzle ORM");
+    expect(content).toContain("Improved data consistency and query performance");
+    expect(content).toContain("Learned that migrations should be atomic");
   });
 
   it("detail resource rejects missing id", async () => {
