@@ -44,7 +44,7 @@ export const ActionTree: React.FC<ActionTreeProps> = ({
         params.set('includeCompleted', 'true');
       }
       
-      const response = await fetch(`/api/tree?${params}`);
+      const response = await fetch(`/api/actions/tree?${params}`);
       const data: TreeApiResponse = await response.json();
       
       if (!data.success) {
