@@ -7,7 +7,21 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const description = await ActionsService.getParentContextSummary(resolvedParams.id);
+    const actionId = resolvedParams.id;
+    
+    // Validate that the ID looks like a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(actionId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid action ID format: "${actionId}". Expected a UUID.`
+        },
+        { status: 400 }
+      );
+    }
+    
+    const description = await ActionsService.getParentContextSummary(actionId);
 
     return NextResponse.json({
       success: true,

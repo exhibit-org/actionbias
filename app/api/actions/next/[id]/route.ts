@@ -8,6 +8,18 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const scopeId = resolvedParams.id;
+    
+    // Validate that the ID looks like a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(scopeId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid action ID format: "${scopeId}". Expected a UUID.`
+        },
+        { status: 400 }
+      );
+    }
 
     const nextAction = await ActionsService.getNextActionScoped(scopeId);
 

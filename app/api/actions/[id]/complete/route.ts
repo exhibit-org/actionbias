@@ -17,9 +17,22 @@ export async function POST(
     const body = await request.json();
     const completeParams = completeActionSchema.parse(body);
     const resolvedParams = await params;
+    const actionId = resolvedParams.id;
+    
+    // Validate that the ID looks like a UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(actionId)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Invalid action ID format: "${actionId}". Expected a UUID.`
+        },
+        { status: 400 }
+      );
+    }
     
     const result = await ActionsService.updateAction({
-      action_id: resolvedParams.id,
+      action_id: actionId,
       done: true,
       completion_context: completeParams
     });
