@@ -94,7 +94,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
               color: action.done ? colors.textFaint : colors.borderAccent,
               fontWeight: '500'
             }}>
-              {action.done ? '✓' : '○'}
+              {action.done ? '✓' : ''}
             </span>
             <a 
               href={`/${action.id}`}
