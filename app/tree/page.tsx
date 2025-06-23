@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ActionTree from '../components/ActionTree';
 
 interface TreeData {
   rootActions: any[];
@@ -252,7 +253,7 @@ export default function GlobalTreePage() {
                 color: colors.text,
                 marginBottom: '1rem'
               }}>
-                All Action Projects
+                Action Tree Structure
               </h2>
               <div style={{
                 fontSize: '0.875rem',
@@ -263,74 +264,9 @@ export default function GlobalTreePage() {
                 borderRadius: '0.25rem',
                 border: `1px solid ${colors.border}`
               }}>
-                <strong>Total:</strong> {treeData.rootActions.length} project{treeData.rootActions.length !== 1 ? 's' : ''} (excluding completed)
+                <strong>Total:</strong> {treeData.rootActions.length} root action{treeData.rootActions.length !== 1 ? 's' : ''} (excluding completed)
               </div>
-              {treeData.rootActions.map((action: any) => (
-                <div key={action.id} style={{
-                  marginBottom: '0.5rem',
-                  padding: '0.75rem',
-                  backgroundColor: 'white',
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '0.25rem',
-                  borderLeft: action.done ? `4px solid ${colors.textFaint}` : `4px solid ${colors.borderAccent}`
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '0.25rem'
-                  }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: action.done ? colors.textFaint : colors.borderAccent,
-                      fontWeight: '500'
-                    }}>
-                      {action.done ? '✓' : ''}
-                    </span>
-                    <a 
-                      href={`/${action.id}`}
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: '500',
-                        color: action.done ? colors.textFaint : colors.text,
-                        textDecoration: 'none'
-                      }}
-                      onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                      onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-                    >
-                      {action.title}
-                    </a>
-                    {action.children && action.children.length > 0 && (
-                      <a 
-                        href={`/tree/${action.id}`}
-                        style={{
-                          fontSize: '0.75rem',
-                          color: colors.textSubtle,
-                          textDecoration: 'none',
-                          marginLeft: 'auto'
-                        }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline';
-                          (e.currentTarget as HTMLAnchorElement).style.color = colors.borderAccent;
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none';
-                          (e.currentTarget as HTMLAnchorElement).style.color = colors.textSubtle;
-                        }}
-                      >
-                        View project tree →
-                      </a>
-                    )}
-                  </div>
-                  {action.children && action.children.length > 0 && (
-                    <div style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: colors.textSubtle }}>
-                        {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ))}
+              <ActionTree actions={treeData.rootActions} colors={colors} />
             </div>
           ) : (
             <div style={{ 
