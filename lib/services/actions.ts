@@ -13,9 +13,6 @@ import {
 } from "../types/resources";
 import { getDb } from "../db/adapter";
 import "../db/init"; // Auto-initialize PGlite if needed
-import { AnalysisService, needsPlacementAnalysis, type ActionAnalysisResult } from "./analysis";
-import { PlacementService, type PlacementResult } from "./placement";
-import type { ActionContent } from "../utils/text-processing";
 import { EmbeddingsService } from './embeddings';
 import { VectorService } from './vector';
 import { SummaryService } from './summary';
@@ -25,7 +22,6 @@ import { CompletionContextService } from './completion-context';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
-const DEFAULT_AUTO_PLACEMENT_THRESHOLD = 0.8;
 
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
@@ -306,9 +302,6 @@ export interface CreateActionResult {
   parent_id?: string;
   applied_parent_id?: string;
   dependencies_count: number;
-  needs_auto_placement: boolean;
-  analysis?: ActionAnalysisResult; // Content analysis if auto-placement is needed
-  placement?: PlacementResult; // LLM-based placement suggestion if auto-placement is needed
 }
 
 export interface ListActionsParams {
@@ -362,13 +355,9 @@ export interface UpdateParentParams {
 
 export class ActionsService {
   static async createAction(
-    params: CreateActionParams,
-    autoPlacementThreshold: number = DEFAULT_AUTO_PLACEMENT_THRESHOLD
+    params: CreateActionParams
   ): Promise<CreateActionResult> {
     const { title, description, vision, parent_id, depends_on_ids } = params;
-    
-    // Detect if this action needs automatic placement analysis
-    const needsAutoPlacement = !parent_id;
     
     // Validate parent exists if provided
     if (parent_id) {
@@ -435,78 +424,7 @@ export class ActionsService {
       }
     }
 
-    // Perform content analysis and placement suggestion for orphaned actions
-    let analysis: ActionAnalysisResult | undefined;
-    let placement: PlacementResult | undefined;
     let appliedParentId: string | undefined = parent_id;
-    
-    if (needsAutoPlacement) {
-      console.log(`Action created without parent_id: ${newAction[0].id} - "${title}" - flagged for automatic placement analysis`);
-      
-      try {
-        // Build action content for analysis
-        const actionContent: ActionContent = {
-          title,
-          description,
-          vision
-        };
-        
-        // Get all existing actions for placement context
-        const existingActionsResult = await getDb()
-          .select({
-            id: actions.id,
-            title: sql<string>`${actions.data}->>'title'`,
-            description: sql<string>`${actions.data}->>'description'`,
-            vision: sql<string>`${actions.data}->>'vision'`,
-            parentId: sql<string>`${actions.data}->>'parent_id'`
-          })
-          .from(actions)
-          .where(eq(actions.done, false)); // Only consider active actions
-        
-        // Ensure we have an array (handle test environment quirks)
-        const existingActions = Array.isArray(existingActionsResult) ? existingActionsResult : [];
-        
-        // Convert to the format expected by PlacementService
-        const hierarchyItems = existingActions.map(action => ({
-          id: action.id,
-          title: action.title || '',
-          description: action.description || undefined,
-          vision: action.vision || undefined,
-          parentId: action.parentId || undefined
-        }));
-        
-        // Get intelligent placement suggestion
-        placement = await PlacementService.findBestParent(actionContent, hierarchyItems);
-        analysis = placement.analysis; // PlacementService includes analysis results
-
-        if (
-          placement.bestParent &&
-          placement.confidence >= autoPlacementThreshold
-        ) {
-          await getDb().insert(edges).values({
-            src: placement.bestParent.id,
-            dst: newAction[0].id,
-            kind: "child",
-          });
-          appliedParentId = placement.bestParent.id;
-
-          // Trigger async summary generation similar to addChildAction
-          generateParentSummariesAsync(newAction[0].id).catch(console.error);
-          generateSubtreeSummaryAsync(appliedParentId).catch(console.error);
-        }
-        
-        console.log(`Placement analysis completed for action ${newAction[0].id}:`, {
-          bestParent: placement.bestParent ? `${placement.bestParent.title} (${placement.bestParent.id})` : 'none',
-          confidence: placement.confidence.toFixed(3),
-          reasoning: placement.reasoning,
-          qualityScore: analysis?.metadata.qualityScore.toFixed(3) || 'N/A',
-          keywordCount: analysis?.keywords.keywords.length || 0
-        });
-      } catch (error) {
-        console.error(`Error analyzing/placing action content for ${newAction[0].id}:`, error);
-        // Don't fail action creation if analysis/placement fails
-      }
-    }
 
     // Generate embedding and node summary asynchronously (fire-and-forget)
     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
@@ -517,9 +435,6 @@ export class ActionsService {
       parent_id,
       applied_parent_id: appliedParentId,
       dependencies_count: depends_on_ids?.length || 0,
-      needs_auto_placement: needsAutoPlacement,
-      analysis,
-      placement
     };
   }
 

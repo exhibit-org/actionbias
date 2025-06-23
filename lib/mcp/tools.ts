@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
-import { PlacementService } from "../services/placement";
+import { VectorPlacementService } from "../services/vector-placement";
 import { getDb } from "../db/adapter";
 import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -460,85 +460,63 @@ export function registerTools(server: any) {
   // suggest_parent - Get intelligent placement suggestion for a new action
   server.tool(
     "suggest_parent",
-    "Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis",
+    "Get an intelligent placement suggestion for a new action using vector similarity search",
     {
       title: z.string().min(1).describe("The title for the new action"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
       vision: z.string().optional().describe("The desired outcome when the action is complete"),
-      confidence_threshold: z.number().min(0).max(1).default(0.3).optional().describe("Minimum confidence threshold for accepting parent suggestions (0-1, default: 0.3). Lower values = more suggestions"),
-      similarity_threshold: z.number().min(0).max(1).default(0.7).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.7). Higher values = stricter matching"),
+      similarity_threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.5). Higher values = stricter matching"),
+      limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of parent suggestions to return (default: 10)"),
     },
-    async ({ title, description, vision, confidence_threshold = 0.3, similarity_threshold = 0.7 }: { 
+    async ({ title, description, vision, similarity_threshold = 0.5, limit = 10 }: { 
       title: string; 
       description?: string; 
       vision?: string; 
-      confidence_threshold?: number;
       similarity_threshold?: number;
+      limit?: number;
     }, extra: any) => {
       try {
-        console.log(`Getting placement suggestion for action: ${title}`);
+        console.log(`Getting vector-based placement suggestion for action: ${title}`);
         
-        // Get all existing actions to use as placement candidates (exclude completed actions)
-        const existingActions = await ActionsService.listActions({ done: false });
-        
-        // Convert to the format expected by PlacementService
-        const hierarchyItems = existingActions.map((action: any) => ({
-          id: action.id,
-          title: action.title ?? action.data?.title ?? '',
-          description: action.description ?? action.data?.description,
-          vision: action.vision ?? action.data?.vision,
-          nodeSummary: action.nodeSummary,
-          subtreeSummary: action.subtreeSummary,
-          parentContextSummary: action.parentContextSummary,
-          parentVisionSummary: action.parentVisionSummary,
-          parentId: action.data?.parent_id
-        }));
-        
-        // Get placement suggestion
-        const placementResult = await PlacementService.findBestParent(
+        // Use VectorPlacementService to find parent suggestions
+        const vectorResult = await VectorPlacementService.findVectorParentSuggestions(
           { title, description, vision },
-          hierarchyItems,
-          { confidenceThreshold: confidence_threshold, similarityThreshold: similarity_threshold }
+          {
+            limit,
+            similarityThreshold: similarity_threshold,
+            excludeIds: [],
+            includeHierarchyPaths: true
+          }
         );
         
-        let message = `Placement Analysis for: "${title}"\n`;
-        message += `(Note: Only non-completed actions are considered as potential parents)\n`;
-        message += `🎛️ **Thresholds:** Confidence ≥ ${confidence_threshold}, Similarity ≥ ${similarity_threshold}\n\n`;
+        let message = `🔍 **Vector-Based Placement Analysis for:** "${title}"\n`;
+        message += `⚡ **Performance:** ${vectorResult.totalProcessingTimeMs.toFixed(1)}ms total (${vectorResult.embeddingTimeMs.toFixed(1)}ms embedding, ${vectorResult.searchTimeMs.toFixed(1)}ms search)\n`;
+        message += `🎛️ **Threshold:** Similarity ≥ ${similarity_threshold}\n\n`;
         
-        if (placementResult.bestParent) {
-          message += `✅ **Recommended Parent:**\n`;
-          message += `   ID: ${placementResult.bestParent.id}\n`;
-          message += `   Title: ${placementResult.bestParent.title}\n`;
-          message += `   Confidence: ${(placementResult.confidence * 100).toFixed(1)}%\n\n`;
-          message += `📝 **Reasoning:**\n   ${placementResult.reasoning}\n\n`;
+        if (vectorResult.candidates.length > 0) {
+          message += `✅ **Found ${vectorResult.candidates.length} Similar Parent Candidates:**\n\n`;
+          
+          vectorResult.candidates.forEach((candidate, index) => {
+            message += `${index + 1}. **${candidate.title}** (${(candidate.similarity * 100).toFixed(1)}% match)\n`;
+            message += `   ID: ${candidate.id}\n`;
+            if (candidate.description) {
+              message += `   Description: ${candidate.description.substring(0, 100)}${candidate.description.length > 100 ? '...' : ''}\n`;
+            }
+            message += `   Hierarchy: ${candidate.hierarchyPath.join(' → ')}\n`;
+            message += `   Depth: ${candidate.depth} level${candidate.depth !== 1 ? 's' : ''}\n\n`;
+          });
+          
+          const bestCandidate = vectorResult.candidates[0];
+          message += `🏆 **Top Recommendation:** Use "${bestCandidate.title}" (ID: ${bestCandidate.id}) as parent\n`;
+          message += `📊 **Match Quality:** ${(bestCandidate.similarity * 100).toFixed(1)}% semantic similarity\n`;
         } else {
-          message += `❌ **No suitable parent found**\n`;
-          message += `   Confidence: ${(placementResult.confidence * 100).toFixed(1)}%\n`;
-          message += `   Reasoning: ${placementResult.reasoning}\n\n`;
-          
-          if (placementResult.suggestedNewParent) {
-            message += `🆕 **Suggested New Parent Category:**\n`;
-            message += `   Title: ${placementResult.suggestedNewParent.title}\n`;
-            message += `   Description: ${placementResult.suggestedNewParent.description}\n`;
-            message += `   Why Create This: ${placementResult.suggestedNewParent.reasoning}\n\n`;
-            message += `💡 **Next Steps:** Consider creating this new parent category first, then placing the action under it.\n\n`;
-          } else {
-            message += `💡 **Suggestion:** This action should be created as a root-level action.\n\n`;
-          }
+          message += `❌ **No similar parent actions found**\n`;
+          message += `   No existing actions meet the ${(similarity_threshold * 100).toFixed(0)}% similarity threshold\n`;
+          message += `💡 **Suggestion:** This action should be created as a root-level action\n`;
+          message += `   or consider lowering the similarity threshold to see more options.\n`;
         }
         
-        // Add analysis details if available
-        if (placementResult.analysis) {
-          const analysis = placementResult.analysis;
-          message += `🔍 **Content Analysis:**\n`;
-          message += `   Quality Score: ${(analysis.metadata.qualityScore * 100).toFixed(1)}%\n`;
-          message += `   Content Length: ${analysis.metadata.contentLength} characters\n`;
-          message += `   Important Terms: ${analysis.importantTerms.slice(0, 5).join(', ')}\n`;
-          
-          if (analysis.keywords.phrases.length > 0) {
-            message += `   Key Phrases: ${analysis.keywords.phrases.slice(0, 3).map((p: any) => p.term).join(', ')}\n`;
-          }
-        }
+        message += `\n🧠 **Powered by:** Vector embeddings with PostgreSQL pgvector similarity search`;
 
         return {
           content: [
@@ -549,7 +527,7 @@ export function registerTools(server: any) {
           ],
         };
       } catch (error) {
-        console.error('Error getting placement suggestion:', error);
+        console.error('Error getting vector placement suggestion:', error);
         return {
           content: [
             {
@@ -590,6 +568,6 @@ export const toolCapabilities = {
     description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
   },
   suggest_parent: {
-    description: "Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis",
+    description: "Get an intelligent placement suggestion for a new action using vector similarity search",
   },
 };
