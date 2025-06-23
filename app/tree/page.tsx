@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ActionTree from '../components/ActionTree';
+import Footer from '../components/Footer';
 
 interface TreeData {
   rootActions: any[];
@@ -92,17 +93,21 @@ export default function GlobalTreePage() {
   }
 
   return (
-    <div style={{
-      padding: '2rem',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      {treeData && treeData.rootActions.length > 0 ? (
-        <ActionTree actions={treeData.rootActions} colors={colors} />
-      ) : (
-        <p style={{ color: colors.textMuted }}>
-          No actions are currently available. This might mean all actions are completed or no actions have been created yet.
-        </p>
-      )}
-    </div>
+    <>
+      <div style={{
+        padding: '2rem',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        minHeight: '80vh'
+      }}>
+        {treeData && treeData.rootActions.length > 0 ? (
+          <ActionTree actions={treeData.rootActions} colors={colors} />
+        ) : (
+          <p style={{ color: colors.textMuted }}>
+            No actions are currently available. This might mean all actions are completed or no actions have been created yet.
+          </p>
+        )}
+      </div>
+      <Footer colors={colors} />
+    </>
   );
 }

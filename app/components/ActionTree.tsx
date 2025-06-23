@@ -83,59 +83,43 @@ export default function ActionTree({ actions, colors }: ActionTreeProps) {
             }}>
               {action.done ? '✓' : ''}
             </span>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flex: 1 }}>
-              <a 
-                href={`/${action.id}`}
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  color: action.done ? colors.textFaint : colors.text,
-                  textDecoration: 'none',
-                  flex: 1
-                }}
-                onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
-                onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
-              >
-                {action.title}
-              </a>
-              <a
-                href={`/tree/${action.id}`}
-                style={{
-                  fontSize: '0.7rem',
-                  color: colors.textSubtle,
-                  textDecoration: 'none',
-                  padding: '2px 6px',
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  transition: 'all 0.2s ease',
-                  flexShrink: 0
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = colors.borderAccent;
-                  el.style.borderColor = colors.borderAccent;
-                  el.style.backgroundColor = colors.bg;
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = colors.textSubtle;
-                  el.style.borderColor = colors.border;
-                  el.style.backgroundColor = 'white';
-                }}
-              >
-                tree
-              </a>
-            </div>
+            <a 
+              href={`/${action.id}`}
+              style={{
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: action.done ? colors.textFaint : colors.text,
+                textDecoration: 'none'
+              }}
+              onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
+              onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
+            >
+              {action.title}
+            </a>
           </div>
           {hasChildren && (
-            <div style={{ 
-              marginLeft: 'calc(16px + 0.5rem + 16px + 0.5rem)', 
-              fontSize: '0.75rem', 
-              color: colors.textSubtle 
-            }}>
+            <a
+              href={`/tree/${action.id}`}
+              style={{ 
+                marginLeft: 'calc(16px + 0.5rem + 16px + 0.5rem)', 
+                fontSize: '0.75rem', 
+                color: colors.textSubtle,
+                textDecoration: 'none',
+                display: 'block'
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLAnchorElement;
+                el.style.color = colors.borderAccent;
+                el.style.textDecoration = 'underline';
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLAnchorElement;
+                el.style.color = colors.textSubtle;
+                el.style.textDecoration = 'none';
+              }}
+            >
               {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
-            </div>
+            </a>
           )}
         </div>
         {/* Render children recursively - only if expanded */}
