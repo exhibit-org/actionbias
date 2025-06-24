@@ -61,7 +61,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               Track progress across conversations, break down complex projects, and ship faster.
             </p>
             <Link 
-              href="/tree" 
+              href="/" 
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -193,11 +193,8 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
         }}>
           <span>Built for engineers who ship</span>
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <Link href="/feed" style={{ color: colors.textSubtle, textDecoration: 'none' }}>
-              Changelog
-            </Link>
-            <Link href="/tree" style={{ color: colors.textSubtle, textDecoration: 'none' }}>
-              Explore
+            <Link href="/" style={{ color: colors.textSubtle, textDecoration: 'none' }}>
+              Learn More
             </Link>
             <a href="https://github.com/exhibit-org/actionbias" style={{ color: colors.textSubtle, textDecoration: 'none' }}>
               GitHub
