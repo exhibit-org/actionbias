@@ -10,10 +10,10 @@ interface Props {
 }
 
 export default function ActionNavigation({ action, siblings, colors, nextChildId }: Props) {
-  const hasParents = action.parent_chain && action.parent_chain.length > 0;
+  const hasFamily = action.parent_chain && action.parent_chain.length > 0;
   const hasChildren = action.children && action.children.length > 0;
   const hasSiblings = siblings && siblings.length > 0;
-  const hasNavigation = hasParents || hasChildren || hasSiblings;
+  const hasNavigation = hasFamily || hasChildren || hasSiblings;
 
   if (!hasNavigation) return (
     <div style={{
@@ -36,7 +36,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
         border: `1px solid ${colors.border}`,
         borderRadius: '0.5rem'
       }}>
-        {hasParents && (
+        {hasFamily && (
           <div style={{ marginBottom: hasChildren || hasSiblings ? '1rem' : 0 }}>
             <div style={{
               fontSize: '0.75rem',
@@ -102,7 +102,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
         {hasChildren && (
           <div style={{ marginBottom: hasSiblings ? '1rem' : 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              SUB-TASKS ({action.children.length})
+              ACTIONS IN FAMILY ({action.children.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {action.children.map(child => (
@@ -165,7 +165,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
         {hasSiblings && (
           <div style={{ marginBottom: 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              SIBLINGS ({siblings.length})
+              RELATED ACTIONS ({siblings.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {siblings.map(sibling => (

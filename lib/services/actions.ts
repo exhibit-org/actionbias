@@ -37,7 +37,7 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
     
     for (const actionId of currentLevel) {
       const childEdgesResult = await getDb().select().from(edges).where(
-        and(eq(edges.src, actionId), eq(edges.kind, "child"))
+        and(eq(edges.src, actionId), eq(edges.kind, "family"))
       );
       const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
       
@@ -60,7 +60,7 @@ async function familyDependenciesMet(actionId: string): Promise<boolean> {
   const familyEdgesResult = await getDb()
     .select()
     .from(edges)
-    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "family")));
   const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
   
   if (familyEdges.length === 0) {
@@ -169,7 +169,7 @@ async function familyDependenciesMetScoped(actionId: string, scopeActionIds: str
   const familyEdgesResult = await getDb()
     .select()
     .from(edges)
-    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "family")));
   const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
   
   if (familyEdges.length === 0) {
@@ -202,7 +202,7 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
   const childEdgesResult = await getDb()
     .select()
     .from(edges)
-    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
+    .where(and(eq(edges.src, actionId), eq(edges.kind, "family")));
   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
   const memberIds = childEdges
     .map((edge: any) => edge.dst)
@@ -248,7 +248,7 @@ async function findNextActionInChildrenScoped(actionId: string, scopeActionIds: 
   const childEdgesResult = await getDb()
     .select()
     .from(edges)
-    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
+    .where(and(eq(edges.src, actionId), eq(edges.kind, "family")));
   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
   const memberIds = childEdges
     .map((edge: any) => edge.dst)
@@ -294,7 +294,7 @@ export interface CreateActionParams {
   title: string;
   description?: string;
   vision?: string;
-  parent_id?: string;  // Will be renamed to family_id in next iteration
+  parent_id?: string;  // Parent action that this action belongs to
   depends_on_ids?: string[];
   override_duplicate_check?: boolean;
 }
@@ -325,7 +325,7 @@ export interface ListActionsParams {
   includeCompleted?: boolean;
 }
 
-export interface AddChildActionParams {
+export interface AddFamilyActionParams {
   title: string;
   description?: string;
   vision?: string;
@@ -473,7 +473,7 @@ export class ActionsService {
       await getDb().insert(edges).values({
         src: parent_id,
         dst: newAction[0].id,
-        kind: "child",
+        kind: "family",
       });
       
       // Generate family summaries for actions with explicit families
@@ -525,7 +525,7 @@ export class ActionsService {
     return actionList;
   }
 
-  static async addChildAction(params: AddChildActionParams) {
+  static async addFamilyAction(params: AddFamilyActionParams) {
     const { title, description, vision, parent_id } = params;
     
     // Check that parent exists
@@ -565,7 +565,7 @@ export class ActionsService {
       .values({
         src: parent_id,
         dst: newAction[0].id,
-        kind: "child",
+        kind: "family",
       })
       .returning();
 
@@ -613,14 +613,14 @@ export class ActionsService {
 
     // Get parent of action being deleted (for subtree summary regeneration)
     const parentEdgesResult = await getDb().select().from(edges).where(
-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
     ).limit(1);
     const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
     const parent_id = parentEdges.length > 0 ? parentEdges[0].src : undefined;
 
     // Find all children (actions where this action is the parent)
     const childEdgesResult = await getDb().select().from(edges).where(
-      and(eq(edges.src, action_id), eq(edges.kind, "child"))
+      and(eq(edges.src, action_id), eq(edges.kind, "family"))
     );
 
     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
@@ -651,7 +651,7 @@ export class ActionsService {
           await getDb().insert(edges).values({
             src: new_parent_id,
             dst: memberId,
-            kind: "child",
+            kind: "family",
           });
         }
       }
@@ -819,7 +819,7 @@ export class ActionsService {
     // If done status changed, regenerate subtree summary for family (member completion affects family summary)
     if (done !== undefined) {
       // Find family of this action and regenerate its subtree summary
-      getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "child"))).limit(1)
+      getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "family"))).limit(1)
         .then((familyEdges: any) => {
           const familyEdgeResults = Array.isArray(familyEdges) ? familyEdges : [];
           if (familyEdgeResults.length > 0 && familyEdgeResults[0].src) {
@@ -857,14 +857,14 @@ export class ActionsService {
 
     // Get existing family before removing relationship (for subtree summary regeneration)
     const existingFamilyEdges = await getDb().select().from(edges).where(
-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
     ).limit(1);
     const existingFamilyEdgeResults = Array.isArray(existingFamilyEdges) ? existingFamilyEdges : [];
     const old_family_id = existingFamilyEdgeResults.length > 0 ? existingFamilyEdgeResults[0].src : undefined;
 
     // Remove existing family relationship
     await getDb().delete(edges).where(
-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
+      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
     );
 
     // Add new family relationship if provided
@@ -872,7 +872,7 @@ export class ActionsService {
       await getDb().insert(edges).values({
         src: new_family_id,
         dst: action_id,
-        kind: "child",
+        kind: "family",
       });
     }
 
@@ -961,7 +961,7 @@ export class ActionsService {
       // Execute all queries in parallel for better performance
       const [allActions, childEdgesResult, dependencyEdgesResult] = await Promise.all([
         actionQuery.orderBy(actions.createdAt),
-        getDb().select().from(edges).where(eq(edges.kind, "child")).limit(1000),
+        getDb().select().from(edges).where(eq(edges.kind, "family")).limit(1000),
         getDb().select().from(edges).where(eq(edges.kind, "depends_on")).limit(1000)
       ]);
       
@@ -1075,7 +1075,7 @@ export class ActionsService {
     const childEdges = await getDb()
       .select()
       .from(edges)
-      .where(eq(edges.kind, "child"));
+      .where(eq(edges.kind, "family"));
     
     // Build children map
     const membersMap = new Map<string, string[]>();
@@ -1156,7 +1156,7 @@ export class ActionsService {
           .select()
           .from(edges)
           .where(and(
-            eq(edges.kind, "child"),
+            eq(edges.kind, "family"),
             sql`${edges.src} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`,
             sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`
           )),
@@ -1334,7 +1334,7 @@ export class ActionsService {
 
     // Get parent relationship
     const parentEdgesResult = await getDb().select().from(edges).where(
-      and(eq(edges.dst, actionId), eq(edges.kind, "child"))
+      and(eq(edges.dst, actionId), eq(edges.kind, "family"))
     );
     const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
     const parentId = parentEdges.length > 0 ? parentEdges[0].src : undefined;
@@ -1352,7 +1352,7 @@ export class ActionsService {
       
       // Find the next parent
       const nextParentEdgesResult = await getDb().select().from(edges).where(
-        and(eq(edges.dst, currentParentId), eq(edges.kind, "child"))
+        and(eq(edges.dst, currentParentId), eq(edges.kind, "family"))
       );
       const nextParentEdges = Array.isArray(nextParentEdgesResult) ? nextParentEdgesResult : [];
       currentParentId = nextParentEdges.length > 0 ? nextParentEdges[0].src : undefined;
@@ -1360,7 +1360,7 @@ export class ActionsService {
 
     // Get children
     const childEdgesResult = await getDb().select().from(edges).where(
-      and(eq(edges.src, actionId), eq(edges.kind, "child"))
+      and(eq(edges.src, actionId), eq(edges.kind, "family"))
     );
     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
     const memberIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
@@ -1738,7 +1738,7 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
 
     // Get children to check if this action needs a subtree summary
     const childEdgesResult = await getDb().select().from(edges).where(
-      and(eq(edges.src, actionId), eq(edges.kind, "child"))
+      and(eq(edges.src, actionId), eq(edges.kind, "family"))
     );
     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
     
