@@ -87,10 +87,10 @@ export default function ChangelogItemPage() {
         <div className="text-center">
           <div className="text-red-600 mb-4">{error || 'Changelog item not found'}</div>
           <Link 
-            href="/feed" 
+            href="/log" 
             className="text-blue-600 hover:text-blue-800 underline"
           >
-            View all changelog items
+            View all log items
           </Link>
         </div>
       </div>

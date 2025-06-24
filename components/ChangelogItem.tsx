@@ -119,7 +119,7 @@ export default function ChangelogItem({ item, showLink = false }: { item: Change
         {showLink && (
           <div className="mt-2">
             <Link 
-              href={`/changelog/${item.actionId}`}
+              href={`/log/${item.actionId}`}
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
               View shareable page →
