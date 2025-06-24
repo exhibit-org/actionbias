@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import ChangelogItem from '@/components/ChangelogItem';
 import Footer from '../../components/Footer';
 import Link from 'next/link';
+import { Share2, Check } from 'react-feather';
 
 interface ChangelogData {
   id: string;
@@ -107,40 +108,15 @@ export default function ChangelogItemPage() {
               className="group relative p-3 hover:bg-gray-100 rounded-full transition-all duration-200"
               aria-label="Share changelog item"
             >
-              <svg 
-                className={`w-8 h-8 transition-all duration-300 ${
-                  copied ? 'text-green-600 scale-110' : 'text-gray-600 group-hover:text-gray-800'
-                }`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                {copied ? (
-                  // Checkmark icon when copied
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M5 13l4 4L19 7"
-                  />
-                ) : (
-                  // iOS-style share icon
-                  <>
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.632 4.268C18.114 15.33 18 15.786 18 16.268c0 .482.114.938.316 1.342m0-2.684a3 3 0 110 2.684M12 8v8"
-                    />
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M12 8l-3 3m3-3l3 3"
-                    />
-                  </>
-                )}
-              </svg>
+              {copied ? (
+                <Check 
+                  className="w-8 h-8 text-green-600 scale-110 transition-all duration-300" 
+                />
+              ) : (
+                <Share2 
+                  className="w-8 h-8 text-gray-600 group-hover:text-gray-800 transition-all duration-300" 
+                />
+              )}
               {copied && (
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-green-600 font-medium whitespace-nowrap">
                   Link copied!
