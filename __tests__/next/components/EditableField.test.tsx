@@ -96,7 +96,7 @@ describe('EditableField', () => {
     });
   });
 
-  it('calls onSave after debounce period', async () => {
+  it('calls onSave on blur when content changes', async () => {
     const { container } = render(
       <EditableField
         value="Initial content"
@@ -117,10 +117,12 @@ describe('EditableField', () => {
       fireEvent.input(editableDiv!);
     });
 
-    // Wait for debounce
+    // Blur to save
+    fireEvent.blur(editableDiv!);
+
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith('Updated content');
-    }, { timeout: 1500 });
+    });
   });
 
   it('does not update content from props while editing', async () => {
@@ -173,7 +175,7 @@ describe('EditableField', () => {
     expect(screen.getByText('Updated from props')).toBeInTheDocument();
   });
 
-  it('saves immediately on Cmd+Enter', async () => {
+  it('saves on Cmd+Enter by triggering blur', async () => {
     const { container } = render(
       <EditableField
         value="Initial content"
@@ -223,6 +225,28 @@ describe('EditableField', () => {
     fireEvent.keyDown(editableDiv!, { key: 'Escape' });
 
     expect(editableDiv!.textContent).toBe('Initial content');
+    expect(mockOnSave).not.toHaveBeenCalled();
+  });
+
+  it('does not call onSave if content has not changed', async () => {
+    const { container } = render(
+      <EditableField
+        value="Initial content"
+        placeholder="Add content..."
+        colors={mockColors}
+        onSave={mockOnSave}
+      />
+    );
+
+    const editableDiv = container.querySelector('[contenteditable="true"]');
+    
+    // Focus without changing content
+    fireEvent.focus(editableDiv!);
+    
+    // Blur without changes
+    fireEvent.blur(editableDiv!);
+
+    // Should not call onSave
     expect(mockOnSave).not.toHaveBeenCalled();
   });
 });
