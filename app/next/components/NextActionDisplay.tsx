@@ -33,6 +33,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
+  const [savingTitle, setSavingTitle] = useState(false);
   const [nextChildId, setNextChildId] = useState<string | null>(null);
   const [showCompletionContext, setShowCompletionContext] = useState(false);
   const [completionContext, setCompletionContext] = useState({
@@ -150,6 +151,28 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       setError(err instanceof Error ? err.message : 'Failed to update description');
     } finally {
       setSavingDescription(false);
+    }
+  };
+
+  const updateTitle = async (newTitle: string) => {
+    if (!actionData || actionData.title === newTitle) return;
+    try {
+      setSavingTitle(true);
+      setError(null);
+      const response = await fetch(`/api/actions/${actionData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to update title');
+      setActionData(prev => (prev ? { ...prev, title: newTitle } : null));
+    } catch (err) {
+      console.error('Error updating title:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update title');
+    } finally {
+      setSavingTitle(false);
     }
   };
 
@@ -493,7 +516,21 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 )
               )}
             </button>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.text, margin: 0, flex: 1 }}>{actionData.title}</h2>
+            <div style={{ flex: 1 }}>
+              <EditableField 
+                value={actionData.title} 
+                placeholder="Action title" 
+                colors={colors} 
+                onSave={updateTitle}
+                style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '600', 
+                  color: colors.text,
+                  padding: '0.25rem 0.5rem'
+                }}
+              />
+              {savingTitle && (<div style={{ fontSize: '0.625rem', color: colors.textFaint, marginTop: '0.25rem' }}>Saving...</div>)}
+            </div>
             <button onClick={() => setShowDeleteModal(true)} disabled={deleting} aria-label="Delete Action" style={{ width: '20px', height: '20px', backgroundColor: deleting ? colors.textFaint : colors.surface, border: `2px solid ${deleting ? colors.textFaint : '#dc2626'}`, borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: deleting ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.2s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }} onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#b91c1c'; e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)'; } }} onMouseLeave={e => { if (!deleting) { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)'; } }}>
               {deleting ? (
                 <svg style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite', color: '#dc2626' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

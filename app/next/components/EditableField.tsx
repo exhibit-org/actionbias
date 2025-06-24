@@ -7,9 +7,10 @@ interface EditableFieldProps {
   placeholder: string;
   colors: ColorScheme;
   onSave: (value: string) => Promise<void>;
+  style?: React.CSSProperties;
 }
 
-export default function EditableField({ value, placeholder, colors, onSave }: EditableFieldProps) {
+export default function EditableField({ value, placeholder, colors, onSave, style }: EditableFieldProps) {
   const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isEditingRef = useRef(false);
@@ -90,7 +91,8 @@ export default function EditableField({ value, placeholder, colors, onSave }: Ed
           outline: 'none',
           minHeight: '1.5em',
           transition: 'all 0.2s ease',
-          cursor: 'text'
+          cursor: 'text',
+          ...style
         }}
       />
       {saving && (
