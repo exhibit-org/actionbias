@@ -10,40 +10,43 @@ interface EditableFieldProps {
 }
 
 export default function EditableField({ value, placeholder, colors, onSave }: EditableFieldProps) {
-  const [content, setContent] = useState(value);
-  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isEditingRef = useRef(false);
 
   useEffect(() => {
-    // Only update content if not editing to prevent cursor jump
-    if (!editing) {
-      setContent(value);
+    // Only update content if not editing
+    if (!isEditingRef.current && ref.current) {
+      if (value) {
+        ref.current.textContent = value;
+      } else {
+        ref.current.innerHTML = `<span style="color: #9CA3AF; font-style: italic;">${placeholder}</span>`;
+      }
     }
-  }, [value, editing]);
-
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const val = e.currentTarget.textContent || '';
-    setContent(val);
-  };
+  }, [value, placeholder]);
 
   const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
-    setEditing(true);
+    isEditingRef.current = true;
     e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
     e.currentTarget.style.backgroundColor = colors.bg;
     
-    // If showing placeholder, replace with empty content
-    if (e.currentTarget.querySelector('span[style*="italic"]')) {
+    // If showing placeholder, clear it
+    const placeholderSpan = e.currentTarget.querySelector('span[style*="italic"]');
+    if (placeholderSpan) {
       e.currentTarget.textContent = '';
     }
   };
 
   const handleBlur = async (e: React.FocusEvent<HTMLDivElement>) => {
-    setEditing(false);
+    isEditingRef.current = false;
     const newContent = e.currentTarget.textContent || '';
-    setContent(newContent);
     e.currentTarget.style.border = '1px solid transparent';
     e.currentTarget.style.backgroundColor = 'transparent';
+    
+    // Show placeholder if empty
+    if (!newContent) {
+      e.currentTarget.innerHTML = `<span style="color: #9CA3AF; font-style: italic;">${placeholder}</span>`;
+    }
     
     // Save on blur if content has changed
     if (newContent !== value) {
@@ -73,7 +76,6 @@ export default function EditableField({ value, placeholder, colors, onSave }: Ed
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        onInput={handleInput}
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
@@ -90,7 +92,6 @@ export default function EditableField({ value, placeholder, colors, onSave }: Ed
           transition: 'all 0.2s ease',
           cursor: 'text'
         }}
-        dangerouslySetInnerHTML={{ __html: content || `<span style="color: #9CA3AF; font-style: italic;">${placeholder}</span>` }}
       />
       {saving && (
         <div style={{
