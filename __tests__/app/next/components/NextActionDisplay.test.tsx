@@ -485,7 +485,7 @@ describe('NextActionDisplay Error Handling', () => {
     });
   });
 
-  it('should include resource URLs in codex prompt', async () => {
+  it('should include resource URLs in Claude Code prompt', async () => {
     // Mock navigator.clipboard.writeText
     Object.assign(navigator, {
       clipboard: {
@@ -515,10 +515,10 @@ describe('NextActionDisplay Error Handling', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Copy Action Instructions for Codex')).toBeInTheDocument();
+      expect(screen.getByText('Copy Action Instructions for Claude Code')).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText('Copy Action Instructions for Codex'));
+    fireEvent.click(screen.getByText('Copy Action Instructions for Claude Code'));
 
     await waitFor(() => {
       expect(writeTextSpy).toHaveBeenCalled();

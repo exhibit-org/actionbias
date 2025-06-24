@@ -8,6 +8,12 @@ const mockPGliteInstance = {
   close: jest.fn(),
 };
 
+// Mock drizzle db with execute method
+const mockPGliteDrizzleDb = {
+  query: 'mocked-pglite-drizzle-db',
+  execute: jest.fn(),
+};
+
 // Setup mocks using factory functions
 jest.mock('postgres', () => jest.fn(() => mockPostgresClient));
 jest.mock('drizzle-orm/postgres-js', () => ({
@@ -17,7 +23,7 @@ jest.mock('@electric-sql/pglite', () => ({
   PGlite: jest.fn(() => mockPGliteInstance),
 }));
 jest.mock('drizzle-orm/pglite', () => ({
-  drizzle: jest.fn(() => ({ query: 'mocked-pglite-drizzle-db' })),
+  drizzle: jest.fn(() => mockPGliteDrizzleDb),
 }));
 
 // Import after mocks
@@ -41,12 +47,17 @@ describe('Database Adapter', () => {
     
     // Reset environment
     process.env = { ...originalEnv };
+    // Skip migrations in tests
+    process.env.SKIP_MIGRATIONS = 'true';
     
     // Reset mock implementations to default
     mockPostgresModule.mockImplementation(() => mockPostgresClient);
     mockDrizzleModule.mockImplementation(() => ({ query: 'mocked-drizzle-db' }));
     mockPGliteModule.mockImplementation(() => mockPGliteInstance);
-    mockDrizzlePGliteModule.mockImplementation(() => ({ query: 'mocked-pglite-drizzle-db' }));
+    mockDrizzlePGliteModule.mockImplementation(() => mockPGliteDrizzleDb);
+    
+    // Reset execute mock
+    mockPGliteDrizzleDb.execute.mockClear();
     
     // Clean up any existing instances and reset cache
     await cleanupPGlite();
@@ -105,7 +116,7 @@ describe('Database Adapter', () => {
       
       const db = getDb();
       
-      expect(db).toEqual({ query: 'mocked-pglite-drizzle-db' });
+      expect(db).toEqual(mockPGliteDrizzleDb);
     });
   });
 
@@ -117,7 +128,7 @@ describe('Database Adapter', () => {
       
       expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
-      expect(db).toEqual({ query: 'mocked-pglite-drizzle-db' });
+      expect(db).toEqual(mockPGliteDrizzleDb);
     });
 
     it('initializes PGlite with custom path', async () => {
@@ -127,7 +138,7 @@ describe('Database Adapter', () => {
       
       expect(mockPGliteModule).toHaveBeenCalledWith('./custom/path.db');
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
-      expect(db).toEqual({ query: 'mocked-pglite-drizzle-db' });
+      expect(db).toEqual(mockPGliteDrizzleDb);
     });
 
     it('initializes PGlite with fallback path when DATABASE_URL not set', async () => {
@@ -136,7 +147,7 @@ describe('Database Adapter', () => {
       const db = await initializePGlite();
       
       expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
-      expect(db).toEqual({ query: 'mocked-pglite-drizzle-db' });
+      expect(db).toEqual(mockPGliteDrizzleDb);
     });
 
     it('returns existing PGlite instance on subsequent calls', async () => {
@@ -233,7 +244,7 @@ describe('Database Adapter', () => {
       // Re-initialize
       const db = await initializePGlite();
       
-      expect(db).toEqual({ query: 'mocked-pglite-drizzle-db' });
+      expect(db).toEqual(mockPGliteDrizzleDb);
       expect(mockPGliteModule).toHaveBeenCalledTimes(2);
     });
   });

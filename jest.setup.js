@@ -3,7 +3,11 @@ import { jest } from '@jest/globals'
 
 // Mock environment variables for testing
 process.env.NODE_ENV = 'test'
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/actionbias_test'
+// Don't set DATABASE_URL globally - let tests set it as needed
+if (!process.env.DATABASE_URL && !process.env.TEST_DATABASE_URL) {
+  // Only set a default if no DATABASE_URL is provided at all
+  process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/actionbias_test'
+}
 process.env.REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1'
 
 // Global test timeout
@@ -44,6 +48,17 @@ global.runDbCleanup = async () => {
 // Global teardown
 afterEach(async () => {
   await global.runDbCleanup();
+  
+  // Clean up PGlite if it was used in the test
+  if (process.env.DATABASE_URL?.startsWith('pglite://')) {
+    try {
+      const { cleanupPGlite, resetCache } = await import('./lib/db/adapter');
+      await cleanupPGlite();
+      resetCache();
+    } catch (error) {
+      // Ignore cleanup errors
+    }
+  }
   
   // Force garbage collection if available (helps with memory-related segfaults)
   if (global.gc) {

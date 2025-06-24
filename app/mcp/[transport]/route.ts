@@ -2,16 +2,19 @@ import { createMcpHandler } from "@vercel/mcp-adapter";
 import { authenticatedHandler } from "../../../lib/mcp/auth";
 import { registerResources, resourceCapabilities } from "../../../lib/mcp/resources";
 import { registerTools, toolCapabilities } from "../../../lib/mcp/tools";
+import { registerPrompts, promptCapabilities } from "../../../lib/mcp/prompts";
 
 const handler = createMcpHandler(
   (server) => {
     registerResources(server);
     registerTools(server);
+    registerPrompts(server);
   },
   {
     capabilities: {
       resources: resourceCapabilities,
       tools: toolCapabilities,
+      prompts: promptCapabilities,
     },
   },
   {

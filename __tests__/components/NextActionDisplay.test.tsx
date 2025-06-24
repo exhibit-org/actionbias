@@ -196,7 +196,7 @@ describe('NextActionDisplay', () => {
 
     // Verify that buttons are rendered
     expect(screen.getByRole('button', { name: /Copy Full Context for Claude Code/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Copy Action Instructions for Codex/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Copy Action Instructions for Claude Code/ })).toBeInTheDocument();
   });
 
   it('should render with navigation links', async () => {

@@ -10,7 +10,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:setup": "node scripts/setup-pglite.mjs",
     "prepare": "husky",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' jest",
     "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
     "test:coverage": "NODE_OPTIONS='--experimental-vm-modules' jest --coverage",
     "test:ci": "NODE_OPTIONS='--experimental-vm-modules' jest --ci --coverage --watchAll=false --forceExit --detectOpenHandles",
