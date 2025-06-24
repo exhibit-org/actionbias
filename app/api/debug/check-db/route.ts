@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
       .select({
         id: actions.id,
         title: actions.title,
-        parent_context_summary: actions.parentContextSummary,
-        parent_vision_summary: actions.parentVisionSummary
+        family_context_summary: actions.familyContextSummary,
+        family_vision_summary: actions.familyVisionSummary
       })
       .from(actions)
       .where(eq(actions.id, actionId))

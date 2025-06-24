@@ -17,7 +17,7 @@ import { EmbeddingsService } from './embeddings';
 import { VectorService } from './vector';
 import { SummaryService } from './summary';
 import { SubtreeSummaryService } from './subtree-summary';
-import { ParentSummaryService } from './parent-summary';
+import { FamilySummaryService } from './family-summary';
 import { CompletionContextService } from './completion-context';
 import { ActionSearchService } from './action-search';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
@@ -477,7 +477,7 @@ export class ActionsService {
       });
       
       // Generate family summaries for actions with explicit families
-      generateParentSummariesAsync(newAction[0].id).catch(console.error);
+      generateFamilySummariesAsync(newAction[0].id).catch(console.error);
     }
 
     // Create dependency relationships if specified
@@ -574,7 +574,7 @@ export class ActionsService {
     generateNodeSummaryAsync(newAction[0].id, validatedData).catch(console.error);
     
     // Generate parent summaries for the new child action (since it now has a parent chain)
-    generateParentSummariesAsync(newAction[0].id).catch(console.error);
+    generateFamilySummariesAsync(newAction[0].id).catch(console.error);
     
     // Generate subtree summary for parent asynchronously (since it now has a new child)
     generateSubtreeSummaryAsync(parent_id).catch(console.error);
@@ -674,7 +674,7 @@ export class ActionsService {
       for (const memberId of memberIds) {
         const allDescendants = await getAllDescendants([memberId]);
         for (const descendantId of allDescendants) {
-          generateParentSummariesAsync(descendantId).catch(console.error);
+          generateFamilySummariesAsync(descendantId).catch(console.error);
         }
       }
     }
@@ -795,7 +795,7 @@ export class ActionsService {
       const allDescendants = await getAllDescendants([action_id]);
       for (const descendantId of allDescendants) {
         if (descendantId !== action_id) { // Don't regenerate for the current action itself
-          generateParentSummariesAsync(descendantId).catch(console.error);
+          generateFamilySummariesAsync(descendantId).catch(console.error);
         }
       }
     }
@@ -894,7 +894,7 @@ export class ActionsService {
     // (their family chains have changed)
     const allDescendants = await getAllDescendants([action_id]);
     for (const descendantId of allDescendants) {
-      generateParentSummariesAsync(descendantId).catch(console.error);
+      generateFamilySummariesAsync(descendantId).catch(console.error);
     }
 
     return {
@@ -1434,9 +1434,9 @@ export class ActionsService {
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
       dependency_completion_context: dependencyCompletionContext,
-      // Parent summaries from database columns
-      parent_context_summary: action[0].parentContextSummary,
-      parent_vision_summary: action[0].parentVisionSummary,
+      // Family summaries from database columns
+      family_context_summary: action[0].familyContextSummary,
+      family_vision_summary: action[0].familyVisionSummary,
     };
   }
 
@@ -1557,7 +1557,7 @@ export class ActionsService {
     return null;
   }
 
-  static async getParentContextSummary(actionId: string): Promise<string> {
+  static async getFamilyContextSummary(actionId: string): Promise<string> {
     const detail = await this.getActionDetailResource(actionId);
     
     // Get only parent descriptions, excluding the current action
@@ -1570,7 +1570,7 @@ export class ActionsService {
     
     // If no parent descriptions, return empty summary
     if (parentDescriptions.length === 0) {
-      return "This action has no parent context.";
+      return "This action has no family context.";
     }
     
     // Reverse the array so we go from closest to furthest parent
@@ -1583,7 +1583,7 @@ export class ActionsService {
       prompt += `: ${detail.description}`;
     }
     prompt += "\n\n";
-    prompt += "PARENT CONTEXTS (from closest to furthest):\n";
+    prompt += "FAMILY CONTEXTS (from closest to furthest):\n";
     prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
     prompt += `\n\nWrite a concise summary that explains how "${detail.title}" connects to and supports the broader project goals. Focus on the relationship between this specific action and the larger context it serves. Make it clear why this action matters in the bigger picture.`;
 
@@ -1599,7 +1599,7 @@ export class ActionsService {
     return result.text;
   }
 
-  static async getParentVisionSummary(actionId: string): Promise<string> {
+  static async getFamilyVisionSummary(actionId: string): Promise<string> {
     const detail = await this.getActionDetailResource(actionId);
     
     // Get only parent visions, excluding the current action
@@ -1612,7 +1612,7 @@ export class ActionsService {
     
     // If no parent visions, return empty summary
     if (parentVisions.length === 0) {
-      return "This action has no parent vision context.";
+      return "This action has no family vision context.";
     }
     
     // Reverse the array so we go from closest to furthest parent
@@ -1628,7 +1628,7 @@ export class ActionsService {
       prompt += ` (Success criteria: ${detail.vision})`;
     }
     prompt += "\n\n";
-    prompt += "PARENT VISIONS (from closest to furthest):\n";
+    prompt += "FAMILY VISIONS (from closest to furthest):\n";
     prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
     prompt += `\n\nWrite a concise summary that explains how completing "${detail.title}" moves the project toward these broader visions. Focus on the connection between this specific action's success and the larger outcomes it enables. Make it clear what bigger picture this action serves.`;
 
@@ -1774,16 +1774,16 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
 }
 
 /**
- * Generate parent summaries for an action asynchronously (fire-and-forget)
+ * Generate family summaries for an action asynchronously (fire-and-forget)
  * This function runs in the background and doesn't block the main operation
- * Generates both context and vision summaries based on parent chain
+ * Generates both context and vision summaries based on family chain
  */
-async function generateParentSummariesAsync(actionId: string): Promise<void> {
+async function generateFamilySummariesAsync(actionId: string): Promise<void> {
   try {
     // Get the action details
     const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
     if (actionResult.length === 0) {
-      console.log(`Action ${actionId} not found, skipping parent summaries generation`);
+      console.log(`Action ${actionId} not found, skipping family summaries generation`);
       return;
     }
 
@@ -1795,27 +1795,27 @@ async function generateParentSummariesAsync(actionId: string): Promise<void> {
     const vision = action.vision || (action.data as any)?.vision;
 
     if (!title) {
-      console.log(`Action ${actionId} has no title, skipping parent summaries generation`);
+      console.log(`Action ${actionId} has no title, skipping family summaries generation`);
       return;
     }
 
-    // Get parent chain
-    const parentChain = await ParentSummaryService.getParentChain(actionId);
+    // Get family chain
+    const familyChain = await FamilySummaryService.getFamilyChain(actionId);
 
-    const parentSummaryInput = {
+    const familySummaryInput = {
       actionId: actionId,
       title: title,
       description: description,
       vision: vision,
-      parentChain: parentChain
+      familyChain: familyChain
     };
 
-    const { contextSummary, visionSummary } = await ParentSummaryService.generateBothParentSummaries(parentSummaryInput);
-    await ParentSummaryService.updateParentSummaries(actionId, contextSummary, visionSummary);
+    const { contextSummary, visionSummary } = await FamilySummaryService.generateBothFamilySummaries(familySummaryInput);
+    await FamilySummaryService.updateFamilySummaries(actionId, contextSummary, visionSummary);
     
-    console.log(`Generated parent summaries for action ${actionId}`);
+    console.log(`Generated family summaries for action ${actionId}`);
   } catch (error) {
-    console.error(`Failed to generate parent summaries for action ${actionId}:`, error);
+    console.error(`Failed to generate family summaries for action ${actionId}:`, error);
     // Don't throw - this is fire-and-forget
   }
 }

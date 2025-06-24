@@ -21,14 +21,14 @@ export async function GET(
       );
     }
     
-    const description = await ActionsService.getParentContextSummary(actionId);
+    const vision = await ActionsService.getFamilyVisionSummary(actionId);
 
     return NextResponse.json({
       success: true,
-      data: { description }
+      data: { vision }
     });
   } catch (error) {
-    console.error('Error generating parent-context summary:', error);
+    console.error('Error generating family-vision summary:', error);
     return NextResponse.json(
       {
         success: false,
