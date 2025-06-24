@@ -38,7 +38,10 @@ export interface VectorPlacementOptions {
 
 export class VectorPlacementService {
   /**
-   * Find potential parent actions using vector similarity search
+   * Find potential parent actions using vector similarity search with improved parent detection
+   * 
+   * This enhanced algorithm analyzes parent commonality among similar actions to better
+   * distinguish between sibling-level matches and true parent candidates.
    * 
    * @param input - The action content to find parents for
    * @param options - Search configuration options
@@ -63,10 +66,11 @@ export class VectorPlacementService {
     const embeddingTimeMs = performance.now() - embeddingStartTime;
 
     // Step 2: Perform K-NN search using VectorService
+    // Get more results to analyze parent patterns
     const searchStartTime = performance.now();
     const similarActions = await VectorService.findSimilarActions(queryEmbedding, {
-      limit: limit * 2, // Get more results to account for filtering
-      threshold: similarityThreshold,
+      limit: Math.max(30, limit * 3), // Get more results to analyze parent patterns
+      threshold: Math.max(0.3, similarityThreshold - 0.2), // Lower threshold to catch more potential siblings
       excludeIds
     });
     const searchTimeMs = performance.now() - searchStartTime;
@@ -111,20 +115,103 @@ export class VectorPlacementService {
       // Build parent relationships from edges table
       const parentMap = await this.buildParentMap();
 
-      // Build candidates with hierarchy paths
-      candidates = similarActions
-        .slice(0, limit) // Limit to requested number
-        .map(similar => {
+      // Step 3: Analyze parent frequency among similar actions
+      const parentFrequency = new Map<string, number>();
+      const parentSimilarities = new Map<string, number[]>();
+      
+      // Count how often each parent appears among similar actions
+      similarActions.forEach(action => {
+        const parentId = parentMap.get(action.id);
+        if (parentId) {
+          parentFrequency.set(parentId, (parentFrequency.get(parentId) || 0) + 1);
+          
+          // Track similarities of children to help score the parent
+          if (!parentSimilarities.has(parentId)) {
+            parentSimilarities.set(parentId, []);
+          }
+          parentSimilarities.get(parentId)!.push(action.similarity);
+        }
+      });
+      
+      // Step 4: Build candidate list prioritizing common parents
+      const parentCandidates: VectorParentCandidate[] = [];
+      const siblingCandidates: VectorParentCandidate[] = [];
+      
+      // First, add frequently appearing parents
+      for (const [parentId, frequency] of parentFrequency.entries()) {
+        const parentAction = actionMap.get(parentId);
+        if (parentAction && frequency >= 2) { // Parent appears at least twice
+          const childSimilarities = parentSimilarities.get(parentId) || [];
+          const avgChildSimilarity = childSimilarities.reduce((a, b) => a + b, 0) / childSimilarities.length;
+          
+          // Calculate direct similarity between query and parent if parent has embedding
+          let directParentSimilarity = 0;
+          const parentEmbedding = await this.getActionEmbedding(parentId);
+          if (parentEmbedding && parentEmbedding.length === queryEmbedding.length) {
+            directParentSimilarity = this.cosineSimilarity(queryEmbedding, parentEmbedding);
+          }
+          
+          // Score based on:
+          // - Frequency of parent among similar actions (30%)
+          // - Average similarity of children (40%)
+          // - Direct parent-to-query similarity (30%)
+          const parentScore = 
+            (frequency / Math.min(10, similarActions.length)) * 0.3 + 
+            avgChildSimilarity * 0.4 +
+            directParentSimilarity * 0.3;
+          
+          const hierarchyPath = this.buildHierarchyPathFromEdges(parentId, actionMap, parentMap);
+          parentCandidates.push({
+            id: parentId,
+            title: parentAction.title || parentAction.data?.title || 'Untitled',
+            description: parentAction.description || parentAction.data?.description,
+            similarity: parentScore,
+            hierarchyPath,
+            depth: hierarchyPath.length
+          });
+        }
+      }
+      
+      // Sort parent candidates by score
+      parentCandidates.sort((a, b) => b.similarity - a.similarity);
+      
+      // Then add high-similarity individual actions that could also be parents
+      similarActions.forEach(similar => {
+        // Skip if this action's parent is already in parent candidates
+        const parentId = parentMap.get(similar.id);
+        if (parentId && parentCandidates.some(p => p.id === parentId)) {
+          return;
+        }
+        
+        // Add high-similarity actions that might be good parents themselves
+        if (similar.similarity >= similarityThreshold) {
           const hierarchyPath = this.buildHierarchyPathFromEdges(similar.id, actionMap, parentMap);
-          return {
+          siblingCandidates.push({
             id: similar.id,
             title: similar.title,
             description: similar.description,
             similarity: similar.similarity,
             hierarchyPath,
             depth: hierarchyPath.length
-          };
-        });
+          });
+        }
+      });
+      
+      // Combine results: parents first, then siblings
+      candidates = [
+        ...parentCandidates.slice(0, Math.ceil(limit * 0.6)), // 60% parent candidates
+        ...siblingCandidates.slice(0, Math.floor(limit * 0.4)) // 40% sibling candidates
+      ].slice(0, limit);
+      
+      console.log('Parent frequency analysis:', {
+        totalSimilarActions: similarActions.length,
+        uniqueParents: parentFrequency.size,
+        commonParents: Array.from(parentFrequency.entries())
+          .filter(([_, freq]) => freq >= 2)
+          .map(([id, freq]) => ({ id, frequency: freq })),
+        parentCandidatesCount: parentCandidates.length,
+        siblingCandidatesCount: siblingCandidates.length
+      });
     } else {
       // Return simple candidates without hierarchy paths
       candidates = similarActions
@@ -241,6 +328,71 @@ export class VectorPlacementService {
       vectorSuggestions
       // Future enhancement: combine with LLM-based suggestions
     };
+  }
+
+  /**
+   * Get action embedding from database
+   * Helper method to fetch stored embeddings for parent context comparison
+   * 
+   * @param actionId - The action ID to get embedding for
+   * @returns The embedding vector or null if not found
+   */
+  private static async getActionEmbedding(actionId: string): Promise<number[] | null> {
+    const { getDb } = await import('../db/adapter');
+    const { actions } = await import('../../db/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const result = await getDb()
+      .select({ embeddingVector: actions.embeddingVector })
+      .from(actions)
+      .where(eq(actions.id, actionId))
+      .limit(1);
+    
+    if (result.length > 0 && result[0].embeddingVector) {
+      // The embedding vector might already be an array or a string representation
+      const embedding = result[0].embeddingVector;
+      
+      if (Array.isArray(embedding)) {
+        return embedding;
+      }
+      
+      // Convert from database vector string format to number array
+      const vectorStr = embedding.toString();
+      const matches = vectorStr.match(/[\d.-]+/g);
+      if (matches) {
+        return matches.map((n: string) => parseFloat(n));
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Calculate cosine similarity between two vectors
+   * 
+   * @param a - First vector
+   * @param b - Second vector
+   * @returns Cosine similarity score between 0 and 1
+   */
+  private static cosineSimilarity(a: number[], b: number[]): number {
+    if (a.length !== b.length) return 0;
+    
+    let dotProduct = 0;
+    let magnitudeA = 0;
+    let magnitudeB = 0;
+    
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      magnitudeA += a[i] * a[i];
+      magnitudeB += b[i] * b[i];
+    }
+    
+    magnitudeA = Math.sqrt(magnitudeA);
+    magnitudeB = Math.sqrt(magnitudeB);
+    
+    if (magnitudeA === 0 || magnitudeB === 0) return 0;
+    
+    return dotProduct / (magnitudeA * magnitudeB);
   }
 
   /**
