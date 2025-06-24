@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import ChangelogItem from '@/components/ChangelogItem';
-import Footer from '../../components/Footer';
+import ViralFooter from '../../components/ViralFooter';
 import Link from 'next/link';
 import { Share, Check } from 'react-feather';
 
@@ -99,7 +99,7 @@ export default function ChangelogItemPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 pb-48">
+      <div className="min-h-screen bg-gray-50 pb-64">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Share button at top */}
           <div className="flex justify-end mb-6">
@@ -129,7 +129,7 @@ export default function ChangelogItemPage() {
           <ChangelogItem item={changelogItem} />
         </div>
       </div>
-      <Footer colors={colors} />
+      <ViralFooter colors={colors} />
     </>
   );
 }
