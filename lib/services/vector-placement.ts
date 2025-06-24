@@ -1,7 +1,7 @@
 /**
- * Vector-based parent suggestion service
+ * Vector-based family suggestion service
  * 
- * This service uses vector embeddings and similarity search to find potential parent
+ * This service uses vector embeddings and similarity search to find potential family
  * actions for new actions. It generates embeddings for input content, performs K-NN
  * search using VectorService, and returns candidates with similarity scores and 
  * hierarchy paths.
@@ -12,7 +12,7 @@ import { VectorService, type VectorSearchOptions } from './vector';
 import { ActionsService } from './actions';
 import type { ActionMetadata } from '../types/resources';
 
-export interface VectorParentCandidate {
+export interface VectorFamilyCandidate {
   id: string;
   title: string;
   description?: string;
@@ -21,8 +21,8 @@ export interface VectorParentCandidate {
   depth: number;
 }
 
-export interface VectorParentSuggestionResult {
-  candidates: VectorParentCandidate[];
+export interface VectorFamilySuggestionResult {
+  candidates: VectorFamilyCandidate[];
   queryEmbedding: number[];
   totalProcessingTimeMs: number;
   searchTimeMs: number;
@@ -38,19 +38,19 @@ export interface VectorPlacementOptions {
 
 export class VectorPlacementService {
   /**
-   * Find potential parent actions using vector similarity search with improved parent detection
+   * Find potential family actions using vector similarity search with improved family detection
    * 
-   * This enhanced algorithm analyzes parent commonality among similar actions to better
-   * distinguish between sibling-level matches and true parent candidates.
+   * This enhanced algorithm analyzes family commonality among similar actions to better
+   * distinguish between sibling-level matches and true family candidates.
    * 
-   * @param input - The action content to find parents for
+   * @param input - The action content to find families for
    * @param options - Search configuration options
-   * @returns Vector-based parent suggestions with similarity scores and hierarchy paths
+   * @returns Vector-based family suggestions with similarity scores and hierarchy paths
    */
-  static async findVectorParentSuggestions(
+  static async findVectorFamilySuggestions(
     input: EmbeddingInput,
     options: VectorPlacementOptions = {}
-  ): Promise<VectorParentSuggestionResult> {
+  ): Promise<VectorFamilySuggestionResult> {
     const startTime = performance.now();
     
     const {
@@ -84,7 +84,7 @@ export class VectorPlacementService {
     });
 
     // Step 3: Build hierarchy paths for similar actions
-    let candidates: VectorParentCandidate[] = [];
+    let candidates: VectorFamilyCandidate[] = [];
     
     // Safety check: ensure similarActions is a valid array
     if (!Array.isArray(similarActions)) {
@@ -112,80 +112,80 @@ export class VectorPlacementService {
         console.error('ActionsService.listActions returned non-array:', typeof allActions, allActions);
       }
 
-      // Build parent relationships from edges table
-      const parentMap = await this.buildParentMap();
+      // Build family relationships from edges table
+      const familyMap = await this.buildFamilyMap();
 
-      // Step 3: Analyze parent frequency among similar actions
-      const parentFrequency = new Map<string, number>();
-      const parentSimilarities = new Map<string, number[]>();
+      // Step 3: Analyze family frequency among similar actions
+      const familyFrequency = new Map<string, number>();
+      const familySimilarities = new Map<string, number[]>();
       
-      // Count how often each parent appears among similar actions
+      // Count how often each family appears among similar actions
       similarActions.forEach(action => {
-        const parentId = parentMap.get(action.id);
-        if (parentId) {
-          parentFrequency.set(parentId, (parentFrequency.get(parentId) || 0) + 1);
+        const familyId = familyMap.get(action.id);
+        if (familyId) {
+          familyFrequency.set(familyId, (familyFrequency.get(familyId) || 0) + 1);
           
-          // Track similarities of children to help score the parent
-          if (!parentSimilarities.has(parentId)) {
-            parentSimilarities.set(parentId, []);
+          // Track similarities of family members to help score the family
+          if (!familySimilarities.has(familyId)) {
+            familySimilarities.set(familyId, []);
           }
-          parentSimilarities.get(parentId)!.push(action.similarity);
+          familySimilarities.get(familyId)!.push(action.similarity);
         }
       });
       
       // Step 4: Build candidate list prioritizing common parents
-      const parentCandidates: VectorParentCandidate[] = [];
-      const siblingCandidates: VectorParentCandidate[] = [];
+      const familyCandidates: VectorFamilyCandidate[] = [];
+      const siblingCandidates: VectorFamilyCandidate[] = [];
       
-      // First, add frequently appearing parents
-      for (const [parentId, frequency] of parentFrequency.entries()) {
-        const parentAction = actionMap.get(parentId);
-        if (parentAction && frequency >= 2) { // Parent appears at least twice
-          const childSimilarities = parentSimilarities.get(parentId) || [];
-          const avgChildSimilarity = childSimilarities.reduce((a, b) => a + b, 0) / childSimilarities.length;
+      // First, add frequently appearing families
+      for (const [familyId, frequency] of familyFrequency.entries()) {
+        const familyAction = actionMap.get(familyId);
+        if (familyAction && frequency >= 2) { // Family appears at least twice
+          const memberSimilarities = familySimilarities.get(familyId) || [];
+          const avgMemberSimilarity = memberSimilarities.reduce((a, b) => a + b, 0) / memberSimilarities.length;
           
-          // Calculate direct similarity between query and parent if parent has embedding
-          let directParentSimilarity = 0;
-          const parentEmbedding = await this.getActionEmbedding(parentId);
-          if (parentEmbedding && parentEmbedding.length === queryEmbedding.length) {
-            directParentSimilarity = this.cosineSimilarity(queryEmbedding, parentEmbedding);
+          // Calculate direct similarity between query and family if family has embedding
+          let directFamilySimilarity = 0;
+          const familyEmbedding = await this.getActionEmbedding(familyId);
+          if (familyEmbedding && familyEmbedding.length === queryEmbedding.length) {
+            directFamilySimilarity = this.cosineSimilarity(queryEmbedding, familyEmbedding);
           }
           
           // Score based on:
-          // - Frequency of parent among similar actions (30%)
-          // - Average similarity of children (40%)
-          // - Direct parent-to-query similarity (30%)
-          const parentScore = 
+          // - Frequency of family among similar actions (30%)
+          // - Average similarity of members (40%)
+          // - Direct family-to-query similarity (30%)
+          const familyScore = 
             (frequency / Math.min(10, similarActions.length)) * 0.3 + 
-            avgChildSimilarity * 0.4 +
-            directParentSimilarity * 0.3;
+            avgMemberSimilarity * 0.4 +
+            directFamilySimilarity * 0.3;
           
-          const hierarchyPath = this.buildHierarchyPathFromEdges(parentId, actionMap, parentMap);
-          parentCandidates.push({
-            id: parentId,
-            title: parentAction.title || parentAction.data?.title || 'Untitled',
-            description: parentAction.description || parentAction.data?.description,
-            similarity: parentScore,
+          const hierarchyPath = this.buildHierarchyPathFromEdges(familyId, actionMap, familyMap);
+          familyCandidates.push({
+            id: familyId,
+            title: familyAction.title || familyAction.data?.title || 'Untitled',
+            description: familyAction.description || familyAction.data?.description,
+            similarity: familyScore,
             hierarchyPath,
             depth: hierarchyPath.length
           });
         }
       }
       
-      // Sort parent candidates by score
-      parentCandidates.sort((a, b) => b.similarity - a.similarity);
+      // Sort family candidates by score
+      familyCandidates.sort((a, b) => b.similarity - a.similarity);
       
-      // Then add high-similarity individual actions that could also be parents
+      // Then add high-similarity individual actions that could also be families
       similarActions.forEach(similar => {
-        // Skip if this action's parent is already in parent candidates
-        const parentId = parentMap.get(similar.id);
-        if (parentId && parentCandidates.some(p => p.id === parentId)) {
+        // Skip if this action's family is already in family candidates
+        const familyId = familyMap.get(similar.id);
+        if (familyId && familyCandidates.some(f => f.id === familyId)) {
           return;
         }
         
-        // Add high-similarity actions that might be good parents themselves
+        // Add high-similarity actions that might be good families themselves
         if (similar.similarity >= similarityThreshold) {
-          const hierarchyPath = this.buildHierarchyPathFromEdges(similar.id, actionMap, parentMap);
+          const hierarchyPath = this.buildHierarchyPathFromEdges(similar.id, actionMap, familyMap);
           siblingCandidates.push({
             id: similar.id,
             title: similar.title,
@@ -197,19 +197,19 @@ export class VectorPlacementService {
         }
       });
       
-      // Combine results: parents first, then siblings
+      // Combine results: families first, then siblings
       candidates = [
-        ...parentCandidates.slice(0, Math.ceil(limit * 0.6)), // 60% parent candidates
+        ...familyCandidates.slice(0, Math.ceil(limit * 0.6)), // 60% family candidates
         ...siblingCandidates.slice(0, Math.floor(limit * 0.4)) // 40% sibling candidates
       ].slice(0, limit);
       
-      console.log('Parent frequency analysis:', {
+      console.log('Family frequency analysis:', {
         totalSimilarActions: similarActions.length,
-        uniqueParents: parentFrequency.size,
-        commonParents: Array.from(parentFrequency.entries())
+        uniqueFamilies: familyFrequency.size,
+        commonFamilies: Array.from(familyFrequency.entries())
           .filter(([_, freq]) => freq >= 2)
           .map(([id, freq]) => ({ id, frequency: freq })),
-        parentCandidatesCount: parentCandidates.length,
+        familyCandidatesCount: familyCandidates.length,
         siblingCandidatesCount: siblingCandidates.length
       });
     } else {
@@ -238,44 +238,44 @@ export class VectorPlacementService {
   }
 
   /**
-   * Build a map of child -> parent relationships from the edges table
+   * Build a map of member -> family relationships from the edges table
    * 
-   * @returns Map of child action ID to parent action ID
+   * @returns Map of member action ID to family action ID
    */
-  private static async buildParentMap(): Promise<Map<string, string>> {
+  private static async buildFamilyMap(): Promise<Map<string, string>> {
     const { getDb } = await import('../db/adapter');
     const { edges } = await import('../../db/schema');
     const { eq, and } = await import('drizzle-orm');
     
-    const parentEdges = await getDb()
+    const familyEdges = await getDb()
       .select()
       .from(edges)
       .where(eq(edges.kind, "child"));
     
-    const parentMap = new Map<string, string>();
+    const familyMap = new Map<string, string>();
     
-    // Build parent map from edges (edges are src=parent, dst=child for "child" kind)
-    for (const edge of parentEdges) {
+    // Build family map from edges (edges are src=family, dst=member for "child" kind)
+    for (const edge of familyEdges) {
       if (edge.src && edge.dst) {
-        parentMap.set(edge.dst, edge.src); // child -> parent
+        familyMap.set(edge.dst, edge.src); // member -> family
       }
     }
     
-    return parentMap;
+    return familyMap;
   }
 
   /**
-   * Build hierarchy path for an action using edges table for parent relationships
+   * Build hierarchy path for an action using edges table for family relationships
    * 
    * @param actionId - The action ID to build path for
    * @param actionMap - Map of all actions for efficient lookup
-   * @param parentMap - Map of child -> parent relationships
+   * @param familyMap - Map of member -> family relationships
    * @returns Array of action titles from root to the target action
    */
   private static buildHierarchyPathFromEdges(
     actionId: string,
     actionMap: Map<string, any>,
-    parentMap: Map<string, string>
+    familyMap: Map<string, string>
   ): string[] {
     const path: string[] = [];
     let currentId: string | undefined = actionId;
@@ -296,33 +296,33 @@ export class VectorPlacementService {
       const title = currentAction.title || currentAction.data?.title || 'Untitled';
       path.unshift(title);
       
-      // Get parent from parent map
-      currentId = parentMap.get(currentId);
+      // Get family from family map
+      currentId = familyMap.get(currentId);
     }
 
     return path.length > 0 ? path : ['Unknown Action'];
   }
 
   /**
-   * Get parent suggestions for a new action combining vector and LLM approaches
+   * Get family suggestions for a new action combining vector and LLM approaches
    * 
    * This method provides both vector-based similarity suggestions and traditional
    * LLM-based placement reasoning for comparison and validation.
    * 
-   * @param input - The action content to find parents for
+   * @param input - The action content to find families for
    * @param options - Search configuration options
-   * @returns Combined vector and LLM parent suggestions
+   * @returns Combined vector and LLM family suggestions
    */
-  static async getHybridParentSuggestions(
+  static async getHybridFamilySuggestions(
     input: EmbeddingInput,
     options: VectorPlacementOptions = {}
   ): Promise<{
-    vectorSuggestions: VectorParentSuggestionResult;
+    vectorSuggestions: VectorFamilySuggestionResult;
     // Future: Could add LLM suggestions here for comparison
     hybridScore?: number;
   }> {
     // Get vector-based suggestions
-    const vectorSuggestions = await this.findVectorParentSuggestions(input, options);
+    const vectorSuggestions = await this.findVectorFamilySuggestions(input, options);
 
     return {
       vectorSuggestions
@@ -332,7 +332,7 @@ export class VectorPlacementService {
 
   /**
    * Get action embedding from database
-   * Helper method to fetch stored embeddings for parent context comparison
+   * Helper method to fetch stored embeddings for family context comparison
    * 
    * @param actionId - The action ID to get embedding for
    * @returns The embedding vector or null if not found

@@ -9,17 +9,17 @@ export async function GET(request: NextRequest) {
   try {
     const db = getDb();
     
-    // Run the exact same query as getActionsWithoutParentSummaries
+    // Run the exact same query as getActionsWithoutFamilySummaries
     const results = await db.execute(sql`
       SELECT 
         id,
         COALESCE(title, data->>'title') as title,
         COALESCE(description, data->>'description') as description,
         COALESCE(vision, data->>'vision') as vision,
-        parent_context_summary,
-        parent_vision_summary
+        family_context_summary,
+        family_vision_summary
       FROM ${actions}
-      WHERE (parent_context_summary IS NULL OR parent_vision_summary IS NULL)
+      WHERE (family_context_summary IS NULL OR family_vision_summary IS NULL)
         AND COALESCE(title, data->>'title') IS NOT NULL
       ORDER BY created_at DESC
       LIMIT 20

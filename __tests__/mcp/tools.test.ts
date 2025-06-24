@@ -61,8 +61,8 @@ describe("MCP Tools", () => {
       "delete_action",
       "remove_dependency",
       "update_action",
-      "update_parent",
-      "suggest_parent",
+      "join_family",
+      "suggest_family",
     ]);
   });
 

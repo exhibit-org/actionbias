@@ -25,8 +25,8 @@ export const actions = pgTable('actions', {
   embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // OpenAI embedding dimensions
   nodeSummary: text('node_summary'),
   subtreeSummary: text('subtree_summary'),
-  parentContextSummary: text('parent_context_summary'),
-  parentVisionSummary: text('parent_vision_summary'),
+  familyContextSummary: text('family_context_summary'),
+  familyVisionSummary: text('family_vision_summary'),
 });
 
 export const edges = pgTable('edges', {

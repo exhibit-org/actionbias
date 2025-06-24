@@ -176,7 +176,7 @@ describe("ActionsService - Full Coverage", () => {
       await expect(ActionsService.createAction({
         title: "Child Action",
         parent_id: "non-existent"
-      })).rejects.toThrow("Parent action with ID non-existent not found");
+      })).rejects.toThrow("Family action with ID non-existent not found");
     });
 
     it("should throw error if dependency not found", async () => {
@@ -257,7 +257,7 @@ describe("ActionsService - Full Coverage", () => {
     });
   });
 
-  describe("addChildAction", () => {
+  describe("addFamilyAction", () => {
     const mockParent = { id: 'parent-id', data: { title: 'Parent' } };
     const mockChild = { id: 'child-id', data: { title: 'Child' } };
     const mockEdge = { src: 'parent-id', dst: 'child-id', kind: 'child' };
@@ -285,7 +285,7 @@ describe("ActionsService - Full Coverage", () => {
           }),
         });
 
-      const result = await ActionsService.addChildAction({
+      const result = await ActionsService.addFamilyAction({
         title: "Child Action",
         parent_id: "parent-id"
       });
@@ -304,10 +304,10 @@ describe("ActionsService - Full Coverage", () => {
         }),
       });
 
-      await expect(ActionsService.addChildAction({
+      await expect(ActionsService.addFamilyAction({
         title: "Child Action",
         parent_id: "non-existent"
-      })).rejects.toThrow("Parent action with ID non-existent not found");
+      })).rejects.toThrow("Family action with ID non-existent not found");
     });
   });
 

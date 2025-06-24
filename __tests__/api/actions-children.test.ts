@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { POST } from '../../app/api/actions/children/route';
+import { POST } from '../../app/api/actions/family/route';
 import { ActionsService } from '../../lib/services/actions';
 
 // Mock the ActionsService
@@ -18,7 +18,7 @@ function createMockRequest(body: any): NextRequest {
   } as unknown as NextRequest;
 }
 
-describe('/api/actions/children', () => {
+describe('/api/actions/family', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -54,7 +54,7 @@ describe('/api/actions/children', () => {
         }
       };
 
-      mockActionsService.addChildAction.mockResolvedValue(mockResult);
+      mockActionsService.addFamilyAction.mockResolvedValue(mockResult);
 
       const request = createMockRequest({
         title: 'Child Action',
@@ -70,7 +70,7 @@ describe('/api/actions/children', () => {
         data: mockResult,
       });
 
-      expect(mockActionsService.addChildAction).toHaveBeenCalledWith({
+      expect(mockActionsService.addFamilyAction).toHaveBeenCalledWith({
         title: 'Child Action',
         parent_id: '123e4567-e89b-12d3-a456-426614174000',
       });
@@ -87,7 +87,7 @@ describe('/api/actions/children', () => {
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.error).toContain('Required');
-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
+      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
     });
 
     it('should return 400 for empty title', async () => {
@@ -102,7 +102,7 @@ describe('/api/actions/children', () => {
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.error).toContain('String must contain at least 1 character(s)');
-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
+      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
     });
 
     it('should return 400 for missing parent_id', async () => {
@@ -116,7 +116,7 @@ describe('/api/actions/children', () => {
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.error).toContain('Required');
-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
+      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
     });
 
     it('should return 400 for invalid parent_id UUID', async () => {
@@ -131,11 +131,11 @@ describe('/api/actions/children', () => {
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
       expect(data.error).toContain('Invalid uuid');
-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
+      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
     });
 
     it('should handle service errors', async () => {
-      mockActionsService.addChildAction.mockRejectedValue(new Error('Parent action not found'));
+      mockActionsService.addFamilyAction.mockRejectedValue(new Error('Family action not found'));
 
       const request = createMockRequest({
         title: 'Child Action',
@@ -147,11 +147,11 @@ describe('/api/actions/children', () => {
 
       expect(response.status).toBe(400);
       expect(data.success).toBe(false);
-      expect(data.error).toBe('Parent action not found');
+      expect(data.error).toBe('Family action not found');
     });
 
     it('should handle non-Error exceptions', async () => {
-      mockActionsService.addChildAction.mockRejectedValue('String error');
+      mockActionsService.addFamilyAction.mockRejectedValue('String error');
 
       const request = createMockRequest({
         title: 'Child Action',
@@ -208,7 +208,7 @@ describe('/api/actions/children', () => {
         }
       };
 
-      mockActionsService.addChildAction.mockResolvedValue(mockResult);
+      mockActionsService.addFamilyAction.mockResolvedValue(mockResult);
 
       const request = createMockRequest({
         title: 'Child Action',
@@ -222,7 +222,7 @@ describe('/api/actions/children', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(mockActionsService.addChildAction).toHaveBeenCalledWith({
+      expect(mockActionsService.addFamilyAction).toHaveBeenCalledWith({
         title: 'Child Action',
         description: 'Child description',
         vision: 'Child vision',

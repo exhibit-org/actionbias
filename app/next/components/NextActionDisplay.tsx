@@ -191,9 +191,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `\n## Vision\n`;
     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
     prompt += `## Broader Context\n`;
-    prompt += `${action.parent_context_summary || 'This action has no parent context.'}\n\n`;
+    prompt += `${action.family_context_summary || 'This action has no family context.'}\n\n`;
     prompt += `## Broader Vision\n`;
-    prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
+    prompt += `${action.family_vision_summary || 'This action has no family vision context.'}\n\n`;
     
     // Add completion context from dependencies
     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
@@ -236,10 +236,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     else prompt += `\n`;
     prompt += `# Vision\n`;
     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
-    prompt += `# Context from Parent Chain\n`;
-    prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
+    prompt += `# Context from Family Chain\n`;
+    prompt += `${action.family_context_summary || 'No family context.'}\n\n`;
     prompt += `# Broader Vision\n`;
-    prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
+    prompt += `${action.family_vision_summary || 'No family vision context.'}\n\n`;
     
     // Add completion context from dependencies
     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
@@ -568,7 +568,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         </div>
         <div style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 3 : 'unset' }}>
           <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textMuted, margin: '0 0 0.75rem 0' }}>Broader Context</h3>
-          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.parent_context_summary || 'This action has no parent context.'}</p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.family_context_summary || 'This action has no family context.'}</p>
         </div>
         <div style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 4 : 'unset' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -578,7 +578,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             </svg>
             <h3 style={{ fontWeight: '500', color: colors.textMuted, fontSize: '0.875rem', margin: 0 }}>Broader Vision</h3>
           </div>
-          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.parent_vision_summary || 'This action has no parent vision context.'}</p>
+          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.family_vision_summary || 'This action has no family vision context.'}</p>
         </div>
       </div>
       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>

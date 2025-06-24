@@ -37,8 +37,8 @@ describe('/api/actions/next/[id]', () => {
       children: [],
       dependencies: [],
       dependents: [],
-      parent_context_summary: 'context',
-      parent_vision_summary: 'vision',
+      family_context_summary: 'context',
+      family_vision_summary: 'vision',
     };
 
     mockedService.getNextActionScoped.mockResolvedValue(mockAction as any);

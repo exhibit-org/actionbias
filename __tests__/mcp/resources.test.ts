@@ -168,8 +168,8 @@ describe("MCP Resources", () => {
       children: [],
       dependencies: [],
       dependents: [],
-      parent_context_summary: "test context summary",
-      parent_vision_summary: "test vision summary"
+      family_context_summary: "test context summary",
+      family_vision_summary: "test vision summary"
     };
     mockedService.getNextAction.mockResolvedValue(mockAction);
     mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
@@ -181,8 +181,8 @@ describe("MCP Resources", () => {
     expect(data.id).toBe("123");
     expect(data.title).toBe("Next Action");
     expect(data.parent_chain).toEqual([]);
-    expect(data.parent_context_summary).toBe("test context summary");
-    expect(data.parent_vision_summary).toBe("test vision summary");
+    expect(data.family_context_summary).toBe("test context summary");
+    expect(data.family_vision_summary).toBe("test vision summary");
   });
 
 
@@ -228,7 +228,7 @@ describe("MCP Resources", () => {
       typeof call[1] !== 'string'
     );
     const handler = detailCall[2];
-    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", parent_context_summary: "test context", parent_vision_summary: "test vision", dependency_completion_context: []  } as any;
+    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", family_context_summary: "test context", family_vision_summary: "test vision", dependency_completion_context: []  } as any;
     const expectedWithSummaries = { ...expected };
     mockedService.getActionDetailResource.mockResolvedValue(expected);
     const result = await handler(new URL("action://123"), { id: "123" });
