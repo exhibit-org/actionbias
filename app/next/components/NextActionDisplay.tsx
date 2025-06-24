@@ -34,7 +34,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
   const [savingTitle, setSavingTitle] = useState(false);
-  const [nextChildId, setNextChildId] = useState<string | null>(null);
+  const [nextFamilyMemberId, setNextFamilyMemberId] = useState<string | null>(null);
   const [showCompletionContext, setShowCompletionContext] = useState(false);
   const [completionContext, setCompletionContext] = useState({
     implementationStory: '',
@@ -90,9 +90,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             if (nextResp.ok) {
               const nextData = await nextResp.json();
               if (nextData.success && nextData.data && nextData.data.parent_id === actionId) {
-                setNextChildId(nextData.data.id);
+                setNextFamilyMemberId(nextData.data.id);
               } else {
-                setNextChildId(null);
+                setNextFamilyMemberId(null);
               }
             }
           } catch (nextErr) {
@@ -617,7 +617,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           )}
         </button>
       </div>
-      <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextChildId={nextChildId} />
+      <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextFamilyMemberId={nextFamilyMemberId} />
 
       {/* Dependent Actions Section */}
       {actionData.dependents && actionData.dependents.length > 0 && (
