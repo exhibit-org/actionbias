@@ -57,8 +57,8 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 1rem 0',
               lineHeight: '1.6'
             }}>
-              The AI-forward planning platform that turns big ideas into completed actions. 
-              Track progress across conversations, break down complex projects, and ship faster.
+              The AI-forward planning platform that generates context-rich prompts for your AI agents. 
+              Captures family context vertically and dependency context laterally to make AI truly understand your project.
             </p>
             <Link 
               href="/" 
@@ -109,15 +109,15 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>AI-powered task organization that actually makes sense</span>
+                <span>Generates perfect prompts with full project context for AI agents</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Works seamlessly with ChatGPT, Claude, and other AI assistants</span>
+                <span>Captures vertical (family) and lateral (dependency) relationships</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Share your wins with beautiful changelog pages like this one</span>
+                <span>Works seamlessly with ChatGPT, Claude, and any LLM</span>
               </li>
             </ul>
           </div>
