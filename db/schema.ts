@@ -68,3 +68,12 @@ export const completionContexts = pgTable('completion_contexts', {
   // Future flexibility
   structuredData: jsonb('structured_data')          // For future AI parsing/enhancement
 });
+
+// Waitlist table for email signups
+export const waitlist = pgTable('waitlist', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  email: text('email').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  source: text('source').default('homepage').notNull(), // Track where signup came from
+  metadata: jsonb('metadata'), // JSON for any additional data
+});
