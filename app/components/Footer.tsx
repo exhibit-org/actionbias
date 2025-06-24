@@ -15,7 +15,7 @@ export default function Footer({ colors }: FooterProps) {
       bottom: 0,
       left: 0,
       right: 0,
-      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.9))',
+      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.9))',
       backdropFilter: 'blur(20px) saturate(180%)',
       WebkitBackdropFilter: 'blur(20px) saturate(180%)',
       borderTop: `1px solid ${colors.border}`,
