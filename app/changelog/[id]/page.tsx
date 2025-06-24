@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import ChangelogItem from '@/components/ChangelogItem';
 import Footer from '../../components/Footer';
 import Link from 'next/link';
-import { Share2, Check } from 'react-feather';
+import { Share, Check } from 'react-feather';
 
 interface ChangelogData {
   id: string;
@@ -105,22 +105,22 @@ export default function ChangelogItemPage() {
           <div className="flex justify-end mb-6">
             <button
               onClick={handleShare}
-              className="group relative p-3 hover:bg-gray-100 rounded-full transition-all duration-200"
+              className="group flex items-center gap-2 p-3 hover:bg-gray-100 rounded-full transition-all duration-200"
               aria-label="Share changelog item"
             >
+              {copied && (
+                <span className="text-sm text-green-600 font-medium">
+                  Link copied!
+                </span>
+              )}
               {copied ? (
                 <Check 
                   className="w-8 h-8 text-green-600 scale-110 transition-all duration-300" 
                 />
               ) : (
-                <Share2 
+                <Share 
                   className="w-8 h-8 text-gray-600 group-hover:text-gray-800 transition-all duration-300" 
                 />
-              )}
-              {copied && (
-                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-green-600 font-medium whitespace-nowrap">
-                  Link copied!
-                </span>
               )}
             </button>
           </div>
