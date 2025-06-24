@@ -109,8 +109,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
       }, { status: 400 });
     }
 
-    // Use VectorPlacementService to find parent suggestions
-    const result = await VectorPlacementService.findVectorParentSuggestions(
+    // Use VectorPlacementService to find family suggestions
+    const result = await VectorPlacementService.findVectorFamilySuggestions(
       actionData,
       {
         limit,

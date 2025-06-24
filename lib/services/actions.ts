@@ -54,33 +54,33 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
 }
 
 // Check if all dependencies for an action have been completed
-// Helper function to check if parent dependencies are met recursively
-async function parentDependenciesMet(actionId: string): Promise<boolean> {
-  // Get parent relationship
-  const parentEdgesResult = await getDb()
+// Helper function to check if family dependencies are met recursively
+async function familyDependenciesMet(actionId: string): Promise<boolean> {
+  // Get family relationship
+  const familyEdgesResult = await getDb()
     .select()
     .from(edges)
     .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
-  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+  const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
   
-  if (parentEdges.length === 0) {
-    // No parent, so parent dependencies are met
+  if (familyEdges.length === 0) {
+    // No family, so family dependencies are met
     return true;
   }
   
-  const parentId = parentEdges[0].src;
-  if (!parentId) {
+  const familyId = familyEdges[0].src;
+  if (!familyId) {
     return true;
   }
   
-  // Check if parent's direct dependencies are met
-  const parentDepsOk = await dependenciesMetDirectly(parentId);
-  if (!parentDepsOk) {
+  // Check if family's direct dependencies are met
+  const familyDepsOk = await dependenciesMetDirectly(familyId);
+  if (!familyDepsOk) {
     return false;
   }
   
-  // Recursively check parent's parent dependencies
-  return await parentDependenciesMet(parentId);
+  // Recursively check family's family dependencies
+  return await familyDependenciesMet(familyId);
 }
 
 // Helper function to check only direct dependencies (not parent dependencies)
@@ -108,26 +108,26 @@ async function dependenciesMetDirectly(actionId: string): Promise<boolean> {
 }
 
 async function dependenciesMet(actionId: string): Promise<boolean> {
-  // Check both direct dependencies and parent dependencies
+  // Check both direct dependencies and family dependencies
   const directDepsOk = await dependenciesMetDirectly(actionId);
   if (!directDepsOk) {
     return false;
   }
   
-  const parentDepsOk = await parentDependenciesMet(actionId);
-  return parentDepsOk;
+  const familyDepsOk = await familyDependenciesMet(actionId);
+  return familyDepsOk;
 }
 
 // Scoped version of dependency checking that only considers dependencies within a subtree
 async function dependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
-  // Check both direct dependencies and parent dependencies, but only within scope
+  // Check both direct dependencies and family dependencies, but only within scope
   const directDepsOk = await dependenciesMetDirectlyScoped(actionId, scopeActionIds);
   if (!directDepsOk) {
     return false;
   }
   
-  const parentDepsOk = await parentDependenciesMetScoped(actionId, scopeActionIds);
-  return parentDepsOk;
+  const familyDepsOk = await familyDependenciesMetScoped(actionId, scopeActionIds);
+  return familyDepsOk;
 }
 
 // Helper function to check only direct dependencies within scope
@@ -163,38 +163,38 @@ async function dependenciesMetDirectlyScoped(actionId: string, scopeActionIds: s
   return true;
 }
 
-// Helper function to check parent dependencies within scope
-async function parentDependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
-  // Get parent relationship
-  const parentEdgesResult = await getDb()
+// Helper function to check family dependencies within scope
+async function familyDependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+  // Get family relationship
+  const familyEdgesResult = await getDb()
     .select()
     .from(edges)
     .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
-  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+  const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
   
-  if (parentEdges.length === 0) {
-    // No parent, so parent dependencies are met
+  if (familyEdges.length === 0) {
+    // No family, so family dependencies are met
     return true;
   }
   
-  const parentId = parentEdges[0].src;
-  if (!parentId) {
+  const familyId = familyEdges[0].src;
+  if (!familyId) {
     return true;
   }
   
-  // If parent is outside scope, ignore parent dependencies
-  if (!scopeActionIds.includes(parentId)) {
+  // If family is outside scope, ignore family dependencies
+  if (!scopeActionIds.includes(familyId)) {
     return true;
   }
   
-  // Check if parent's direct dependencies are met (within scope)
-  const parentDepsOk = await dependenciesMetDirectlyScoped(parentId, scopeActionIds);
-  if (!parentDepsOk) {
+  // Check if family's direct dependencies are met (within scope)
+  const familyDepsOk = await dependenciesMetDirectlyScoped(familyId, scopeActionIds);
+  if (!familyDepsOk) {
     return false;
   }
   
-  // Recursively check parent's parent dependencies (within scope)
-  return await parentDependenciesMetScoped(parentId, scopeActionIds);
+  // Recursively check family's family dependencies (within scope)
+  return await familyDependenciesMetScoped(familyId, scopeActionIds);
 }
 
 // Recursively find the next actionable child of a given action
@@ -204,18 +204,18 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
     .from(edges)
     .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
-  const childIds = childEdges
+  const memberIds = childEdges
     .map((edge: any) => edge.dst)
     .filter((id: any): id is string => id !== null);
 
-  if (childIds.length === 0) {
+  if (memberIds.length === 0) {
     return { action: null, allDone: true };
   }
 
   const children = await getDb()
     .select()
     .from(actions)
-    .where(inArray(actions.id, childIds))
+    .where(inArray(actions.id, memberIds))
     .orderBy(actions.createdAt);
 
   let allChildrenDone = true;
@@ -250,19 +250,19 @@ async function findNextActionInChildrenScoped(actionId: string, scopeActionIds: 
     .from(edges)
     .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
-  const childIds = childEdges
+  const memberIds = childEdges
     .map((edge: any) => edge.dst)
     .filter((id: any): id is string => id !== null)
     .filter(id => scopeActionIds.includes(id)); // Only consider children within scope
 
-  if (childIds.length === 0) {
+  if (memberIds.length === 0) {
     return { action: null, allDone: true };
   }
 
   const children = await getDb()
     .select()
     .from(actions)
-    .where(inArray(actions.id, childIds))
+    .where(inArray(actions.id, memberIds))
     .orderBy(actions.createdAt);
 
   let allChildrenDone = true;
@@ -294,7 +294,7 @@ export interface CreateActionParams {
   title: string;
   description?: string;
   vision?: string;
-  parent_id?: string;
+  parent_id?: string;  // Will be renamed to family_id in next iteration
   depends_on_ids?: string[];
   override_duplicate_check?: boolean;
 }
@@ -329,7 +329,7 @@ export interface AddChildActionParams {
   title: string;
   description?: string;
   vision?: string;
-  parent_id: string;
+  parent_id: string;  // Will be renamed to family_id in next iteration
 }
 
 export interface AddDependencyParams {
@@ -340,7 +340,7 @@ export interface AddDependencyParams {
 export interface DeleteActionParams {
   action_id: string;
   child_handling?: "delete_recursive" | "reparent";
-  new_parent_id?: string;
+  new_parent_id?: string;  // Will be renamed to new_family_id in next iteration
 }
 
 export interface RemoveDependencyParams {
@@ -362,9 +362,9 @@ export interface UpdateActionParams {
   };
 }
 
-export interface UpdateParentParams {
+export interface UpdateFamilyParams {
   action_id: string;
-  new_parent_id?: string; // undefined means remove parent (make it a root action)
+  new_family_id?: string; // undefined means leave family (make it an independent action)
 }
 
 export class ActionsService {
@@ -373,11 +373,11 @@ export class ActionsService {
   ): Promise<CreateActionResult> {
     const { title, description, vision, parent_id, depends_on_ids, override_duplicate_check } = params;
     
-    // Validate parent exists if provided
+    // Validate family exists if provided
     if (parent_id) {
-      const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
-      if (parentAction.length === 0) {
-        throw new Error(`Parent action with ID ${parent_id} not found`);
+      const familyAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+      if (familyAction.length === 0) {
+        throw new Error(`Family action with ID ${parent_id} not found`);
       }
     }
 
@@ -468,7 +468,7 @@ export class ActionsService {
       })
       .returning();
 
-    // Create parent relationship if specified
+    // Create family relationship if specified
     if (parent_id) {
       await getDb().insert(edges).values({
         src: parent_id,
@@ -476,7 +476,7 @@ export class ActionsService {
         kind: "child",
       });
       
-      // Generate parent summaries for actions with explicit parents
+      // Generate family summaries for actions with explicit families
       generateParentSummariesAsync(newAction[0].id).catch(console.error);
     }
 
@@ -491,7 +491,7 @@ export class ActionsService {
       }
     }
 
-    let appliedParentId: string | undefined = parent_id;
+    let appliedFamilyId: string | undefined = parent_id;
 
     // Generate embedding and node summary asynchronously (fire-and-forget)
     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
@@ -500,7 +500,7 @@ export class ActionsService {
     return {
       action: newAction[0],
       parent_id,
-      applied_parent_id: appliedParentId,
+      applied_parent_id: appliedFamilyId,
       dependencies_count: depends_on_ids?.length || 0,
     };
   }
@@ -624,17 +624,17 @@ export class ActionsService {
     );
 
     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
-    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
+    const memberIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
     
     // Handle children based on strategy
-    if (child_handling === "delete_recursive" && childIds.length > 0) {
-      const allDescendants = await getAllDescendants(childIds);
+    if (child_handling === "delete_recursive" && memberIds.length > 0) {
+      const allDescendants = await getAllDescendants(memberIds);
       
       // Delete all descendant actions (edges will cascade delete)
       for (const descendantId of allDescendants) {
         await getDb().delete(actions).where(eq(actions.id, descendantId));
       }
-    } else if (child_handling === "reparent" && childIds.length > 0) {
+    } else if (child_handling === "reparent" && memberIds.length > 0) {
       if (!new_parent_id) {
         throw new Error("new_parent_id is required when child_handling is 'reparent'");
       }
@@ -646,11 +646,11 @@ export class ActionsService {
       }
 
       // Update all child edges to point to new parent
-      for (const childId of childIds) {
-        if (childId) {
+      for (const memberId of memberIds) {
+        if (memberId) {
           await getDb().insert(edges).values({
             src: new_parent_id,
-            dst: childId,
+            dst: memberId,
             kind: "child",
           });
         }
@@ -665,14 +665,14 @@ export class ActionsService {
       // Regenerate subtree summary for original parent (child was removed)
       generateSubtreeSummaryAsync(parent_id).catch(console.error);
     }
-    if (child_handling === "reparent" && new_parent_id && childIds.length > 0) {
+    if (child_handling === "reparent" && new_parent_id && memberIds.length > 0) {
       // Regenerate subtree summary for new parent (children were added)
       generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
       
       // Regenerate parent summaries for all reparented children and their descendants
       // (their parent chains have changed)
-      for (const childId of childIds) {
-        const allDescendants = await getAllDescendants([childId]);
+      for (const memberId of memberIds) {
+        const allDescendants = await getAllDescendants([memberId]);
         for (const descendantId of allDescendants) {
           generateParentSummariesAsync(descendantId).catch(console.error);
         }
@@ -681,7 +681,7 @@ export class ActionsService {
 
     return {
       deleted_action: deletedAction[0],
-      children_count: childIds.length,
+      children_count: memberIds.length,
       child_handling,
       new_parent_id
     };
@@ -816,14 +816,14 @@ export class ActionsService {
       }
     }
 
-    // If done status changed, regenerate subtree summary for parent (child completion affects parent summary)
+    // If done status changed, regenerate subtree summary for family (member completion affects family summary)
     if (done !== undefined) {
-      // Find parent of this action and regenerate its subtree summary
+      // Find family of this action and regenerate its subtree summary
       getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "child"))).limit(1)
-        .then((parentEdges: any) => {
-          const parentEdgeResults = Array.isArray(parentEdges) ? parentEdges : [];
-          if (parentEdgeResults.length > 0 && parentEdgeResults[0].src) {
-            generateSubtreeSummaryAsync(parentEdgeResults[0].src).catch(console.error);
+        .then((familyEdges: any) => {
+          const familyEdgeResults = Array.isArray(familyEdges) ? familyEdges : [];
+          if (familyEdgeResults.length > 0 && familyEdgeResults[0].src) {
+            generateSubtreeSummaryAsync(familyEdgeResults[0].src).catch(console.error);
           }
         })
         .catch(console.error);
@@ -832,8 +832,8 @@ export class ActionsService {
     return updatedAction[0];
   }
 
-  static async updateParent(params: UpdateParentParams) {
-    const { action_id, new_parent_id } = params;
+  static async updateFamily(params: UpdateFamilyParams) {
+    const { action_id, new_family_id } = params;
     
     // Check that action exists
     const existingAction = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
@@ -841,36 +841,36 @@ export class ActionsService {
       throw new Error(`Action with ID ${action_id} not found`);
     }
 
-    // Check that new parent exists if provided
-    if (new_parent_id) {
-      const newParentAction = await getDb().select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
-      if (newParentAction.length === 0) {
-        throw new Error(`New parent action with ID ${new_parent_id} not found`);
+    // Check that new family exists if provided
+    if (new_family_id) {
+      const newFamilyAction = await getDb().select().from(actions).where(eq(actions.id, new_family_id)).limit(1);
+      if (newFamilyAction.length === 0) {
+        throw new Error(`New family action with ID ${new_family_id} not found`);
       }
 
-      // Check for circular reference - new parent cannot be a descendant of this action
+      // Check for circular reference - new family cannot be a descendant of this action
       const descendants = await getAllDescendants([action_id]);
-      if (descendants.includes(new_parent_id)) {
-        throw new Error(`Cannot set ${new_parent_id} as parent of ${action_id} - this would create a circular reference`);
+      if (descendants.includes(new_family_id)) {
+        throw new Error(`Cannot set ${new_family_id} as family of ${action_id} - this would create a circular reference`);
       }
     }
 
-    // Get existing parent before removing relationship (for subtree summary regeneration)
-    const existingParentEdges = await getDb().select().from(edges).where(
+    // Get existing family before removing relationship (for subtree summary regeneration)
+    const existingFamilyEdges = await getDb().select().from(edges).where(
       and(eq(edges.dst, action_id), eq(edges.kind, "child"))
     ).limit(1);
-    const existingParentEdgeResults = Array.isArray(existingParentEdges) ? existingParentEdges : [];
-    const old_parent_id = existingParentEdgeResults.length > 0 ? existingParentEdgeResults[0].src : undefined;
+    const existingFamilyEdgeResults = Array.isArray(existingFamilyEdges) ? existingFamilyEdges : [];
+    const old_family_id = existingFamilyEdgeResults.length > 0 ? existingFamilyEdgeResults[0].src : undefined;
 
-    // Remove existing parent relationship
+    // Remove existing family relationship
     await getDb().delete(edges).where(
       and(eq(edges.dst, action_id), eq(edges.kind, "child"))
     );
 
-    // Add new parent relationship if provided
-    if (new_parent_id) {
+    // Add new family relationship if provided
+    if (new_family_id) {
       await getDb().insert(edges).values({
-        src: new_parent_id,
+        src: new_family_id,
         dst: action_id,
         kind: "child",
       });
@@ -882,16 +882,16 @@ export class ActionsService {
       .set({ updatedAt: new Date() })
       .where(eq(actions.id, action_id));
 
-    // Regenerate subtree summaries for both old and new parents (if they exist)
-    if (old_parent_id) {
-      generateSubtreeSummaryAsync(old_parent_id).catch(console.error);
+    // Regenerate subtree summaries for both old and new families (if they exist)
+    if (old_family_id) {
+      generateSubtreeSummaryAsync(old_family_id).catch(console.error);
     }
-    if (new_parent_id) {
-      generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+    if (new_family_id) {
+      generateSubtreeSummaryAsync(new_family_id).catch(console.error);
     }
 
-    // Regenerate parent summaries for the moved action and all its descendants
-    // (their parent chains have changed)
+    // Regenerate family summaries for the moved action and all its descendants
+    // (their family chains have changed)
     const allDescendants = await getAllDescendants([action_id]);
     for (const descendantId of allDescendants) {
       generateParentSummariesAsync(descendantId).catch(console.error);
@@ -899,8 +899,8 @@ export class ActionsService {
 
     return {
       action_id,
-      old_parent_id,
-      new_parent_id,
+      old_family_id,
+      new_family_id,
     };
   }
 
@@ -977,18 +977,18 @@ export class ActionsService {
 
       // Build lookup maps more efficiently
       const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
-      const childrenMap = new Map<string, string[]>();
-      const parentMap = new Map<string, string>();
+      const membersMap = new Map<string, string[]>();
+      const familyMap = new Map<string, string>();
       const dependenciesMap = new Map<string, string[]>();
 
-      // Build parent-child relationships
+      // Build family-member relationships
       for (const edge of allEdges) {
         if (edge.src && edge.dst) {
-          if (!childrenMap.has(edge.src)) {
-            childrenMap.set(edge.src, []);
+          if (!membersMap.has(edge.src)) {
+            membersMap.set(edge.src, []);
           }
-          childrenMap.get(edge.src)!.push(edge.dst);
-          parentMap.set(edge.dst, edge.src);
+          membersMap.get(edge.src)!.push(edge.dst);
+          familyMap.set(edge.dst, edge.src);
         }
       }
       
@@ -1021,12 +1021,12 @@ export class ActionsService {
           return null;
         }
         
-        const children = childrenMap.get(actionId) || [];
+        const children = membersMap.get(actionId) || [];
         const dependencies = dependenciesMap.get(actionId) || [];
 
-        // Filter children to exclude completed ones (unless includeCompleted is true)
-        const filteredChildren = children
-          .map(childId => buildNode(childId, depth + 1))
+        // Filter members to exclude completed ones (unless includeCompleted is true)
+        const filteredMembers = children
+          .map(memberId => buildNode(memberId, depth + 1))
           .filter((child): child is ActionNode => child !== null);
 
         return {
@@ -1034,14 +1034,14 @@ export class ActionsService {
           title: action.data?.title || 'untitled',
           done: action.done,
           created_at: action.createdAt.toISOString(),
-          children: filteredChildren,
+          children: filteredMembers,
           dependencies,
         };
       }
 
-      // Find root actions (actions with no parents)
+      // Find root actions (actions with no family)
       const rootActionIds = allActions
-        .filter((action: any) => !parentMap.has(action.id))
+        .filter((action: any) => !familyMap.has(action.id))
         .map((action: any) => action.id);
 
       console.log('[SERVICE] Found root actions:', rootActionIds.length);
@@ -1065,7 +1065,7 @@ export class ActionsService {
 
   /**
    * Get all descendant action IDs for a given root action
-   * Uses recursive traversal of the parent-child hierarchy
+   * Uses recursive traversal of the family-member hierarchy
    */
   private static async getAllDescendants(rootActionId: string): Promise<string[]> {
     const descendants: string[] = [];
@@ -1078,13 +1078,13 @@ export class ActionsService {
       .where(eq(edges.kind, "child"));
     
     // Build children map
-    const childrenMap = new Map<string, string[]>();
+    const membersMap = new Map<string, string[]>();
     for (const edge of childEdges) {
       if (edge.src && edge.dst) {
-        if (!childrenMap.has(edge.src)) {
-          childrenMap.set(edge.src, []);
+        if (!membersMap.has(edge.src)) {
+          membersMap.set(edge.src, []);
         }
-        childrenMap.get(edge.src)!.push(edge.dst);
+        membersMap.get(edge.src)!.push(edge.dst);
       }
     }
     
@@ -1095,10 +1095,10 @@ export class ActionsService {
       }
       visited.add(actionId);
       
-      const children = childrenMap.get(actionId) || [];
-      for (const childId of children) {
-        descendants.push(childId);
-        collectDescendants(childId);
+      const children = membersMap.get(actionId) || [];
+      for (const memberId of children) {
+        descendants.push(memberId);
+        collectDescendants(memberId);
       }
     }
     
@@ -1185,18 +1185,18 @@ export class ActionsService {
 
       // Build lookup maps
       const actionMap = new Map(scopedActions.map((action: any) => [action.id, action]));
-      const childrenMap = new Map<string, string[]>();
-      const parentMap = new Map<string, string>();
+      const membersMap = new Map<string, string[]>();
+      const familyMap = new Map<string, string>();
       const dependenciesMap = new Map<string, string[]>();
 
       // Build parent-child relationships (only within scope)
       for (const edge of allEdges) {
         if (edge.src && edge.dst) {
-          if (!childrenMap.has(edge.src)) {
-            childrenMap.set(edge.src, []);
+          if (!membersMap.has(edge.src)) {
+            membersMap.set(edge.src, []);
           }
-          childrenMap.get(edge.src)!.push(edge.dst);
-          parentMap.set(edge.dst, edge.src);
+          membersMap.get(edge.src)!.push(edge.dst);
+          familyMap.set(edge.dst, edge.src);
         }
       }
       
@@ -1228,12 +1228,12 @@ export class ActionsService {
           return null;
         }
         
-        const children = childrenMap.get(actionId) || [];
+        const children = membersMap.get(actionId) || [];
         const dependencies = dependenciesMap.get(actionId) || [];
 
-        // Filter children to exclude completed ones (unless includeCompleted is true)
-        const filteredChildren = children
-          .map(childId => buildNode(childId, depth + 1))
+        // Filter members to exclude completed ones (unless includeCompleted is true)
+        const filteredMembers = children
+          .map(memberId => buildNode(memberId, depth + 1))
           .filter((child): child is ActionNode => child !== null);
 
         return {
@@ -1241,7 +1241,7 @@ export class ActionsService {
           title: action.data?.title || 'untitled',
           done: action.done,
           created_at: action.createdAt.toISOString(),
-          children: filteredChildren,
+          children: filteredMembers,
           dependencies,
         };
       }
@@ -1363,9 +1363,9 @@ export class ActionsService {
       and(eq(edges.src, actionId), eq(edges.kind, "child"))
     );
     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
-    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
-    const children = childIds.length > 0 
-      ? await getDb().select().from(actions).where(inArray(actions.id, childIds))
+    const memberIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
+    const children = memberIds.length > 0 
+      ? await getDb().select().from(actions).where(inArray(actions.id, memberIds))
       : [];
 
     // Get dependencies (actions this depends on)
@@ -1748,8 +1748,8 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
     }
 
     // Get children details
-    const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
-    const childrenResult = await getDb().select().from(actions).where(inArray(actions.id, childIds));
+    const memberIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+    const childrenResult = await getDb().select().from(actions).where(inArray(actions.id, memberIds));
     const children = Array.isArray(childrenResult) ? childrenResult : [];
 
     const subtreeSummaryInput = {
