@@ -32,6 +32,19 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
     });
   };
 
+  // Recursive function to count all descendants
+  const countAllDescendants = (action: any): number => {
+    if (!action.children || action.children.length === 0) {
+      return 0;
+    }
+    
+    let count = action.children.length;
+    for (const child of action.children) {
+      count += countAllDescendants(child);
+    }
+    return count;
+  };
+
   // Recursive function to render action tree
   const renderAction = (action: any, depth: number = 0): React.ReactNode => {
     // Indent so child triangle aligns with parent text
@@ -130,7 +143,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
                 el.style.textDecoration = 'none';
               }}
             >
-              {action.children.length} child action{action.children.length !== 1 ? 's' : ''}
+              {countAllDescendants(action)} total action{countAllDescendants(action) !== 1 ? 's' : ''}
             </a>
           )}
         </div>
