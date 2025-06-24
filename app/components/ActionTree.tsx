@@ -114,38 +114,38 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 color: action.done ? colors.textFaint : colors.text,
-                textDecoration: 'none'
+                textDecoration: 'none',
+                flex: 1
               }}
               onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
               onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
             >
               {action.title}
             </a>
+            {hasChildren && (
+              <a
+                href={`/tree/${action.id}`}
+                style={{ 
+                  fontSize: '0.75rem', 
+                  color: colors.textSubtle,
+                  textDecoration: 'none',
+                  marginLeft: '0.75rem'
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.color = colors.borderAccent;
+                  el.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.color = colors.textSubtle;
+                  el.style.textDecoration = 'none';
+                }}
+              >
+                {countAllDescendants(action)}
+              </a>
+            )}
           </div>
-          {hasChildren && (
-            <a
-              href={`/tree/${action.id}`}
-              style={{ 
-                marginLeft: 'calc(16px + 0.15rem + 16px + 0.15rem)', 
-                fontSize: '0.75rem', 
-                color: colors.textSubtle,
-                textDecoration: 'none',
-                display: 'block'
-              }}
-              onMouseEnter={e => {
-                const el = e.currentTarget as HTMLAnchorElement;
-                el.style.color = colors.borderAccent;
-                el.style.textDecoration = 'underline';
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget as HTMLAnchorElement;
-                el.style.color = colors.textSubtle;
-                el.style.textDecoration = 'none';
-              }}
-            >
-              {countAllDescendants(action)} total action{countAllDescendants(action) !== 1 ? 's' : ''}
-            </a>
-          )}
         </div>
         {/* Render children recursively - only if expanded */}
         {hasChildren && isExpanded && (
