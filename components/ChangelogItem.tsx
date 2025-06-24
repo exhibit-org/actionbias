@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
+import { Share, Check } from 'react-feather';
 
 interface ChangelogItemProps {
   id: string;
@@ -17,7 +19,17 @@ interface ChangelogItemProps {
   actionCreatedAt: string;
 }
 
-export default function ChangelogItem({ item, showLink = false }: { item: ChangelogItemProps; showLink?: boolean }) {
+export default function ChangelogItem({ 
+  item, 
+  showLink = false, 
+  showShare = false 
+}: { 
+  item: ChangelogItemProps; 
+  showLink?: boolean;
+  showShare?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -26,6 +38,12 @@ export default function ChangelogItem({ item, showLink = false }: { item: Change
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleShare = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const renderMarkdown = (text: string) => {
@@ -58,19 +76,52 @@ export default function ChangelogItem({ item, showLink = false }: { item: Change
             <p className="text-blue-600 text-sm italic mb-2">"{item.actionVision}"</p>
           )}
         </div>
-        <div className="flex items-center gap-2 mt-2 sm:mt-0 sm:ml-4">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            item.changelogVisibility === 'public' 
-              ? 'bg-green-100 text-green-700'
-              : item.changelogVisibility === 'team'
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-700'
-          }`}>
-            {item.changelogVisibility}
-          </span>
-          <span className="text-sm text-gray-500">
-            {formatDate(item.completionTimestamp)}
-          </span>
+        <div className="flex flex-col items-end gap-2 mt-2 sm:mt-0 sm:ml-4">
+          {/* Share button */}
+          {showShare && (
+            <button
+              onClick={handleShare}
+              className="group flex items-center gap-2 p-2 hover:bg-gray-100 rounded-full transition-all duration-200"
+              aria-label="Share changelog item"
+            >
+              {copied && (
+                <span className="text-sm text-green-600 font-medium">
+                  Link copied!
+                </span>
+              )}
+              {copied ? (
+                <Check 
+                  className="w-6 h-6 text-green-600 scale-110 transition-all duration-300" 
+                />
+              ) : (
+                <Share 
+                  className="w-6 h-6 text-gray-600 group-hover:text-gray-800 transition-all duration-300" 
+                />
+              )}
+            </button>
+          )}
+          
+          {/* Metadata */}
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              item.changelogVisibility === 'public' 
+                ? 'bg-green-100 text-green-700'
+                : item.changelogVisibility === 'team'
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              {item.changelogVisibility}
+            </span>
+            <span className="text-sm text-gray-500">
+              {formatDate(item.completionTimestamp)}
+            </span>
+          </div>
+          
+          {/* Action metadata */}
+          <div className="text-xs text-gray-500 text-right">
+            <div>Action ID: {item.actionId}</div>
+            <div>Created: {formatDate(item.actionCreatedAt)}</div>
+          </div>
         </div>
       </div>
 
@@ -110,23 +161,17 @@ export default function ChangelogItem({ item, showLink = false }: { item: Change
         )}
       </div>
 
-      {/* Footer */}
-      <div className="mt-4 pt-4 border-t border-gray-100">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Action ID: {item.actionId}</span>
-          <span>Created: {formatDate(item.actionCreatedAt)}</span>
+      {/* Footer - only show link if needed */}
+      {showLink && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <Link 
+            href={`/log/${item.actionId}`}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            View shareable page →
+          </Link>
         </div>
-        {showLink && (
-          <div className="mt-2">
-            <Link 
-              href={`/log/${item.actionId}`}
-              className="text-blue-600 hover:text-blue-800 text-sm"
-            >
-              View shareable page →
-            </Link>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import ChangelogItem from '@/components/ChangelogItem';
 import ViralFooter from '../../components/ViralFooter';
 import Link from 'next/link';
-import { Share, Check } from 'react-feather';
 
 interface ChangelogData {
   id: string;
@@ -34,7 +33,6 @@ export default function ChangelogItemPage() {
   const [changelogItem, setChangelogItem] = useState<ChangelogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // Color scheme to match the rest of the app
   const colors = {
@@ -67,12 +65,6 @@ export default function ChangelogItemPage() {
     }
   };
 
-  const handleShare = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -99,34 +91,10 @@ export default function ChangelogItemPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 pb-64">
+      <div className="min-h-screen bg-gray-50 pb-80">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Share button at top */}
-          <div className="flex justify-end mb-6">
-            <button
-              onClick={handleShare}
-              className="group flex items-center gap-2 p-3 hover:bg-gray-100 rounded-full transition-all duration-200"
-              aria-label="Share changelog item"
-            >
-              {copied && (
-                <span className="text-sm text-green-600 font-medium">
-                  Link copied!
-                </span>
-              )}
-              {copied ? (
-                <Check 
-                  className="w-8 h-8 text-green-600 scale-110 transition-all duration-300" 
-                />
-              ) : (
-                <Share 
-                  className="w-8 h-8 text-gray-600 group-hover:text-gray-800 transition-all duration-300" 
-                />
-              )}
-            </button>
-          </div>
-
-          {/* Changelog Item */}
-          <ChangelogItem item={changelogItem} />
+          {/* Changelog Item with share button */}
+          <ChangelogItem item={changelogItem} showShare={true} />
         </div>
       </div>
       <ViralFooter colors={colors} />
