@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
         id,
         title,
         data,
-        parent_context_summary,
-        parent_vision_summary,
+        family_context_summary,
+        family_vision_summary,
         COALESCE(title, data->>'title') as coalesced_title
       FROM ${actions}
       WHERE id = 'fc37de88-37ae-41d2-84f7-5bb230fac631'
@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         title,
-        parent_context_summary,
-        parent_vision_summary,
-        (parent_context_summary IS NULL) as context_is_null,
-        (parent_vision_summary IS NULL) as vision_is_null,
-        (parent_context_summary IS NULL OR parent_vision_summary IS NULL) as null_condition,
+        family_context_summary,
+        family_vision_summary,
+        (family_context_summary IS NULL) as context_is_null,
+        (family_vision_summary IS NULL) as vision_is_null,
+        (family_context_summary IS NULL OR family_vision_summary IS NULL) as null_condition,
         COALESCE(title, data->>'title') as coalesced_title,
         (COALESCE(title, data->>'title') IS NOT NULL) as title_condition
       FROM ${actions}
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       targetAction,
       conditionTest,
       explanation: {
-        shouldMatch: "Action should match if: (parent_context_summary IS NULL OR parent_vision_summary IS NULL) AND COALESCE(title, data->>'title') IS NOT NULL"
+        shouldMatch: "Action should match if: (family_context_summary IS NULL OR family_vision_summary IS NULL) AND COALESCE(title, data->>'title') IS NOT NULL"
       }
     });
     

@@ -1,3 +1,5 @@
+import Logo from '../components/Logo';
+
 export default function HomePage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-fg)' }}>
@@ -5,7 +7,7 @@ export default function HomePage() {
         <header className="mb-16">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-mono font-semibold">
-              actionbias.ai
+              <Logo />
             </h1>
             <nav className="flex items-center space-x-6 text-sm font-mono">
               <a 

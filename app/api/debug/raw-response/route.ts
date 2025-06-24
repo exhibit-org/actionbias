@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         title,
-        parent_context_summary,
-        parent_vision_summary
+        family_context_summary,
+        family_vision_summary
       FROM ${actions}
       WHERE id = 'fc37de88-37ae-41d2-84f7-5bb230fac631'
     `);

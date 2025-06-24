@@ -11,10 +11,10 @@ interface Props {
 }
 
 export default function ActionNavigation({ action, siblings, colors, nextFamilyMemberId }: Props) {
-  const hasParents = action.parent_chain && action.parent_chain.length > 0;
+  const hasFamily = action.parent_chain && action.parent_chain.length > 0;
   const hasFamilyMembers = action.children && action.children.length > 0;
   const hasSiblings = siblings && siblings.length > 0;
-  const hasNavigation = hasParents || hasFamilyMembers || hasSiblings;
+  const hasNavigation = hasFamily || hasFamilyMembers || hasSiblings;
   const [copiedId, setCopiedId] = useState(false);
 
   const copyIdToClipboard = async () => {
@@ -48,7 +48,7 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
         border: `1px solid ${colors.border}`,
         borderRadius: '0.5rem'
       }}>
-        {hasParents && (
+        {hasFamily && (
           <div style={{ marginBottom: hasFamilyMembers || hasSiblings ? '1rem' : 0 }}>
             <div style={{
               fontSize: '0.75rem',
@@ -114,7 +114,7 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
         {hasFamilyMembers && (
           <div style={{ marginBottom: hasSiblings ? '1rem' : 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              FAMILY MEMBERS ({action.children.length})
+              ACTIONS IN FAMILY ({action.children.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {action.children.map(member => (
@@ -177,7 +177,7 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
         {hasSiblings && (
           <div style={{ marginBottom: 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              SIBLINGS ({siblings.length})
+              RELATED ACTIONS ({siblings.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {siblings.map(sibling => (
@@ -335,7 +335,7 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span>Created: {new Date(action.created_at).toLocaleDateString()}</span>
         </div>

@@ -1,8 +1,8 @@
 /**
- * Parent summary generation service for hierarchical action management
+ * Family summary generation service for hierarchical action management
  * 
  * This service generates AI-powered summaries that describe how an action
- * fits into the broader context and vision of its parent chain.
+ * fits into the broader context and vision of its family chain.
  */
 
 import { generateText } from 'ai';
@@ -11,44 +11,44 @@ import { getDb } from '../db/adapter';
 import { actions, edges } from '../../db/schema';
 import { sql, eq, and } from 'drizzle-orm';
 
-export interface ParentSummaryInput {
+export interface FamilySummaryInput {
   actionId: string;
   title: string;
   description?: string;
   vision?: string;
-  parentChain: Array<{
+  familyChain: Array<{
     title: string;
     description?: string;
     vision?: string;
   }>;
 }
 
-export class ParentSummaryService {
+export class FamilySummaryService {
   /**
-   * Generate a parent context summary that explains how the action fits into broader project context
+   * Generate a family context summary that explains how the action fits into broader project context
    */
-  static async generateParentContextSummary(input: ParentSummaryInput): Promise<string> {
+  static async generateFamilyContextSummary(input: FamilySummaryInput): Promise<string> {
     // Return dummy summary for tests or when no API key
     if (process.env.NODE_ENV === 'test' || !process.env.OPENAI_API_KEY) {
-      const parentCount = input.parentChain.length;
-      return parentCount > 0 
-        ? `This action fits within ${parentCount} levels of parent context`
-        : 'This action has no parent context.';
+      const familyCount = input.familyChain.length;
+      return familyCount > 0 
+        ? `This action fits within ${familyCount} levels of family context`
+        : 'This action has no family context.';
     }
 
-    // Get only parent descriptions, excluding the current action
-    const parentDescriptions = input.parentChain
-      .map(parent => parent.description)
+    // Get only family descriptions, excluding the current action
+    const familyDescriptions = input.familyChain
+      .map(family => family.description)
       .filter((desc): desc is string => Boolean(desc));
     
-    // If no parent descriptions, return default summary
-    if (parentDescriptions.length === 0) {
-      return "This action has no parent context.";
+    // If no family descriptions, return default summary
+    if (familyDescriptions.length === 0) {
+      return "This action has no family context.";
     }
 
     try {
       // Reverse the array so we go from closest to furthest parent
-      const reversedDescriptions = [...parentDescriptions].reverse();
+      const reversedDescriptions = [...familyDescriptions].reverse();
       
       let prompt = `You are creating a contextual summary to help someone understand how the current action "${input.title}" fits into the broader project context.\n\n`;
       prompt += "CURRENT ACTION:\n";
@@ -57,7 +57,7 @@ export class ParentSummaryService {
         prompt += `: ${input.description}`;
       }
       prompt += "\n\n";
-      prompt += "PARENT CONTEXTS (from closest to furthest):\n";
+      prompt += "FAMILY CONTEXTS (from closest to furthest):\n";
       prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
       prompt += `\n\nWrite a concise summary that explains how "${input.title}" connects to and supports the broader project goals. Focus on the relationship between this specific action and the larger context it serves. Make it clear why this action matters in the bigger picture.`;
 
@@ -70,37 +70,37 @@ export class ParentSummaryService {
 
       return summary.trim();
     } catch (error) {
-      console.error('Failed to generate parent context summary:', error);
+      console.error('Failed to generate family context summary:', error);
       // Fallback to simple summary
-      return `This action contributes to ${parentDescriptions.length} broader project contexts.`;
+      return `This action contributes to ${familyDescriptions.length} broader project contexts.`;
     }
   }
 
   /**
-   * Generate a parent vision summary that explains how completing the action contributes to broader outcomes
+   * Generate a family vision summary that explains how completing the action contributes to broader outcomes
    */
-  static async generateParentVisionSummary(input: ParentSummaryInput): Promise<string> {
+  static async generateFamilyVisionSummary(input: FamilySummaryInput): Promise<string> {
     // Return dummy summary for tests or when no API key
     if (process.env.NODE_ENV === 'test' || !process.env.OPENAI_API_KEY) {
-      const parentCount = input.parentChain.length;
-      return parentCount > 0 
-        ? `Completing this action advances ${parentCount} levels of parent visions`
-        : 'This action has no parent vision context.';
+      const familyCount = input.familyChain.length;
+      return familyCount > 0 
+        ? `Completing this action advances ${familyCount} levels of family visions`
+        : 'This action has no family vision context.';
     }
 
-    // Get only parent visions, excluding the current action
-    const parentVisions = input.parentChain
-      .map(parent => parent.vision)
+    // Get only family visions, excluding the current action
+    const familyVisions = input.familyChain
+      .map(family => family.vision)
       .filter((vision): vision is string => Boolean(vision));
     
-    // If no parent visions, return default summary
-    if (parentVisions.length === 0) {
-      return "This action has no parent vision context.";
+    // If no family visions, return default summary
+    if (familyVisions.length === 0) {
+      return "This action has no family vision context.";
     }
 
     try {
       // Reverse the array so we go from closest to furthest parent
-      const reversedVisions = [...parentVisions].reverse();
+      const reversedVisions = [...familyVisions].reverse();
       
       let prompt = `You are creating a vision summary to help someone understand how completing the current action "${input.title}" contributes to the broader project outcomes.\n\n`;
       prompt += "CURRENT ACTION:\n";
@@ -112,7 +112,7 @@ export class ParentSummaryService {
         prompt += ` (Success criteria: ${input.vision})`;
       }
       prompt += "\n\n";
-      prompt += "PARENT VISIONS (from closest to furthest):\n";
+      prompt += "FAMILY VISIONS (from closest to furthest):\n";
       prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
       prompt += `\n\nWrite a concise summary that explains how completing "${input.title}" moves the project toward these broader visions. Focus on the connection between this specific action's success and the larger outcomes it enables. Make it clear what bigger picture this action serves.`;
 
@@ -125,66 +125,66 @@ export class ParentSummaryService {
 
       return summary.trim();
     } catch (error) {
-      console.error('Failed to generate parent vision summary:', error);
+      console.error('Failed to generate family vision summary:', error);
       // Fallback to simple summary
-      return `Completing this action advances ${parentVisions.length} broader project visions.`;
+      return `Completing this action advances ${familyVisions.length} broader project visions.`;
     }
   }
 
   /**
-   * Generate both parent summaries for an action
+   * Generate both family summaries for an action
    */
-  static async generateBothParentSummaries(input: ParentSummaryInput): Promise<{
+  static async generateBothFamilySummaries(input: FamilySummaryInput): Promise<{
     contextSummary: string;
     visionSummary: string;
   }> {
     const [contextSummary, visionSummary] = await Promise.all([
-      this.generateParentContextSummary(input),
-      this.generateParentVisionSummary(input)
+      this.generateFamilyContextSummary(input),
+      this.generateFamilyVisionSummary(input)
     ]);
 
     return { contextSummary, visionSummary };
   }
 
   /**
-   * Update parent summaries for an action
+   * Update family summaries for an action
    */
-  static async updateParentSummaries(actionId: string, contextSummary: string, visionSummary: string): Promise<void> {
+  static async updateFamilySummaries(actionId: string, contextSummary: string, visionSummary: string): Promise<void> {
     const db = getDb();
     
     try {
       await db.execute(sql`
         UPDATE ${actions}
-        SET parent_context_summary = ${contextSummary},
-            parent_vision_summary = ${visionSummary},
+        SET family_context_summary = ${contextSummary},
+            family_vision_summary = ${visionSummary},
             updated_at = NOW()
         WHERE id = ${actionId}
       `);
       
-      console.log(`Successfully stored parent summaries for action ${actionId}`);
+      console.log(`Successfully stored family summaries for action ${actionId}`);
     } catch (error) {
-      console.error(`Failed to store parent summaries for action ${actionId}:`, error);
+      console.error(`Failed to store family summaries for action ${actionId}:`, error);
       throw error;
     }
   }
 
   /**
-   * Get parent chain for an action to build summary input
+   * Get family chain for an action to build summary input
    */
-  static async getParentChain(actionId: string): Promise<Array<{
+  static async getFamilyChain(actionId: string): Promise<Array<{
     title: string;
     description?: string;
     vision?: string;
   }>> {
     const db = getDb();
-    const parentChain: Array<{ title: string; description?: string; vision?: string }> = [];
+    const familyChain: Array<{ title: string; description?: string; vision?: string }> = [];
     let currentActionId = actionId;
 
-    // Traverse up the parent chain
+    // Traverse up the family chain
     while (true) {
-      // Get parent relationship
-      const parentEdgeResult = await db.execute(sql`
-        SELECT e.src as parent_id
+      // Get family relationship
+      const familyEdgeResult = await db.execute(sql`
+        SELECT e.src as family_id
         FROM ${edges} e
         WHERE e.dst = ${currentActionId} AND e.kind = 'child'
         LIMIT 1
@@ -192,69 +192,69 @@ export class ParentSummaryService {
 
       // Handle different database result formats
       let rows: any[] = [];
-      if (Array.isArray(parentEdgeResult)) {
-        rows = parentEdgeResult;
-      } else if (parentEdgeResult.rows && Array.isArray(parentEdgeResult.rows)) {
-        rows = parentEdgeResult.rows;
-      } else if (parentEdgeResult && typeof parentEdgeResult[Symbol.iterator] === 'function') {
-        rows = [...parentEdgeResult];
-      } else if (parentEdgeResult && parentEdgeResult.length !== undefined) {
-        rows = Array.prototype.slice.call(parentEdgeResult);
+      if (Array.isArray(familyEdgeResult)) {
+        rows = familyEdgeResult;
+      } else if (familyEdgeResult.rows && Array.isArray(familyEdgeResult.rows)) {
+        rows = familyEdgeResult.rows;
+      } else if (familyEdgeResult && typeof familyEdgeResult[Symbol.iterator] === 'function') {
+        rows = [...familyEdgeResult];
+      } else if (familyEdgeResult && familyEdgeResult.length !== undefined) {
+        rows = Array.prototype.slice.call(familyEdgeResult);
       }
 
       if (rows.length === 0) {
-        break; // No more parents
+        break; // No more family members in chain
       }
 
-      const parentId = rows[0].parent_id;
-      if (!parentId) {
+      const familyId = rows[0].family_id;
+      if (!familyId) {
         break;
       }
 
-      // Get parent action details
-      const parentActionResult = await db.execute(sql`
+      // Get family action details
+      const familyActionResult = await db.execute(sql`
         SELECT 
           COALESCE(title, data->>'title') as title,
           COALESCE(description, data->>'description') as description,
           COALESCE(vision, data->>'vision') as vision
         FROM ${actions}
-        WHERE id = ${parentId}
+        WHERE id = ${familyId}
         LIMIT 1
       `);
 
-      // Handle different database result formats for parent action
-      let parentRows: any[] = [];
-      if (Array.isArray(parentActionResult)) {
-        parentRows = parentActionResult;
-      } else if (parentActionResult.rows && Array.isArray(parentActionResult.rows)) {
-        parentRows = parentActionResult.rows;
-      } else if (parentActionResult && typeof parentActionResult[Symbol.iterator] === 'function') {
-        parentRows = [...parentActionResult];
-      } else if (parentActionResult && parentActionResult.length !== undefined) {
-        parentRows = Array.prototype.slice.call(parentActionResult);
+      // Handle different database result formats for family action
+      let familyRows: any[] = [];
+      if (Array.isArray(familyActionResult)) {
+        familyRows = familyActionResult;
+      } else if (familyActionResult.rows && Array.isArray(familyActionResult.rows)) {
+        familyRows = familyActionResult.rows;
+      } else if (familyActionResult && typeof familyActionResult[Symbol.iterator] === 'function') {
+        familyRows = [...familyActionResult];
+      } else if (familyActionResult && familyActionResult.length !== undefined) {
+        familyRows = Array.prototype.slice.call(familyActionResult);
       }
 
-      if (parentRows.length === 0) {
+      if (familyRows.length === 0) {
         break;
       }
 
-      const parent = parentRows[0];
-      parentChain.push({
-        title: parent.title || 'Untitled',
-        description: parent.description || undefined,
-        vision: parent.vision || undefined
+      const family = familyRows[0];
+      familyChain.push({
+        title: family.title || 'Untitled',
+        description: family.description || undefined,
+        vision: family.vision || undefined
       });
 
-      currentActionId = parentId;
+      currentActionId = familyId;
     }
 
-    return parentChain;
+    return familyChain;
   }
 
   /**
-   * Get actions that don't have parent summaries yet (for batch processing)
+   * Get actions that don't have family summaries yet (for batch processing)
    */
-  static async getActionsWithoutParentSummaries(limit: number = 50): Promise<Array<ParentSummaryInput>> {
+  static async getActionsWithoutFamilySummaries(limit: number = 50): Promise<Array<FamilySummaryInput>> {
     const db = getDb();
     
     const results = await db.execute(sql`
@@ -264,7 +264,7 @@ export class ParentSummaryService {
         COALESCE(description, data->>'description') as description,
         COALESCE(vision, data->>'vision') as vision
       FROM ${actions}
-      WHERE (parent_context_summary IS NULL OR parent_vision_summary IS NULL)
+      WHERE (family_context_summary IS NULL OR family_vision_summary IS NULL)
         AND COALESCE(title, data->>'title') IS NOT NULL
       ORDER BY created_at DESC
       LIMIT ${limit}
@@ -287,50 +287,50 @@ export class ParentSummaryService {
         return [];
       }
       
-      console.log(`Successfully extracted ${rows.length} actions without parent summaries`);
+      console.log(`Successfully extracted ${rows.length} actions without family summaries`);
     } catch (error) {
       console.error('Error extracting rows from database results:', error);
       return [];
     }
     
-    // For each action, get its parent chain
-    const parentSummaryInputs: ParentSummaryInput[] = [];
+    // For each action, get its family chain
+    const familySummaryInputs: FamilySummaryInput[] = [];
     
     for (const row of rows) {
       try {
-        const parentChain = await this.getParentChain(row.id);
+        const familyChain = await this.getFamilyChain(row.id);
         
-        parentSummaryInputs.push({
+        familySummaryInputs.push({
           actionId: row.id,
           title: row.title,
           description: row.description || undefined,
           vision: row.vision || undefined,
-          parentChain
+          familyChain
         });
       } catch (error) {
-        console.error(`Failed to get parent chain for action ${row.id}:`, error);
+        console.error(`Failed to get family chain for action ${row.id}:`, error);
         continue;
       }
     }
     
-    return parentSummaryInputs;
+    return familySummaryInputs;
   }
 
   /**
-   * Generate batch parent summaries for multiple actions
+   * Generate batch family summaries for multiple actions
    */
-  static async generateBatchParentSummaries(inputs: Array<ParentSummaryInput>): Promise<Array<{ 
+  static async generateBatchFamilySummaries(inputs: Array<FamilySummaryInput>): Promise<Array<{ 
     id: string; 
     contextSummary: string; 
     visionSummary: string; 
   }>> {
     const results: Array<{ id: string; contextSummary: string; visionSummary: string }> = [];
     
-    // Process in batches of 2 to avoid API rate limits (parent summaries are complex with long prompts)
+    // Process in batches of 2 to avoid API rate limits (family summaries are complex with long prompts)
     for (let i = 0; i < inputs.length; i += 2) {
       const batch = inputs.slice(i, i + 2);
       const batchPromises = batch.map(async (input) => {
-        const { contextSummary, visionSummary } = await this.generateBothParentSummaries(input);
+        const { contextSummary, visionSummary } = await this.generateBothFamilySummaries(input);
         return { id: input.actionId, contextSummary, visionSummary };
       });
       
@@ -347,12 +347,12 @@ export class ParentSummaryService {
   }
 
   /**
-   * Get parent summary statistics for monitoring
+   * Get family summary statistics for monitoring
    */
-  static async getParentSummaryStats(): Promise<{
+  static async getFamilySummaryStats(): Promise<{
     totalActions: number;
-    actionsWithParentSummaries: number;
-    actionsWithoutParentSummaries: number;
+    actionsWithFamilySummaries: number;
+    actionsWithoutFamilySummaries: number;
     coveragePercentage: number;
   }> {
     const db = getDb();
@@ -360,33 +360,33 @@ export class ParentSummaryService {
     const results = await db.execute(sql`
       SELECT 
         COUNT(*) as total_actions,
-        COUNT(CASE WHEN parent_context_summary IS NOT NULL AND parent_vision_summary IS NOT NULL THEN 1 END) as actions_with_parent_summaries,
-        COUNT(CASE WHEN parent_context_summary IS NULL OR parent_vision_summary IS NULL THEN 1 END) as actions_without_parent_summaries
+        COUNT(CASE WHEN family_context_summary IS NOT NULL AND family_vision_summary IS NOT NULL THEN 1 END) as actions_with_family_summaries,
+        COUNT(CASE WHEN family_context_summary IS NULL OR family_vision_summary IS NULL THEN 1 END) as actions_without_family_summaries
       FROM ${actions}
     `);
     
     // Handle different database result formats
     const rows = results.rows || results;
     if (!Array.isArray(rows) || rows.length === 0) {
-      console.error('No results from parent summary stats query:', results);
+      console.error('No results from family summary stats query:', results);
       return {
         totalActions: 0,
-        actionsWithParentSummaries: 0,
-        actionsWithoutParentSummaries: 0,
+        actionsWithFamilySummaries: 0,
+        actionsWithoutFamilySummaries: 0,
         coveragePercentage: 0
       };
     }
     
     const row = rows[0] as any;
     const totalActions = parseInt(row.total_actions) || 0;
-    const actionsWithParentSummaries = parseInt(row.actions_with_parent_summaries) || 0;
-    const actionsWithoutParentSummaries = parseInt(row.actions_without_parent_summaries) || 0;
+    const actionsWithFamilySummaries = parseInt(row.actions_with_family_summaries) || 0;
+    const actionsWithoutFamilySummaries = parseInt(row.actions_without_family_summaries) || 0;
     
     return {
       totalActions,
-      actionsWithParentSummaries,
-      actionsWithoutParentSummaries,
-      coveragePercentage: totalActions > 0 ? (actionsWithParentSummaries / totalActions) * 100 : 0
+      actionsWithFamilySummaries,
+      actionsWithoutFamilySummaries,
+      coveragePercentage: totalActions > 0 ? (actionsWithFamilySummaries / totalActions) * 100 : 0
     };
   }
 }

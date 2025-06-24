@@ -1,5 +1,5 @@
 // Test the generateParentSummariesAsync function directly
-import type { ParentSummaryService } from "../../lib/services/parent-summary";
+import type { FamilySummaryService } from "../../lib/services/family-summary";
 
 // Mock the database and AI services
 const mockDb = {
@@ -110,7 +110,7 @@ describe('generateParentSummariesAsync Function', () => {
     });
   });
 
-  describe('ParentSummaryService Integration', () => {
+  describe('FamilySummaryService Integration', () => {
     beforeEach(() => {
       // Mock successful action lookup
       const mockQueryBuilder = {
@@ -126,9 +126,9 @@ describe('generateParentSummariesAsync Function', () => {
       mockDb.select.mockReturnValue(mockQueryBuilder);
     });
 
-    it('should call ParentSummaryService methods in correct order', async () => {
-      // Mock ParentSummaryService
-      const mockParentSummaryService = {
+    it('should call FamilySummaryService methods in correct order', async () => {
+      // Mock FamilySummaryService
+      const mockFamilySummaryService = {
         getParentChain: jest.fn().mockResolvedValue([
           { title: 'Parent 1', description: 'Parent 1 desc', vision: 'Parent 1 vision' },
           { title: 'Parent 2', description: 'Parent 2 desc', vision: 'Parent 2 vision' }
@@ -137,12 +137,12 @@ describe('generateParentSummariesAsync Function', () => {
           contextSummary: 'Generated context summary',
           visionSummary: 'Generated vision summary'
         }),
-        updateParentSummaries: jest.fn().mockResolvedValue(undefined)
+        updateFamilySummaries: jest.fn().mockResolvedValue(undefined)
       };
 
       // Mock the module
       jest.doMock("../../lib/services/parent-summary", () => ({
-        ParentSummaryService: mockParentSummaryService
+        FamilySummaryService: mockFamilySummaryService
       }));
 
       // Re-import to get updated mocks
@@ -153,8 +153,8 @@ describe('generateParentSummariesAsync Function', () => {
         await testFunction('test-action-id');
 
         // Verify service methods called in order
-        expect(mockParentSummaryService.getParentChain).toHaveBeenCalledWith('test-action-id');
-        expect(mockParentSummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
+        expect(mockFamilySummaryService.getParentChain).toHaveBeenCalledWith('test-action-id');
+        expect(mockFamilySummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
           actionId: 'test-action-id',
           title: 'Test Action',
           description: 'Test description',
@@ -164,7 +164,7 @@ describe('generateParentSummariesAsync Function', () => {
             expect.objectContaining({ title: 'Parent 2' })
           ])
         });
-        expect(mockParentSummaryService.updateParentSummaries).toHaveBeenCalledWith(
+        expect(mockFamilySummaryService.updateFamilySummaries).toHaveBeenCalledWith(
           'test-action-id',
           'Generated context summary',
           'Generated vision summary'
@@ -177,15 +177,15 @@ describe('generateParentSummariesAsync Function', () => {
     });
 
     it('should handle service errors gracefully', async () => {
-      // Mock ParentSummaryService to throw error
-      const mockParentSummaryService = {
+      // Mock FamilySummaryService to throw error
+      const mockFamilySummaryService = {
         getParentChain: jest.fn().mockRejectedValue(new Error('Parent chain error')),
         generateBothParentSummaries: jest.fn(),
-        updateParentSummaries: jest.fn()
+        updateFamilySummaries: jest.fn()
       };
 
       jest.doMock("../../lib/services/parent-summary", () => ({
-        ParentSummaryService: mockParentSummaryService
+        FamilySummaryService: mockFamilySummaryService
       }));
 
       const actionsModule = await import("../../lib/services/actions");
@@ -200,8 +200,8 @@ describe('generateParentSummariesAsync Function', () => {
         );
 
         // Should not call subsequent methods after error
-        expect(mockParentSummaryService.generateBothParentSummaries).not.toHaveBeenCalled();
-        expect(mockParentSummaryService.updateParentSummaries).not.toHaveBeenCalled();
+        expect(mockFamilySummaryService.generateBothParentSummaries).not.toHaveBeenCalled();
+        expect(mockFamilySummaryService.updateFamilySummaries).not.toHaveBeenCalled();
       }
     });
 
@@ -224,17 +224,17 @@ describe('generateParentSummariesAsync Function', () => {
       };
       mockDb.select.mockReturnValue(mockQueryBuilder);
 
-      const mockParentSummaryService = {
+      const mockFamilySummaryService = {
         getParentChain: jest.fn().mockResolvedValue([]),
         generateBothParentSummaries: jest.fn().mockResolvedValue({
           contextSummary: 'Legacy context',
           visionSummary: 'Legacy vision'
         }),
-        updateParentSummaries: jest.fn().mockResolvedValue(undefined)
+        updateFamilySummaries: jest.fn().mockResolvedValue(undefined)
       };
 
       jest.doMock("../../lib/services/parent-summary", () => ({
-        ParentSummaryService: mockParentSummaryService
+        FamilySummaryService: mockFamilySummaryService
       }));
 
       const actionsModule = await import("../../lib/services/actions");
@@ -243,7 +243,7 @@ describe('generateParentSummariesAsync Function', () => {
       if (testFunction) {
         await testFunction('legacy-action-id');
 
-        expect(mockParentSummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
+        expect(mockFamilySummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
           actionId: 'legacy-action-id',
           title: 'Legacy Title',
           description: 'Legacy Description',
@@ -285,14 +285,14 @@ describe('generateParentSummariesAsync Function', () => {
       mockDb.select.mockReturnValue(mockQueryBuilder);
 
       // Mock AI service timeout
-      const mockParentSummaryService = {
+      const mockFamilySummaryService = {
         getParentChain: jest.fn().mockResolvedValue([]),
         generateBothParentSummaries: jest.fn().mockRejectedValue(new Error('Request timeout')),
-        updateParentSummaries: jest.fn()
+        updateFamilySummaries: jest.fn()
       };
 
       jest.doMock("../../lib/services/parent-summary", () => ({
-        ParentSummaryService: mockParentSummaryService
+        FamilySummaryService: mockFamilySummaryService
       }));
 
       const actionsModule = await import("../../lib/services/actions");

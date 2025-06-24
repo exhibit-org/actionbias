@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ParentSummaryService } from '../../../../lib/services/parent-summary';
+import { FamilySummaryService } from '../../../../lib/services/family-summary';
 
 export const runtime = 'nodejs';
 export const maxDuration = 800; // 800 seconds for Pro/Enterprise accounts
@@ -13,52 +13,52 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log('Starting parent summaries cron job...');
+    console.log('Starting family summaries cron job...');
     
-    // Get actions without parent summaries (limit to 20 per run due to complexity)
-    const actionsWithoutParentSummaries = await ParentSummaryService.getActionsWithoutParentSummaries(20);
+    // Get actions without family summaries (limit to 20 per run due to complexity)
+    const actionsWithoutFamilySummaries = await FamilySummaryService.getActionsWithoutFamilySummaries(20);
     
-    if (actionsWithoutParentSummaries.length === 0) {
-      console.log('No actions need parent summaries');
+    if (actionsWithoutFamilySummaries.length === 0) {
+      console.log('No actions need family summaries');
       return NextResponse.json({ 
         success: true, 
-        message: 'No actions need parent summaries',
+        message: 'No actions need family summaries',
         processed: 0
       });
     }
 
-    console.log(`Found ${actionsWithoutParentSummaries.length} actions without parent summaries`);
+    console.log(`Found ${actionsWithoutFamilySummaries.length} actions without family summaries`);
 
-    // Process in batches of 2 to avoid API rate limits (parent summaries are complex with long prompts)
+    // Process in batches of 2 to avoid API rate limits (family summaries are complex with long prompts)
     const batchSize = 2;
     let totalProcessed = 0;
     
-    for (let i = 0; i < actionsWithoutParentSummaries.length; i += batchSize) {
-      const batch = actionsWithoutParentSummaries.slice(i, i + batchSize);
+    for (let i = 0; i < actionsWithoutFamilySummaries.length; i += batchSize) {
+      const batch = actionsWithoutFamilySummaries.slice(i, i + batchSize);
       console.log(`Processing batch ${Math.floor(i / batchSize) + 1}: ${batch.length} actions`);
       
       try {
-        // Generate parent summaries for this batch
-        const summaryResults = await ParentSummaryService.generateBatchParentSummaries(batch);
+        // Generate family summaries for this batch
+        const summaryResults = await FamilySummaryService.generateBatchFamilySummaries(batch);
         
         // Store each summary
         for (const result of summaryResults) {
           try {
-            await ParentSummaryService.updateParentSummaries(
+            await FamilySummaryService.updateFamilySummaries(
               result.id, 
               result.contextSummary, 
               result.visionSummary
             );
             totalProcessed++;
           } catch (error) {
-            console.error(`Failed to store parent summaries for action ${result.id}:`, error);
+            console.error(`Failed to store family summaries for action ${result.id}:`, error);
           }
         }
         
-        console.log(`Completed batch ${Math.floor(i / batchSize) + 1}: processed ${summaryResults.length} parent summaries`);
+        console.log(`Completed batch ${Math.floor(i / batchSize) + 1}: processed ${summaryResults.length} family summaries`);
         
         // Small delay between batches to be respectful to API limits
-        if (i + batchSize < actionsWithoutParentSummaries.length) {
+        if (i + batchSize < actionsWithoutFamilySummaries.length) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (error) {
@@ -70,18 +70,18 @@ export async function GET(request: NextRequest) {
     // Get updated stats (with error handling)
     let stats;
     try {
-      stats = await ParentSummaryService.getParentSummaryStats();
+      stats = await FamilySummaryService.getFamilySummaryStats();
     } catch (error) {
-      console.error('Failed to get parent summary stats:', error);
+      console.error('Failed to get family summary stats:', error);
       stats = {
         totalActions: 0,
-        actionsWithParentSummaries: 0,
-        actionsWithoutParentSummaries: 0,
+        actionsWithFamilySummaries: 0,
+        actionsWithoutFamilySummaries: 0,
         coveragePercentage: 0
       };
     }
     
-    console.log(`Parent summaries cron job completed. Processed: ${totalProcessed}, Stats:`, stats);
+    console.log(`Family summaries cron job completed. Processed: ${totalProcessed}, Stats:`, stats);
     
     return NextResponse.json({
       success: true,
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Parent summaries cron job failed:', error);
+    console.error('Family summaries cron job failed:', error);
     return NextResponse.json(
       { 
         error: 'Internal server error',

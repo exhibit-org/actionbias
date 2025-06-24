@@ -11,10 +11,17 @@ interface FooterProps {
 export default function Footer({ colors }: FooterProps) {
   return (
     <footer style={{
-      backgroundColor: '#ffffff',
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.9))',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      WebkitBackdropFilter: 'blur(20px) saturate(180%)',
       borderTop: `1px solid ${colors.border}`,
       padding: '1.5rem 1rem',
-      marginTop: '2rem'
+      zIndex: 10,
+      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.08)'
     }}>
       <div style={{
         maxWidth: '48rem',
@@ -27,10 +34,14 @@ export default function Footer({ colors }: FooterProps) {
           <h3 style={{
             fontSize: '1.125rem',
             fontWeight: '600',
-            color: colors.text,
             margin: '0 0 0.5rem 0'
           }}>
-            ActionBias
+            <a href="/tree" style={{
+              color: colors.text,
+              textDecoration: 'none'
+            }}>
+              ActionBias
+            </a>
           </h3>
           <p style={{
             fontSize: '0.875rem',

@@ -33,10 +33,10 @@ describe('Database Field Mapping', () => {
       
       // Check if parent summaries are available
       console.log('📊 parentContextSummary (camelCase):', action.parentContextSummary);
-      console.log('📊 parent_context_summary (snake_case):', (action as any).parent_context_summary);
+      console.log('📊 family_context_summary (snake_case):', (action as any).family_context_summary);
       
       console.log('📊 parentVisionSummary (camelCase):', action.parentVisionSummary);
-      console.log('📊 parent_vision_summary (snake_case):', (action as any).parent_vision_summary);
+      console.log('📊 family_vision_summary (snake_case):', (action as any).family_vision_summary);
     } else {
       console.log('📊 No existing actions found');
     }
@@ -53,9 +53,9 @@ describe('Database Field Mapping', () => {
     // Try a raw SQL query to see the actual column names
     try {
       const rawResult = await db.execute(sql`
-        SELECT id, title, parent_context_summary, parent_vision_summary 
+        SELECT id, title, family_context_summary, family_vision_summary 
         FROM actions 
-        WHERE parent_context_summary IS NOT NULL 
+        WHERE family_context_summary IS NOT NULL 
         LIMIT 1
       `);
       

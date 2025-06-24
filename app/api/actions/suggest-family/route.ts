@@ -1,5 +1,5 @@
 /**
- * /actions/suggest-parents endpoint
+ * /actions/suggest-family endpoint
  * 
  * Accept {title, description}, embed, K-NN search, return list with similarity scores & paths.
  * Stable JSON schema; monitored latency < 100 ms P95.
@@ -13,18 +13,18 @@ import { actions } from '../../../../db/schema';
 import { eq } from 'drizzle-orm';
 
 // Request schema
-const SuggestParentsRequestSchema = z.object({
+const SuggestFamilyRequestSchema = z.object({
   title: z.string().default("").describe("The title for the new action (optional if action_id is provided)"),
   description: z.string().optional().describe("Detailed description of what the action involves"),
   vision: z.string().optional().describe("The desired outcome when the action is complete"),
   action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions, or provide to fetch action data automatically"),
-  limit: z.number().min(1).max(50).default(15).optional().describe("Maximum number of parent suggestions (default: 15)"),
+  limit: z.number().min(1).max(50).default(15).optional().describe("Maximum number of family suggestions (default: 15)"),
   threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold (default: 0.5)"),
   excludeIds: z.array(z.string().uuid()).optional().describe("Action IDs to exclude from suggestions")
 });
 
 // Response schema for documentation
-export interface SuggestParentsResponse {
+export interface SuggestFamilyResponse {
   success: boolean;
   data?: {
     candidates: Array<{
@@ -49,13 +49,13 @@ export interface SuggestParentsResponse {
   error?: string;
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<SuggestParentsResponse>> {
+export async function POST(request: NextRequest): Promise<NextResponse<SuggestFamilyResponse>> {
   const startTime = performance.now();
 
   try {
     // Parse and validate request body
     const body = await request.json();
-    const validatedInput = SuggestParentsRequestSchema.parse(body);
+    const validatedInput = SuggestFamilyRequestSchema.parse(body);
 
     const {
       title,
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
       }, { status: 400 });
     }
 
-    // Use VectorPlacementService to find parent suggestions
-    const result = await VectorPlacementService.findVectorParentSuggestions(
+    // Use VectorPlacementService to find family suggestions
+    const result = await VectorPlacementService.findVectorFamilySuggestions(
       actionData,
       {
         limit,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
     const totalRequestTimeMs = performance.now() - startTime;
 
     // Build response
-    const response: SuggestParentsResponse = {
+    const response: SuggestFamilyResponse = {
       success: true,
       data: {
         candidates: result.candidates,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
     };
 
     // Add performance logging for monitoring
-    console.log(`[/actions/suggest-parents] Request completed in ${totalRequestTimeMs.toFixed(2)}ms`, {
+    console.log(`[/actions/suggest-family] Request completed in ${totalRequestTimeMs.toFixed(2)}ms`, {
       title: actionData.title.substring(0, 50),
       candidatesFound: result.candidates.length,
       threshold,
