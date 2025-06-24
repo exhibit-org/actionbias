@@ -112,12 +112,14 @@ export default function EditableField({ value, placeholder, colors, onSave }: Ed
   };
 
   const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (!e.currentTarget.textContent || e.currentTarget.textContent.includes('Click to add')) {
-      e.currentTarget.textContent = content;
-    }
     setEditing(true);
     e.currentTarget.style.border = `1px solid ${colors.borderAccent}`;
     e.currentTarget.style.backgroundColor = colors.bg;
+    
+    // If showing placeholder, replace with empty content
+    if (e.currentTarget.querySelector('span[style*="italic"]')) {
+      e.currentTarget.textContent = '';
+    }
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
@@ -171,7 +173,7 @@ export default function EditableField({ value, placeholder, colors, onSave }: Ed
           transition: 'all 0.2s ease',
           cursor: 'text'
         }}
-        dangerouslySetInnerHTML={!editing ? { __html: content || `<span style="color: #9CA3AF; font-style: italic;">${placeholder}</span>` } : undefined}
+        dangerouslySetInnerHTML={{ __html: content || `<span style="color: #9CA3AF; font-style: italic;">${placeholder}</span>` }}
       />
       {saving && (
         <div style={{
