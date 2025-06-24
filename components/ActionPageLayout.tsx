@@ -60,10 +60,14 @@ export const ActionPageLayout: React.FC<ActionPageLayoutProps> = ({
             <h3 style={{
               fontSize: '1.125rem',
               fontWeight: '600',
-              color: colors.text,
               margin: '0 0 0.5rem 0'
             }}>
-              ActionBias
+              <a href="/tree" style={{
+                color: colors.text,
+                textDecoration: 'none'
+              }}>
+                ActionBias
+              </a>
             </h3>
             <p style={{
               fontSize: '0.875rem',
