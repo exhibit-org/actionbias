@@ -33,7 +33,7 @@ export const ActionPageLayout: React.FC<ActionPageLayoutProps> = ({
       <div style={{
         flex: 1,
         overflow: 'auto',
-        padding: '2rem 1rem 1rem 1rem',
+        padding: '2rem 1rem 12rem 1rem', // Add bottom padding for sticky footer
       }}>
         <div style={{
           maxWidth: '48rem',
