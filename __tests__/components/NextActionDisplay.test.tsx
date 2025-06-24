@@ -304,6 +304,6 @@ describe('NextActionDisplay', () => {
       expect(screen.getByText('Child 1')).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId('next-child-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('next-family-member-indicator')).toBeInTheDocument();
   });
 });
