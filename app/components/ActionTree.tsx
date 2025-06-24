@@ -114,8 +114,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 color: action.done ? colors.textFaint : colors.text,
-                textDecoration: 'none',
-                flex: 1
+                textDecoration: 'none'
               }}
               onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'underline'}
               onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
@@ -129,16 +128,14 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
                   fontSize: '0.75rem', 
                   color: colors.textSubtle,
                   textDecoration: 'none',
-                  marginLeft: '0.75rem'
+                  marginLeft: '0.5rem'
                 }}
                 onMouseEnter={e => {
                   const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = colors.borderAccent;
                   el.style.textDecoration = 'underline';
                 }}
                 onMouseLeave={e => {
                   const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.color = colors.textSubtle;
                   el.style.textDecoration = 'none';
                 }}
               >
