@@ -1,36 +1,36 @@
-import { GET } from '../../app/api/actions/[id]/parent-context/route';
+import { GET } from '../../app/api/actions/[id]/family-context/route';
 import { ActionsService } from '../../lib/services/actions';
 
 jest.mock('../../lib/services/actions', () => ({
   ActionsService: {
-    getParentContextSummary: jest.fn(),
+    getFamilyContextSummary: jest.fn(),
   },
 }));
 
 const mockedService = ActionsService as jest.Mocked<typeof ActionsService>;
 
-describe('/api/actions/[id]/parent-context', () => {
+describe('/api/actions/[id]/family-context', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('returns synthesized description', async () => {
-    mockedService.getParentContextSummary.mockResolvedValue('parent summary');
+    mockedService.getFamilyContextSummary.mockResolvedValue('parent summary');
 
-    const request = new Request('http://localhost/api/actions/abc/parent-context');
-    const response = await GET(request as any, { params: Promise.resolve({ id: 'abc' }) });
+    const request = new Request('http://localhost/api/actions/123e4567-e89b-12d3-a456-426614174000/family-context');
+    const response = await GET(request as any, { params: Promise.resolve({ id: '123e4567-e89b-12d3-a456-426614174000' }) });
     const data = await response.json();
 
     expect(response.status).toBe(200);
     expect(data).toEqual({ success: true, data: { description: 'parent summary' } });
-    expect(mockedService.getParentContextSummary).toHaveBeenCalledWith('abc');
+    expect(mockedService.getFamilyContextSummary).toHaveBeenCalledWith('123e4567-e89b-12d3-a456-426614174000');
   });
 
   it('handles service errors', async () => {
-    mockedService.getParentContextSummary.mockRejectedValue(new Error('boom'));
+    mockedService.getFamilyContextSummary.mockRejectedValue(new Error('boom'));
 
-    const request = new Request('http://localhost/api/actions/abc/parent-context');
-    const response = await GET(request as any, { params: Promise.resolve({ id: 'abc' }) });
+    const request = new Request('http://localhost/api/actions/456e7890-e89b-12d3-a456-426614174000/family-context');
+    const response = await GET(request as any, { params: Promise.resolve({ id: '456e7890-e89b-12d3-a456-426614174000' }) });
     const data = await response.json();
 
     expect(response.status).toBe(500);

@@ -46,3 +46,4 @@ next-env.d.ts
 custom-adapter-test-*/
 dev.log
 test-*.mjs
+.claude-trace/
