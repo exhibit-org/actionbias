@@ -48,8 +48,8 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
   // Recursive function to render action tree
   const renderAction = (action: any, depth: number = 0): React.ReactNode => {
     // Indent so child triangle aligns with parent text
-    // Parent has: triangle (16px) + gap (0.15rem) + checkmark (16px) + gap (0.15rem)
-    const indentLevel = depth > 0 ? `calc(${depth} * (16px + 0.15rem + 16px + 0.15rem))` : '0';
+    // Parent has: count (2rem) + margin (0.25rem) + triangle (16px) + gap (0.15rem) + checkmark (16px) + gap (0.15rem)
+    const indentLevel = depth > 0 ? `calc(${depth} * (2rem + 0.25rem + 16px + 0.15rem + 16px + 0.15rem))` : '0';
     const hasChildren = action.children && action.children.length > 0;
     const isExpanded = expandedNodes.has(action.id);
     
@@ -63,6 +63,32 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             alignItems: 'center',
             gap: '0.15rem'
           }}>
+            {hasChildren && (
+              <a
+                href={`/tree/${action.id}`}
+                style={{ 
+                  fontSize: '0.75rem', 
+                  color: colors.textSubtle,
+                  textDecoration: 'none',
+                  minWidth: '2rem',
+                  textAlign: 'right',
+                  marginRight: '0.25rem'
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.textDecoration = 'underline';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLAnchorElement;
+                  el.style.textDecoration = 'none';
+                }}
+              >
+                {countAllDescendants(action)}
+              </a>
+            )}
+            {!hasChildren && (
+              <div style={{ minWidth: '2rem', marginRight: '0.25rem' }}></div>
+            )}
             {hasChildren ? (
               <button
                 onClick={() => toggleExpanded(action.id)}
@@ -121,27 +147,6 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             >
               {action.title}
             </a>
-            {hasChildren && (
-              <a
-                href={`/tree/${action.id}`}
-                style={{ 
-                  fontSize: '0.75rem', 
-                  color: colors.textSubtle,
-                  textDecoration: 'none',
-                  marginLeft: '0.5rem'
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLAnchorElement;
-                  el.style.textDecoration = 'none';
-                }}
-              >
-                {countAllDescendants(action)}
-              </a>
-            )}
           </div>
         </div>
         {/* Render children recursively - only if expanded */}
