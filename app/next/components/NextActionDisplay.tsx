@@ -213,10 +213,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     else prompt += `\n`;
     prompt += `# Vision\n`;
     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
-    prompt += `# Context from Parent Chain\n`;
-    prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
-    prompt += `# Broader Vision\n`;
-    prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
+    prompt += `# Context from Family Chain\n`;
+    prompt += `${action.parent_context_summary || 'No family context.'}\n\n`;
+    prompt += `# Broader Family Vision\n`;
+    prompt += `${action.parent_vision_summary || 'No family vision context.'}\n\n`;
     
     // Add completion context from dependencies
     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
@@ -575,7 +575,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              Copy Action Instructions for Codex
+              Copy Action Instructions for Claude Code
             </>
           )}
         </button>
