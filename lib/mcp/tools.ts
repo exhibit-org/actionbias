@@ -74,20 +74,20 @@ export function registerTools(server: any) {
       title: z.string().min(1).describe("The title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      parent_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
+      family_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
       override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
     },
-    async ({ title, description, vision, parent_id, depends_on_ids, override_duplicate_check }: { title: string; description?: string; vision?: string; parent_id: string; depends_on_ids?: string[]; override_duplicate_check?: boolean }, extra: any) => {
+    async ({ title, description, vision, family_id, depends_on_ids, override_duplicate_check }: { title: string; description?: string; vision?: string; family_id: string; depends_on_ids?: string[]; override_duplicate_check?: boolean }, extra: any) => {
       try {
         console.log(`Creating action with title: ${title}`);
         
-        // Validate parent_id exists
+        // Validate family_id exists
         const db = getDb();
-        const familyAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+        const familyAction = await db.select().from(actions).where(eq(actions.id, family_id)).limit(1);
         
         if (familyAction.length === 0) {
-          throw new Error(`Family action with ID ${parent_id} not found. Use suggest_family tool to find a valid family.`);
+          throw new Error(`Family action with ID ${family_id} not found. Use suggest_family tool to find a valid family.`);
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues
@@ -95,7 +95,7 @@ export function registerTools(server: any) {
           title, 
           description, 
           vision, 
-          parent_id, 
+          parent_id: family_id, 
           depends_on_ids,
           override_duplicate_check 
         });
@@ -133,7 +133,7 @@ export function registerTools(server: any) {
         const { action, dependencies_count } = result;
         let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
         
-        message += `\nParent: ${parent_id}`;
+        message += `\nParent: ${family_id}`;
         
         if (dependencies_count > 0) {
           message += `\nDependencies: ${dependencies_count} actions`;
