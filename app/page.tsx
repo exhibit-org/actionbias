@@ -57,8 +57,8 @@ export default function HomePage() {
           
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
             A platform that understands project relationships deeply enough to{' '}
-            <span className="text-gray-900 font-semibold">generate contextually perfect prompts</span>{' '}
-            for AI agents to execute tasks effectively.
+            <span className="text-gray-900 font-semibold">calibrate AI agents precisely</span>{' '}
+            before you set them in motion.
           </p>
 
           <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">
@@ -139,10 +139,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">3</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Perfect prompts, every time</h3>
+            <h3 className="text-xl font-semibold mb-3">Calibrated agents, perfect execution</h3>
             <p className="text-gray-600">
-              When you need to execute, ActionBias generates prompts with 
-              complete context for any AI agent to get it done right.
+              When ready to execute, ActionBias calibrates your AI agents with 
+              complete context, ensuring they're precisely tuned before launch.
             </p>
           </div>
         </div>
