@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Footer from '../components/Footer';
 
 interface FeedItem {
   id: string;
@@ -32,6 +33,15 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [visibilityFilter, setVisibilityFilter] = useState<string>('');
+
+  // Color scheme to match the rest of the app
+  const colors = {
+    border: '#e5e7eb',
+    text: '#111827',
+    textMuted: '#4b5563',
+    textSubtle: '#6b7280',
+    textFaint: '#9ca3af'
+  };
 
   useEffect(() => {
     fetchFeed();
@@ -103,8 +113,9 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Action Feed</h1>
           <p className="text-gray-600">Recent completed actions with their completion stories</p>
@@ -244,5 +255,7 @@ export default function FeedPage() {
         </div>
       </div>
     </div>
+      <Footer colors={colors} />
+    </>
   );
 }
