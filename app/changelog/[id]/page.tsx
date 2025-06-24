@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import ChangelogItem from '@/components/ChangelogItem';
+import Footer from '../../components/Footer';
 import Link from 'next/link';
 
 interface ChangelogData {
@@ -32,6 +33,16 @@ export default function ChangelogItemPage() {
   const [changelogItem, setChangelogItem] = useState<ChangelogData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Color scheme to match the rest of the app
+  const colors = {
+    border: '#e5e7eb',
+    text: '#111827',
+    textMuted: '#4b5563',
+    textSubtle: '#6b7280',
+    textFaint: '#9ca3af'
+  };
 
   useEffect(() => {
     fetchChangelogItem();
@@ -53,6 +64,12 @@ export default function ChangelogItemPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleShare = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -80,37 +97,63 @@ export default function ChangelogItemPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header with navigation */}
-        <div className="mb-8">
-          <Link 
-            href="/feed" 
-            className="text-blue-600 hover:text-blue-800 mb-4 inline-block"
-          >
-            ← Back to Changelog
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Changelog Item</h1>
-          <p className="text-gray-600">Completed action with full context</p>
-        </div>
+    <>
+      <div className="min-h-screen bg-gray-50 pb-48">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {/* Share button at top */}
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={handleShare}
+              className="group relative p-3 hover:bg-gray-100 rounded-full transition-all duration-200"
+              aria-label="Share changelog item"
+            >
+              <svg 
+                className={`w-8 h-8 transition-all duration-300 ${
+                  copied ? 'text-green-600 scale-110' : 'text-gray-600 group-hover:text-gray-800'
+                }`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                {copied ? (
+                  // Checkmark icon when copied
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M5 13l4 4L19 7"
+                  />
+                ) : (
+                  // iOS-style share icon
+                  <>
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.632 4.268C18.114 15.33 18 15.786 18 16.268c0 .482.114.938.316 1.342m0-2.684a3 3 0 110 2.684M12 8v8"
+                    />
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M12 8l-3 3m3-3l3 3"
+                    />
+                  </>
+                )}
+              </svg>
+              {copied && (
+                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-sm text-green-600 font-medium whitespace-nowrap">
+                  Link copied!
+                </span>
+              )}
+            </button>
+          </div>
 
-        {/* Changelog Item */}
-        <ChangelogItem item={changelogItem} />
-
-        {/* Share section */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500 mb-2">Share this changelog item</p>
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              alert('Link copied to clipboard!');
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Copy Link
-          </button>
+          {/* Changelog Item */}
+          <ChangelogItem item={changelogItem} />
         </div>
       </div>
-    </div>
+      <Footer colors={colors} />
+    </>
   );
 }
