@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Logo from '../components/Logo';
 import { ArrowRight, Zap, GitBranch, CheckCircle, ChevronRight } from 'react-feather';
 
 export default function HomePage() {
@@ -25,8 +24,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Logo />
+          <div className="flex items-center">
             <span className="text-xl font-semibold text-gray-900">ActionBias</span>
           </div>
           <nav className="flex items-center space-x-6">
@@ -263,9 +261,8 @@ export default function HomePage() {
       <footer className="border-t border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-2">
-              <Logo />
-              <span className="text-sm text-gray-600">© 2024 ActionBias</span>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600">© 2025 ActionBias</span>
             </div>
             <div className="flex items-center space-x-6 text-sm">
               <a 

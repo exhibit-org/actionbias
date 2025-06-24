@@ -1,68 +1,48 @@
-# ActionBias MCP Server
+# ActionBias
 
-A next-generation **AI-forward planning system** that enables persistent, cross-LLM project management through the Model Context Protocol (MCP). ActionBias transforms ephemeral AI conversations into a durable planning platform where any LLM (Claude, ChatGPT, etc.) can understand context, build upon existing plans, and maintain continuity across sessions.
+**The AI-forward planning platform that calibrates AI agents precisely before you set them in motion.**
 
-**Core Value**: Turn "Hey, save this to the project plan" into a reality that actually works across different AI tools and conversations.
+ActionBias is not just another task manager, but a platform that understands project relationships deeply enough to generate contextually perfect prompts for AI agents. It captures vertical (family) context and lateral (dependency) context, turning your project into a living knowledge graph that any AI can understand.
 
-Built with Next.js, PostgreSQL, Drizzle ORM, and the **Vercel AI SDK** for production-ready scalability and seamless AI integration.
+## Core Value Propositions
 
-## Features
+- **Planning is organic and flexible** - Evolves naturally with your project through AI conversations
+- **Automated execution is rapid and on-target** - Calibrated AI agents execute with complete context
+- **Cross-LLM persistence** - Never lose context between ChatGPT, Claude, or any other AI assistant
+- **Beautiful changelogs** - Share your wins with automatically generated, shareable changelog pages
 
-### Current Capabilities
-- **Hierarchical Action Management**: Create, update, and organize actions with family relationships
-- **Dependency Tracking**: Define and manage complex action dependencies  
-- **Completion Tracking**: Mark actions as done/not done with intelligent filtering
-- **Cross-LLM Persistence**: Maintain planning context across different AI conversations
-- **MCP Integration**: Standardized interface for AI assistants via Model Context Protocol
-- **REST API**: Full HTTP API for programmatic access
-- **Authentication**: OAuth-style token authentication for secure access
+## Key Features
 
-### AI-Forward Roadmap
-- **Auto-Generation**: AI-powered creation of titles, descriptions, and metadata
-- **Intelligent Prompts**: Context-aware guidance for LLMs working with plans
-- **Multi-Tenancy**: Secure organization-based access control and collaboration
-- **Advanced Analytics**: Usage insights and planning optimization recommendations
+### Planning & Organization
+- **Hierarchical Action Management**: Organize actions with family relationships that mirror real project structure
+- **Intelligent Dependency Tracking**: Define what needs to happen before what - AI agents always know the right order
+- **Cross-LLM Persistence**: Your project context works seamlessly across all AI assistants
+- **MCP Integration**: Industry-standard Model Context Protocol for AI tool integration
 
-## Current Roadmap
+### AI-Powered Intelligence
+- **Semantic Action Placement**: AI suggests the perfect family for new actions based on project context
+- **Context-Rich Prompt Generation**: Captures both vertical (family) and lateral (dependency) relationships
+- **Quality Analysis**: Automated scoring and optimization suggestions
+- **Smart Reorganization**: AI-powered hierarchy optimization recommendations
 
-ActionBias follows a structured development approach moving from single-player validation to production-ready distribution:
+### Execution & Sharing
+- **Completion Tracking**: Rich completion stories with implementation details, impact, and learnings
+- **Shareable Changelogs**: Beautiful, viral-ready pages for individual completed actions
+- **Public/Team/Private Visibility**: Control who sees your completion stories
+- **Early Access Signup**: Landing page with email capture for building your waitlist
 
-### 🎯 Cross-LLM Persistent Planning System
-*A planning system where any LLM can understand context, refer to existing plans, add to them intelligently, and maintain continuity across conversations*
+## Quick Start
 
-#### 🏗️ Single-Player Prototype
-- ✅ Core action management with hierarchical relationships  
-- ✅ Dependency tracking and completion status
-- ✅ MCP server integration with standardized tools
-- 🔄 **Understand prompts and integrate into MCP server** (In Progress)
-- 📋 Enhanced AI capabilities and user experience improvements
-
-#### 🚀 AI Forward Initiatives  
-- 📋 **Auto-generation**: AI-powered titles, descriptions, and metadata via Vercel AI SDK
-- 📋 Context-aware prompts for improved LLM interactions
-- 📋 Intelligent planning suggestions and optimizations
-- 📋 Multi-provider LLM support through Vercel AI SDK unified interface
-
-#### 🏢 Broader Distribution
-- 📋 **Authorization & Multi-Tenancy**: JWT authentication, RBAC, organization management
-- 📋 Production monitoring, audit logging, and security hardening
-- 📋 Billing integration and usage analytics
-- 📋 Team collaboration features
-
-*Legend: ✅ Complete | 🔄 In Progress | 📋 Planned*
-
-## Quick Setup
-
-### For Codex/Automated Environments
+### Development Setup
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Automated database setup (no prompts, no Docker)
+# Automated database setup (uses PGlite - no Docker required)
 pnpm db:setup
 
-# Start development (no migrations needed)
+# Start development server
 pnpm dev
 ```
 
@@ -72,112 +52,113 @@ The automated setup uses **PGlite** - PostgreSQL compiled to WebAssembly:
 - ✅ **In-process** - Runs entirely within your application
 - ✅ **Persistent** - Data stored locally in `.pglite/` directory
 
-### Interactive Setup (Manual)
+### Production Deployment
 
-```bash
-# Install dependencies  
-pnpm install
+ActionBias is optimized for **Vercel deployment**:
 
-# Interactive database setup with multiple options
-pnpm db:setup-interactive
+1. Fork the repository
+2. Connect to Vercel
+3. Set environment variables:
+   - `DATABASE_URL` - PostgreSQL connection (Neon, Supabase, etc.)
+   - `REDIS_URL` - Optional, for SSE transport
+   - `OPENAI_API_KEY` - For AI-powered features
+4. Deploy!
 
-# Follow prompts to choose from:
-# - Neon (free tier with branching)
-# - Supabase (free tier)  
-# - Railway (free tier)
-# - Local PostgreSQL
+## MCP Tools Available
 
-# Run migrations and start
-pnpm db:migrate
-pnpm dev
-```
+ActionBias exposes these tools via Model Context Protocol:
 
-### Testing
-
-```bash
-# Tests use the same DATABASE_URL (or can use TEST_DATABASE_URL)
-pnpm test
-
-# Run tests in watch mode  
-pnpm test:watch
-
-# Run tests with coverage
-pnpm test:coverage
-```
-
-## Available Scripts
-
-- `pnpm dev` - Start development server (requires DATABASE_URL)
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm test` - Run tests (requires DATABASE_URL)
-- `pnpm db:migrate` - Run database migrations
-- `pnpm db:setup` - Automated PGlite setup (no prompts, no Docker)
-- `pnpm db:setup-interactive` - Interactive database setup guide
-
-## MCP Tools
-
-The server provides these MCP tools for AI assistants:
-
-- **`create_action`** - Create actions with optional family and dependencies
-- **`update_action`** - Update action title and/or completion status  
-- **`delete_action`** - Delete actions with family member handling options
+- **`create_action`** - Create actions with AI-suggested family placement
+- **`update_action`** - Update action properties
+- **`delete_action`** - Delete with configurable child handling
 - **`add_dependency`** - Create dependency relationships
-- **`remove_dependency`** - Remove dependency relationships
+- **`remove_dependency`** - Remove dependencies
+- **`complete_action`** - Mark complete with rich context stories
+- **`uncomplete_action`** - Reopen completed actions
+- **`join_family`** - Move actions between families
+- **`suggest_family`** - AI-powered family suggestions
+- **`search_actions`** - Semantic + keyword hybrid search
 
 ## MCP Resources
 
-- **`action://list`** - List all actions with pagination and filtering
-- **`action://tree`** - Hierarchical view of actions and relationships
-- **`action://dependencies`** - Dependency graph view
-- **`action://{id}`** - Individual action details with relationships
-
-## API Endpoints
-
-- `GET /api/actions` - List actions
-- `POST /api/actions` - Create action
-- `PUT /api/actions/{id}` - Update action
-- `DELETE /api/actions/{id}` - Delete action
-- `POST /api/actions/family` - Create action within a family
-- `POST /api/actions/dependencies` - Add dependency
-- `DELETE /api/actions/dependencies` - Remove dependency
-
-## Environment Variables
-
-- `DATABASE_URL` - PostgreSQL connection string
-- `REDIS_URL` - Redis connection for SSE transport (optional)
-- `VERCEL_URL` - Deployment URL (auto-set on Vercel)
+- **`action://tree`** - Complete action hierarchy visualization
+- **`action://[id]`** - Individual action details
+- **`action://dependencies/[id]`** - Dependency relationships
+- **`action://next`** - Next recommended action
+- **`actions://`** - List all actions with filtering
 
 ## Architecture
 
-- **Next.js** - Web framework with API routes, optimized for Vercel deployment
-- **Vercel AI SDK** - Unified LLM interface supporting OpenAI, Anthropic, and other providers
-- **PostgreSQL** - Primary database (PGlite for dev, cloud for production)
-- **PGlite** - PostgreSQL in WebAssembly for development (zero dependencies)
+- **Next.js 15** - Modern web framework with App Router
+- **Vercel AI SDK** - Unified interface for all LLM providers
+- **PostgreSQL** - Battle-tested relational database with pgvector
 - **Drizzle ORM** - Type-safe database operations
-- **@vercel/mcp-adapter** - MCP protocol implementation
-- **Zod** - Runtime type validation
+- **React Server Components** - Optimal performance and SEO
+- **Tailwind CSS** - Utility-first styling
+- **TypeScript** - End-to-end type safety
 
-### Database Strategy
-
-PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on family relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
-
-Migration to a dedicated graph database (Neo4j, Amazon Neptune) should only be considered when hitting specific bottlenecks: complex multi-hop queries exceeding 100ms, or requirements for advanced graph algorithms. Migration costs are significant, so PostgreSQL optimization should be exhausted first.
-
-## Deployment
-
-ActionBias is **optimized for Vercel deployment** with first-class support for:
-- **Vercel Functions** - Serverless API routes with optimal performance
-- **Vercel AI SDK** - Native integration for LLM providers and streaming responses
-- **PostgreSQL database** - Neon, Supabase, or other Vercel-compatible providers
-- **Redis** - Optional for SSE transport (Vercel KV recommended)
-- **Automatic migrations** - Database schema updates on deployment
-- **Edge Runtime** - Global distribution for low-latency AI interactions
-
-## Sample Client
-
-Test the MCP server using the included client:
+## Development Workflow
 
 ```bash
-node scripts/test-client.mjs http://localhost:3000
+# Run tests
+pnpm test
+pnpm test:watch
+
+# Database migrations
+pnpm db:migrate
+
+# Type checking & linting
+pnpm typecheck
+pnpm lint
+
+# Build for production
+pnpm build
 ```
+
+## API Endpoints
+
+### Actions
+- `GET /api/actions` - List actions with filtering
+- `POST /api/actions` - Create new action
+- `PUT /api/actions/[id]` - Update action
+- `DELETE /api/actions/[id]` - Delete action
+
+### Completion & Changelog
+- `POST /api/actions/[id]/complete` - Complete with stories
+- `POST /api/actions/[id]/uncomplete` - Reopen action
+- `GET /api/changelog/[id]` - Get changelog item
+- `GET /api/feed` - List changelog feed
+
+### AI Features
+- `POST /api/actions/suggest-family` - Get AI family suggestions
+- `POST /api/actions/search` - Semantic search
+
+## Environment Variables
+
+```bash
+# Required
+DATABASE_URL=postgresql://...
+
+# Optional
+REDIS_URL=redis://...              # For SSE transport
+OPENAI_API_KEY=sk-...             # For AI features
+VERCEL_URL=https://...            # Auto-set on Vercel
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## License
+
+MIT - see [LICENSE](LICENSE) for details.
+
+## Links
+
+- [Homepage](https://actionbias.com)
+- [GitHub](https://github.com/exhibit-org/actionbias)
+- [Documentation](https://github.com/exhibit-org/actionbias/blob/main/README.md)
+
+---
+
+Built by engineers who ship. For engineers who ship.

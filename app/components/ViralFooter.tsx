@@ -109,15 +109,15 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Generates perfect prompts with full project context for AI agents</span>
+                <span>Planning is organic and flexible - evolves naturally with your project</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Captures vertical (family) and lateral (dependency) relationships</span>
+                <span>Automated execution is rapid and on-target with calibrated AI agents</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Works seamlessly with ChatGPT, Claude, and any LLM</span>
+                <span>Cross-LLM persistence - never lose context between conversations</span>
               </li>
             </ul>
           </div>
