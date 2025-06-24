@@ -30,7 +30,7 @@ export function buildActionPrompt(action: ActionDetailResource): string {
   prompt += `# Resource URLs\n`;
   prompt += `- action://tree (full action hierarchy)\n`;
   prompt += `- action://next (current priority action)\n`;
-  prompt += `- action://${action.id} (this action's details)\n\n`;
+  prompt += `- action://item/${action.id} (this action's details)\n\n`;
   prompt += `# Repository Quick Setup\n`;
   prompt += `pnpm install\npnpm db:setup\npnpm dev\n\n`;
   prompt += `Refer to README.md for full details.`;
