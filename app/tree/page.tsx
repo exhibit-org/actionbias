@@ -96,8 +96,9 @@ export default function GlobalTreePage() {
     <>
       <div style={{
         padding: '2rem',
+        paddingBottom: '12rem', // Add extra padding for sticky footer
         fontFamily: 'system-ui, -apple-system, sans-serif',
-        minHeight: '80vh'
+        minHeight: '100vh'
       }}>
         {treeData && treeData.rootActions.length > 0 ? (
           <ActionTree actions={treeData.rootActions} colors={colors} />

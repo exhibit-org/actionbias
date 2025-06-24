@@ -1,19 +1,31 @@
 'use client';
 import { ActionDetailResource, ActionMetadata } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
+import { useState } from 'react';
 
 interface Props {
   action: ActionDetailResource;
   siblings: ActionMetadata[];
   colors: ColorScheme;
-  nextChildId?: string | null;
+  nextFamilyMemberId?: string | null;
 }
 
-export default function ActionNavigation({ action, siblings, colors, nextChildId }: Props) {
-  const hasParents = action.parent_chain && action.parent_chain.length > 0;
-  const hasChildren = action.children && action.children.length > 0;
+export default function ActionNavigation({ action, siblings, colors, nextFamilyMemberId }: Props) {
+  const hasFamily = action.parent_chain && action.parent_chain.length > 0;
+  const hasFamilyMembers = action.children && action.children.length > 0;
   const hasSiblings = siblings && siblings.length > 0;
-  const hasNavigation = hasParents || hasChildren || hasSiblings;
+  const hasNavigation = hasFamily || hasFamilyMembers || hasSiblings;
+  const [copiedId, setCopiedId] = useState(false);
+
+  const copyIdToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(action.id);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 1000);
+    } catch (err) {
+      console.error('Failed to copy action ID:', err);
+    }
+  };
 
   if (!hasNavigation) return (
     <div style={{
@@ -36,8 +48,8 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
         border: `1px solid ${colors.border}`,
         borderRadius: '0.5rem'
       }}>
-        {hasParents && (
-          <div style={{ marginBottom: hasChildren || hasSiblings ? '1rem' : 0 }}>
+        {hasFamily && (
+          <div style={{ marginBottom: hasFamilyMembers || hasSiblings ? '1rem' : 0 }}>
             <div style={{
               fontSize: '0.75rem',
               color: colors.textMuted,
@@ -99,18 +111,18 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
           </div>
         )}
 
-        {hasChildren && (
+        {hasFamilyMembers && (
           <div style={{ marginBottom: hasSiblings ? '1rem' : 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              SUB-TASKS ({action.children.length})
+              ACTIONS IN FAMILY ({action.children.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {action.children.map(child => (
+              {action.children.map(member => (
                 <a
-                  key={child.id}
-                  href={`/${child.id}`}
+                  key={member.id}
+                  href={`/${member.id}`}
                   style={{
-                    color: child.done ? colors.textFaint : colors.text,
+                    color: member.done ? colors.textFaint : colors.text,
                     textDecoration: 'none',
                     fontSize: '0.875rem',
                     padding: '0.5rem',
@@ -135,24 +147,24 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
                     width: '12px',
                     height: '12px',
                     borderRadius: '0.125rem',
-                    backgroundColor: child.done ? colors.borderAccent : 'transparent',
-                    border: `1px solid ${child.done ? colors.borderAccent : colors.border}`,
+                    backgroundColor: member.done ? colors.borderAccent : 'transparent',
+                    border: `1px solid ${member.done ? colors.borderAccent : colors.border}`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0
                   }}>
-                    {child.done && (
+                    {member.done && (
                       <svg style={{ width: '6px', height: '6px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
                   </div>
-                  <span style={{ textDecoration: child.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {child.title}
+                  <span style={{ textDecoration: member.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {member.title}
                   </span>
-                  {nextChildId === child.id && (
-                    <span data-testid="next-child-indicator" style={{ fontSize: '0.625rem', color: colors.borderAccent, fontWeight: 600 }}>
+                  {nextFamilyMemberId === member.id && (
+                    <span data-testid="next-family-member-indicator" style={{ fontSize: '0.625rem', color: colors.borderAccent, fontWeight: 600 }}>
                       Next Action
                     </span>
                   )}
@@ -165,7 +177,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
         {hasSiblings && (
           <div style={{ marginBottom: 0 }}>
             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
-              SIBLINGS ({siblings.length})
+              RELATED ACTIONS ({siblings.length})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {siblings.map(sibling => (
@@ -282,6 +294,39 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
           </svg>
           <span style={{ fontFamily: 'monospace' }}>ID: {action.id}</span>
+          <button 
+            onClick={copyIdToClipboard} 
+            disabled={copiedId}
+            aria-label={copiedId ? "ID copied" : "Copy action ID"}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: colors.textFaint,
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+          >
+            {copiedId ? (
+              <>
+                <svg style={{ width: '12px', height: '12px', color: colors.textFaint }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Copied
+              </>
+            ) : (
+              <>
+                <svg style={{ width: '12px', height: '12px', color: colors.textFaint }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy
+              </>
+            )}
+          </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <svg
@@ -290,7 +335,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span>Created: {new Date(action.created_at).toLocaleDateString()}</span>
         </div>

@@ -13,8 +13,8 @@ export function registerPrompts(server: any) {
       if (action.description) prompt += `${action.description}\n\n`;
       else prompt += `\n`;
       prompt += `# Vision\n${action.vision || 'No vision defined for this action.'}\n\n`;
-      prompt += `# Context from Family Chain\n${action.parent_context_summary || 'No family context.'}\n\n`;
-      prompt += `# Broader Family Vision\n${action.parent_vision_summary || 'No family vision context.'}\n\n`;
+      prompt += `# Context from Family Chain\n${action.family_context_summary || 'No family context.'}\n\n`;
+      prompt += `# Broader Vision\n${action.family_vision_summary || 'No family vision context.'}\n\n`;
 
       if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
         prompt += `# Completion Context from Dependencies\n`;

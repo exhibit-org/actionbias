@@ -69,25 +69,25 @@ export function registerTools(server: any) {
   // create_action - Create a new action
   server.tool(
     "create_action",
-    "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
+    "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
     {
       title: z.string().min(1).describe("The title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      parent_id: z.string().uuid().describe("Required parent action ID to create a child relationship (use suggest_parent tool to find appropriate parent)"),
+      family_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
       override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
     },
-    async ({ title, description, vision, parent_id, depends_on_ids, override_duplicate_check }: { title: string; description?: string; vision?: string; parent_id: string; depends_on_ids?: string[]; override_duplicate_check?: boolean }, extra: any) => {
+    async ({ title, description, vision, family_id, depends_on_ids, override_duplicate_check }: { title: string; description?: string; vision?: string; family_id: string; depends_on_ids?: string[]; override_duplicate_check?: boolean }, extra: any) => {
       try {
         console.log(`Creating action with title: ${title}`);
         
-        // Validate parent_id exists
+        // Validate family_id exists
         const db = getDb();
-        const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+        const familyAction = await db.select().from(actions).where(eq(actions.id, family_id)).limit(1);
         
-        if (parentAction.length === 0) {
-          throw new Error(`Parent action with ID ${parent_id} not found. Use suggest_parent tool to find a valid parent.`);
+        if (familyAction.length === 0) {
+          throw new Error(`Family action with ID ${family_id} not found. Use suggest_family tool to find a valid family.`);
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues
@@ -95,7 +95,7 @@ export function registerTools(server: any) {
           title, 
           description, 
           vision, 
-          parent_id, 
+          parent_id: family_id, 
           depends_on_ids,
           override_duplicate_check 
         });
@@ -133,7 +133,7 @@ export function registerTools(server: any) {
         const { action, dependencies_count } = result;
         let message = `Created action: ${title}\nID: ${action.id}\nCreated: ${action.createdAt}`;
         
-        message += `\nParent: ${parent_id}`;
+        message += `\nParent: ${family_id}`;
         
         if (dependencies_count > 0) {
           message += `\nDependencies: ${dependencies_count} actions`;
@@ -455,29 +455,29 @@ export function registerTools(server: any) {
     },
   );
 
-  // update_parent - Update an action's parent relationship
+  // join_family - Update an action's family relationship
   server.tool(
-    "update_parent",
-    "Update an action's parent relationship by moving it under a new parent or making it a root action",
+    "join_family",
+    "Update an action's family relationship by having it join a new family or making it independent",
     {
-      action_id: z.string().uuid().describe("The ID of the action to reparent"),
-      new_parent_id: z.string().uuid().optional().describe("The ID of the new parent action, or omit to make this a root action"),
+      action_id: z.string().uuid().describe("The ID of the action to move"),
+      new_family_id: z.string().uuid().optional().describe("The ID of the new family action to join, or omit to make this an independent action"),
     },
-    async ({ action_id, new_parent_id }: { action_id: string; new_parent_id?: string }, extra: any) => {
+    async ({ action_id, new_family_id }: { action_id: string; new_family_id?: string }, extra: any) => {
       try {
-        console.log(`Updating parent for action ${action_id} to parent ${new_parent_id || 'none (root action)'}`);
+        console.log(`Updating family for action ${action_id} to family ${new_family_id || 'none (independent action)'}`);
         
         // Call ActionsService directly to avoid HTTP authentication issues
-        const result = await ActionsService.updateParent({
+        const result = await ActionsService.updateFamily({
           action_id,
-          new_parent_id
+          new_family_id: new_family_id
         });
         
-        let message = `Updated parent relationship for action: ${action_id}`;
-        if (new_parent_id) {
-          message += `\nNew parent: ${new_parent_id}`;
+        let message = `Updated family relationship for action: ${action_id}`;
+        if (new_family_id) {
+          message += `\nJoined family: ${new_family_id}`;
         } else {
-          message += `\nAction is now a root action (no parent)`;
+          message += `\nAction is now independent (no family)`;
         }
 
         return {
@@ -489,12 +489,12 @@ export function registerTools(server: any) {
           ],
         };
       } catch (error) {
-        console.error('Error updating parent:', error);
+        console.error('Error updating family:', error);
         return {
           content: [
             {
               type: "text",
-              text: `Error updating parent: ${error instanceof Error ? error.message : "Unknown error"}`,
+              text: `Error updating family: ${error instanceof Error ? error.message : "Unknown error"}`,
             },
           ],
         };
@@ -502,17 +502,17 @@ export function registerTools(server: any) {
     },
   );
 
-  // suggest_parent - Get intelligent placement suggestion for a new action
+  // suggest_family - Get intelligent family suggestion for a new action
   server.tool(
-    "suggest_parent",
-    "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details (title, description, vision) or just an action_id to fetch data automatically.",
+    "suggest_family",
+    "Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details (title, description, vision) or just an action_id to fetch data automatically.",
     {
       title: z.string().default("").describe("The title for the new action (optional if action_id is provided)"),
       description: z.string().optional().describe("Detailed description of what the action involves"),
       vision: z.string().optional().describe("The desired outcome when the action is complete"),
       action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions, or provide to fetch action data automatically"),
       similarity_threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.5). Higher values = stricter matching"),
-      limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of parent suggestions to return (default: 10)"),
+      limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of family suggestions to return (default: 10)"),
     },
     async ({ title = "", description, vision, action_id, similarity_threshold = 0.5, limit = 10 }: { 
       title: string; 
@@ -581,9 +581,9 @@ export function registerTools(server: any) {
           };
         }
         
-        console.log(`Getting vector-based placement suggestion for action: ${actionData.title}`);
+        console.log(`Getting vector-based family suggestion for action: ${actionData.title}`);
         
-        // Use VectorPlacementService to find parent suggestions
+        // Use VectorPlacementService to find family suggestions
         // Ensure all fields are strings (not undefined) for the EmbeddingInput type
         const embeddingInput = {
           title: actionData.title,
@@ -591,7 +591,7 @@ export function registerTools(server: any) {
           vision: actionData.vision || undefined
         };
         
-        const vectorResult = await VectorPlacementService.findVectorParentSuggestions(
+        const vectorResult = await VectorPlacementService.findVectorFamilySuggestions(
           embeddingInput,
           {
             limit,
@@ -602,7 +602,7 @@ export function registerTools(server: any) {
         );
         
         // Debug logging for MCP tool
-        console.log('MCP suggest_parent debug:', {
+        console.log('MCP suggest_family debug:', {
           vectorResultType: typeof vectorResult,
           vectorResultKeys: Object.keys(vectorResult || {}),
           candidatesType: typeof vectorResult?.candidates,
@@ -624,7 +624,7 @@ export function registerTools(server: any) {
           };
         }
         
-        let message = `🔍 **Vector-Based Placement Analysis for:** "${actionData.title}"\n`;
+        let message = `🔍 **Vector-Based Family Analysis for:** "${actionData.title}"\n`;
         if (action_id && (!title || title.trim() === "" || title === "_fetch_")) {
           message += `📄 **Source:** Automatically fetched from action ${action_id}\n`;
         }
@@ -632,7 +632,7 @@ export function registerTools(server: any) {
         message += `🎛️ **Threshold:** Similarity ≥ ${similarity_threshold}\n\n`;
         
         if (vectorResult.candidates.length > 0) {
-          message += `✅ **Found ${vectorResult.candidates.length} Similar Parent Candidates:**\n\n`;
+          message += `✅ **Found ${vectorResult.candidates.length} Similar Family Candidates:**\n\n`;
           
           vectorResult.candidates.forEach((candidate, index) => {
             message += `${index + 1}. **${candidate.title}** (${(candidate.similarity * 100).toFixed(1)}% match)\n`;
@@ -645,10 +645,10 @@ export function registerTools(server: any) {
           });
           
           const bestCandidate = vectorResult.candidates[0];
-          message += `🏆 **Top Recommendation:** Use "${bestCandidate.title}" (ID: ${bestCandidate.id}) as parent\n`;
+          message += `🏆 **Top Recommendation:** Join the "${bestCandidate.title}" family (ID: ${bestCandidate.id})\n`;
           message += `📊 **Match Quality:** ${(bestCandidate.similarity * 100).toFixed(1)}% semantic similarity\n`;
         } else {
-          message += `❌ **No similar parent actions found**\n`;
+          message += `❌ **No similar family actions found**\n`;
           message += `   No existing actions meet the ${(similarity_threshold * 100).toFixed(0)}% similarity threshold\n`;
           message += `💡 **Suggestion:** This action should be created as a root-level action\n`;
           message += `   or consider lowering the similarity threshold to see more options.\n`;
@@ -665,12 +665,12 @@ export function registerTools(server: any) {
           ],
         };
       } catch (error) {
-        console.error('Error getting vector placement suggestion:', error);
+        console.error('Error getting vector family suggestion:', error);
         return {
           content: [
             {
               type: "text",
-              text: `Error getting placement suggestion: ${error instanceof Error ? error.message : "Unknown error"}`,
+              text: `Error getting family suggestion: ${error instanceof Error ? error.message : "Unknown error"}`,
             },
           ],
         };
@@ -802,7 +802,7 @@ export function registerTools(server: any) {
 
 export const toolCapabilities = {
   create_action: {
-    description: "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
+    description: "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
   },
   add_dependency: {
     description: "Create a dependency relationship between two existing actions",
@@ -822,11 +822,11 @@ export const toolCapabilities = {
   uncomplete_action: {
     description: "Mark a completed action as incomplete again (reopens action for further work)",
   },
-  update_parent: {
-    description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
+  join_family: {
+    description: "Update an action's family relationship by having it join a new family or making it independent",
   },
-  suggest_parent: {
-    description: "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
+  suggest_family: {
+    description: "Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
   },
   search_actions: {
     description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",

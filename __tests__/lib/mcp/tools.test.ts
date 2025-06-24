@@ -36,8 +36,8 @@ describe('MCP Tools', () => {
       expect(mockServer.tool).toHaveBeenCalledWith('delete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('remove_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('update_action', expect.any(String), expect.any(Object), expect.any(Function));
-      expect(mockServer.tool).toHaveBeenCalledWith('update_parent', expect.any(String), expect.any(Object), expect.any(Function));
-      expect(mockServer.tool).toHaveBeenCalledWith('suggest_parent', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('join_family', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('suggest_family', expect.any(String), expect.any(Object), expect.any(Function));
     });
   });
 
@@ -48,12 +48,12 @@ describe('MCP Tools', () => {
       expect(toolCapabilities).toHaveProperty('delete_action');
       expect(toolCapabilities).toHaveProperty('remove_dependency');
       expect(toolCapabilities).toHaveProperty('update_action');
-      expect(toolCapabilities).toHaveProperty('update_parent');
-      expect(toolCapabilities).toHaveProperty('suggest_parent');
+      expect(toolCapabilities).toHaveProperty('join_family');
+      expect(toolCapabilities).toHaveProperty('suggest_family');
 
       expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with optional parent and dependencies');
-      expect(toolCapabilities.update_parent.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
-      expect(toolCapabilities.suggest_parent.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
+      expect(toolCapabilities.join_family.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
+      expect(toolCapabilities.suggest_family.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
     });
   });
 
@@ -445,12 +445,12 @@ describe('MCP Tools', () => {
     });
   });
 
-  describe('update_parent tool', () => {
+  describe('join_family tool', () => {
     let updateParentHandler: Function;
 
     beforeEach(() => {
       registerTools(mockServer);
-      const updateParentCall = mockServer.tool.mock.calls.find(call => call[0] === 'update_parent');
+      const updateParentCall = mockServer.tool.mock.calls.find(call => call[0] === 'join_family');
       updateParentHandler = updateParentCall![3];
     });
 
@@ -461,14 +461,14 @@ describe('MCP Tools', () => {
         new_parent_id: 'new-parent',
       };
 
-      mockActionsService.updateParent.mockResolvedValue(mockResult);
+      mockActionsService.updateFamily.mockResolvedValue(mockResult);
 
       const result = await updateParentHandler({
         action_id: 'action-id',
         new_parent_id: 'new-parent',
       }, {});
 
-      expect(mockActionsService.updateParent).toHaveBeenCalledWith({
+      expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
         action_id: 'action-id',
         new_parent_id: 'new-parent',
       });
@@ -484,13 +484,13 @@ describe('MCP Tools', () => {
         new_parent_id: undefined,
       };
 
-      mockActionsService.updateParent.mockResolvedValue(mockResult);
+      mockActionsService.updateFamily.mockResolvedValue(mockResult);
 
       const result = await updateParentHandler({
         action_id: 'action-id',
       }, {});
 
-      expect(mockActionsService.updateParent).toHaveBeenCalledWith({
+      expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
         action_id: 'action-id',
         new_parent_id: undefined,
       });
@@ -499,7 +499,7 @@ describe('MCP Tools', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      mockActionsService.updateParent.mockRejectedValue(new Error('Circular reference'));
+      mockActionsService.updateFamily.mockRejectedValue(new Error('Circular reference'));
 
       const result = await updateParentHandler({
         action_id: 'action-id',

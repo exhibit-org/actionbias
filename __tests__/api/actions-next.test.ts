@@ -43,8 +43,8 @@ describe('/api/actions/next', () => {
       children: [],
       dependencies: [],
       dependents: [],
-      parent_context_summary: 'Test parent context summary',
-      parent_vision_summary: 'Test parent vision summary'
+      family_context_summary: 'Test parent context summary',
+      family_vision_summary: 'Test parent vision summary'
     };
 
     mockedService.getNextAction.mockResolvedValue(mockAction);

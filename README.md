@@ -9,7 +9,7 @@ Built with Next.js, PostgreSQL, Drizzle ORM, and the **Vercel AI SDK** for produ
 ## Features
 
 ### Current Capabilities
-- **Hierarchical Action Management**: Create, update, and organize actions with parent-child relationships
+- **Hierarchical Action Management**: Create, update, and organize actions with family relationships
 - **Dependency Tracking**: Define and manage complex action dependencies  
 - **Completion Tracking**: Mark actions as done/not done with intelligent filtering
 - **Cross-LLM Persistence**: Maintain planning context across different AI conversations
@@ -119,9 +119,9 @@ pnpm test:coverage
 
 The server provides these MCP tools for AI assistants:
 
-- **`create_action`** - Create actions with optional parent and dependencies
+- **`create_action`** - Create actions with optional family and dependencies
 - **`update_action`** - Update action title and/or completion status  
-- **`delete_action`** - Delete actions with child handling options
+- **`delete_action`** - Delete actions with family member handling options
 - **`add_dependency`** - Create dependency relationships
 - **`remove_dependency`** - Remove dependency relationships
 
@@ -138,7 +138,7 @@ The server provides these MCP tools for AI assistants:
 - `POST /api/actions` - Create action
 - `PUT /api/actions/{id}` - Update action
 - `DELETE /api/actions/{id}` - Delete action
-- `POST /api/actions/children` - Create child action
+- `POST /api/actions/family` - Create action within a family
 - `POST /api/actions/dependencies` - Add dependency
 - `DELETE /api/actions/dependencies` - Remove dependency
 
@@ -160,7 +160,7 @@ The server provides these MCP tools for AI assistants:
 
 ### Database Strategy
 
-PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on parent/child relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
+PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on family relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
 
 Migration to a dedicated graph database (Neo4j, Amazon Neptune) should only be considered when hitting specific bottlenecks: complex multi-hop queries exceeding 100ms, or requirements for advanced graph algorithms. Migration costs are significant, so PostgreSQL optimization should be exhausted first.
 

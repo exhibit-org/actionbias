@@ -1,36 +1,12 @@
 @import "tailwindcss";
 
-/* Custom styles inspired by rauchg.com */
+/* Custom styles - light theme only for now */
 :root {
-  --color-bg: #fcfcfc;
+  --color-bg: #ffffff;
   --color-fg: #1c1c1c;
   --color-secondary: #666;
   --color-accent: #0070f3;
   --color-border: #eaeaea;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1c1c1c;
-    --color-fg: #fcfcfc;
-    --color-secondary: #999;
-    --color-accent: #0070f3;
-    --color-border: #333;
-  }
-}
-
-.theme-light {
-  --color-bg: #fcfcfc;
-  --color-fg: #1c1c1c;
-  --color-secondary: #666;
-  --color-border: #eaeaea;
-}
-
-.theme-dark {
-  --color-bg: #1c1c1c;
-  --color-fg: #fcfcfc;
-  --color-secondary: #999;
-  --color-border: #333;
 }
 
 html {
@@ -39,5 +15,6 @@ html {
 }
 
 body {
-  transition: background-color 0.2s ease, color 0.2s ease;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
 }

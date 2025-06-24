@@ -92,7 +92,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
           className={`disclosure-triangle ${hasChildren ? 'has-children' : 'no-children'} ${isExpanded ? 'expanded' : 'collapsed'}`}
           onClick={handleToggleExpanded}
           disabled={!hasChildren}
-          aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No children'}
+          aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No actions in family'}
         >
           {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
         </button>

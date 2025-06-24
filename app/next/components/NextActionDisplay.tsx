@@ -33,7 +33,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [isMobile, setIsMobile] = useState(false);
   const [savingVision, setSavingVision] = useState(false);
   const [savingDescription, setSavingDescription] = useState(false);
-  const [nextChildId, setNextChildId] = useState<string | null>(null);
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [nextFamilyMemberId, setNextFamilyMemberId] = useState<string | null>(null);
   const [showCompletionContext, setShowCompletionContext] = useState(false);
   const [completionContext, setCompletionContext] = useState({
     implementationStory: '',
@@ -89,9 +90,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             if (nextResp.ok) {
               const nextData = await nextResp.json();
               if (nextData.success && nextData.data && nextData.data.parent_id === actionId) {
-                setNextChildId(nextData.data.id);
+                setNextFamilyMemberId(nextData.data.id);
               } else {
-                setNextChildId(null);
+                setNextFamilyMemberId(null);
               }
             }
           } catch (nextErr) {
@@ -153,6 +154,28 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
+  const updateTitle = async (newTitle: string) => {
+    if (!actionData || actionData.title === newTitle) return;
+    try {
+      setSavingTitle(true);
+      setError(null);
+      const response = await fetch(`/api/actions/${actionData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to update title');
+      setActionData(prev => (prev ? { ...prev, title: newTitle } : null));
+    } catch (err) {
+      console.error('Error updating title:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update title');
+    } finally {
+      setSavingTitle(false);
+    }
+  };
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
     checkMobile();
@@ -168,9 +191,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `\n## Vision\n`;
     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
     prompt += `## Broader Context\n`;
-    prompt += `${action.parent_context_summary || 'This action has no parent context.'}\n\n`;
+    prompt += `${action.family_context_summary || 'This action has no family context.'}\n\n`;
     prompt += `## Broader Vision\n`;
-    prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
+    prompt += `${action.family_vision_summary || 'This action has no family vision context.'}\n\n`;
     
     // Add completion context from dependencies
     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
@@ -214,9 +237,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     prompt += `# Vision\n`;
     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
     prompt += `# Context from Family Chain\n`;
-    prompt += `${action.parent_context_summary || 'No family context.'}\n\n`;
-    prompt += `# Broader Family Vision\n`;
-    prompt += `${action.parent_vision_summary || 'No family vision context.'}\n\n`;
+    prompt += `${action.family_context_summary || 'No family context.'}\n\n`;
+    prompt += `# Broader Vision\n`;
+    prompt += `${action.family_vision_summary || 'No family vision context.'}\n\n`;
     
     // Add completion context from dependencies
     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
@@ -493,7 +516,21 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 )
               )}
             </button>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: '600', color: colors.text, margin: 0, flex: 1 }}>{actionData.title}</h2>
+            <div style={{ flex: 1 }}>
+              <EditableField 
+                value={actionData.title} 
+                placeholder="Action title" 
+                colors={colors} 
+                onSave={updateTitle}
+                style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '600', 
+                  color: colors.text,
+                  padding: '0.25rem 0.5rem'
+                }}
+              />
+              {savingTitle && (<div style={{ fontSize: '0.625rem', color: colors.textFaint, marginTop: '0.25rem' }}>Saving...</div>)}
+            </div>
             <button onClick={() => setShowDeleteModal(true)} disabled={deleting} aria-label="Delete Action" style={{ width: '20px', height: '20px', backgroundColor: deleting ? colors.textFaint : colors.surface, border: `2px solid ${deleting ? colors.textFaint : '#dc2626'}`, borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: deleting ? 'not-allowed' : 'pointer', flexShrink: 0, transition: 'all 0.2s ease', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }} onMouseEnter={e => { if (!deleting) { e.currentTarget.style.borderColor = '#b91c1c'; e.currentTarget.style.backgroundColor = '#fef2f2'; e.currentTarget.style.boxShadow = '0 2px 4px 0 rgba(0, 0, 0, 0.1)'; } }} onMouseLeave={e => { if (!deleting) { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)'; } }}>
               {deleting ? (
                 <svg style={{ width: '12px', height: '12px', animation: 'spin 1s linear infinite', color: '#dc2626' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -531,7 +568,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         </div>
         <div style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 3 : 'unset' }}>
           <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textMuted, margin: '0 0 0.75rem 0' }}>Broader Context</h3>
-          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.parent_context_summary || 'This action has no parent context.'}</p>
+          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.family_context_summary || 'This action has no family context.'}</p>
         </div>
         <div style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 4 : 'unset' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -541,7 +578,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             </svg>
             <h3 style={{ fontWeight: '500', color: colors.textMuted, fontSize: '0.875rem', margin: 0 }}>Broader Vision</h3>
           </div>
-          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.parent_vision_summary || 'This action has no parent vision context.'}</p>
+          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.family_vision_summary || 'This action has no family vision context.'}</p>
         </div>
       </div>
       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -580,7 +617,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           )}
         </button>
       </div>
-      <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextChildId={nextChildId} />
+      <ActionNavigation action={actionData} siblings={siblings} colors={colors} nextFamilyMemberId={nextFamilyMemberId} />
 
       {/* Dependent Actions Section */}
       {actionData.dependents && actionData.dependents.length > 0 && (

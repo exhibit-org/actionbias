@@ -17,6 +17,9 @@ export const metadata: Metadata = {
     title: "ActionBias - AI-Forward Planning System",
     description: "AI-forward planning that persists across conversations",
   },
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

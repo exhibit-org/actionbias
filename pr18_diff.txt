@@ -1,0 +1,3380 @@
+diff --git a/README.md b/README.md
+index 85b02c4..a4d5fbe 100644
+--- a/README.md
++++ b/README.md
+@@ -9,7 +9,7 @@ Built with Next.js, PostgreSQL, Drizzle ORM, and the **Vercel AI SDK** for produ
+ ## Features
+ 
+ ### Current Capabilities
+-- **Hierarchical Action Management**: Create, update, and organize actions with parent-child relationships
++- **Hierarchical Action Management**: Create, update, and organize actions with family relationships
+ - **Dependency Tracking**: Define and manage complex action dependencies  
+ - **Completion Tracking**: Mark actions as done/not done with intelligent filtering
+ - **Cross-LLM Persistence**: Maintain planning context across different AI conversations
+@@ -119,9 +119,9 @@ pnpm test:coverage
+ 
+ The server provides these MCP tools for AI assistants:
+ 
+-- **`create_action`** - Create actions with optional parent and dependencies
++- **`create_action`** - Create actions with optional family and dependencies
+ - **`update_action`** - Update action title and/or completion status  
+-- **`delete_action`** - Delete actions with child handling options
++- **`delete_action`** - Delete actions with family member handling options
+ - **`add_dependency`** - Create dependency relationships
+ - **`remove_dependency`** - Remove dependency relationships
+ 
+@@ -138,7 +138,7 @@ The server provides these MCP tools for AI assistants:
+ - `POST /api/actions` - Create action
+ - `PUT /api/actions/{id}` - Update action
+ - `DELETE /api/actions/{id}` - Delete action
+-- `POST /api/actions/children` - Create child action
++- `POST /api/actions/family` - Create action within a family
+ - `POST /api/actions/dependencies` - Add dependency
+ - `DELETE /api/actions/dependencies` - Remove dependency
+ 
+@@ -160,7 +160,7 @@ The server provides these MCP tools for AI assistants:
+ 
+ ### Database Strategy
+ 
+-PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on parent/child relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
++PostgreSQL with recursive CTEs handles hierarchical graphs effectively at moderate scale. The current architecture can be optimized with proper indexing on family relationships, materialized paths or nested sets for deep hierarchies, and advisory locks for concurrent agent coordination.
+ 
+ Migration to a dedicated graph database (Neo4j, Amazon Neptune) should only be considered when hitting specific bottlenecks: complex multi-hop queries exceeding 100ms, or requirements for advanced graph algorithms. Migration costs are significant, so PostgreSQL optimization should be exhausted first.
+ 
+diff --git a/__tests__/api/actions-children.test.ts b/__tests__/api/actions-children.test.ts
+index d64af94..e2ed442 100644
+--- a/__tests__/api/actions-children.test.ts
++++ b/__tests__/api/actions-children.test.ts
+@@ -1,5 +1,5 @@
+ import { NextRequest } from 'next/server';
+-import { POST } from '../../app/api/actions/children/route';
++import { POST } from '../../app/api/actions/family/route';
+ import { ActionsService } from '../../lib/services/actions';
+ 
+ // Mock the ActionsService
+@@ -18,7 +18,7 @@ function createMockRequest(body: any): NextRequest {
+   } as unknown as NextRequest;
+ }
+ 
+-describe('/api/actions/children', () => {
++describe('/api/actions/family', () => {
+   beforeEach(() => {
+     jest.clearAllMocks();
+     jest.spyOn(console, 'error').mockImplementation(() => {});
+@@ -54,7 +54,7 @@ describe('/api/actions/children', () => {
+         }
+       };
+ 
+-      mockActionsService.addChildAction.mockResolvedValue(mockResult);
++      mockActionsService.addFamilyAction.mockResolvedValue(mockResult);
+ 
+       const request = createMockRequest({
+         title: 'Child Action',
+@@ -70,7 +70,7 @@ describe('/api/actions/children', () => {
+         data: mockResult,
+       });
+ 
+-      expect(mockActionsService.addChildAction).toHaveBeenCalledWith({
++      expect(mockActionsService.addFamilyAction).toHaveBeenCalledWith({
+         title: 'Child Action',
+         parent_id: '123e4567-e89b-12d3-a456-426614174000',
+       });
+@@ -87,7 +87,7 @@ describe('/api/actions/children', () => {
+       expect(response.status).toBe(400);
+       expect(data.success).toBe(false);
+       expect(data.error).toContain('Required');
+-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
++      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
+     });
+ 
+     it('should return 400 for empty title', async () => {
+@@ -102,7 +102,7 @@ describe('/api/actions/children', () => {
+       expect(response.status).toBe(400);
+       expect(data.success).toBe(false);
+       expect(data.error).toContain('String must contain at least 1 character(s)');
+-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
++      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
+     });
+ 
+     it('should return 400 for missing parent_id', async () => {
+@@ -116,7 +116,7 @@ describe('/api/actions/children', () => {
+       expect(response.status).toBe(400);
+       expect(data.success).toBe(false);
+       expect(data.error).toContain('Required');
+-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
++      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
+     });
+ 
+     it('should return 400 for invalid parent_id UUID', async () => {
+@@ -131,11 +131,11 @@ describe('/api/actions/children', () => {
+       expect(response.status).toBe(400);
+       expect(data.success).toBe(false);
+       expect(data.error).toContain('Invalid uuid');
+-      expect(mockActionsService.addChildAction).not.toHaveBeenCalled();
++      expect(mockActionsService.addFamilyAction).not.toHaveBeenCalled();
+     });
+ 
+     it('should handle service errors', async () => {
+-      mockActionsService.addChildAction.mockRejectedValue(new Error('Parent action not found'));
++      mockActionsService.addFamilyAction.mockRejectedValue(new Error('Family action not found'));
+ 
+       const request = createMockRequest({
+         title: 'Child Action',
+@@ -147,11 +147,11 @@ describe('/api/actions/children', () => {
+ 
+       expect(response.status).toBe(400);
+       expect(data.success).toBe(false);
+-      expect(data.error).toBe('Parent action not found');
++      expect(data.error).toBe('Family action not found');
+     });
+ 
+     it('should handle non-Error exceptions', async () => {
+-      mockActionsService.addChildAction.mockRejectedValue('String error');
++      mockActionsService.addFamilyAction.mockRejectedValue('String error');
+ 
+       const request = createMockRequest({
+         title: 'Child Action',
+@@ -208,7 +208,7 @@ describe('/api/actions/children', () => {
+         }
+       };
+ 
+-      mockActionsService.addChildAction.mockResolvedValue(mockResult);
++      mockActionsService.addFamilyAction.mockResolvedValue(mockResult);
+ 
+       const request = createMockRequest({
+         title: 'Child Action',
+@@ -222,7 +222,7 @@ describe('/api/actions/children', () => {
+ 
+       expect(response.status).toBe(200);
+       expect(data.success).toBe(true);
+-      expect(mockActionsService.addChildAction).toHaveBeenCalledWith({
++      expect(mockActionsService.addFamilyAction).toHaveBeenCalledWith({
+         title: 'Child Action',
+         description: 'Child description',
+         vision: 'Child vision',
+diff --git a/__tests__/api/actions-next-id.test.ts b/__tests__/api/actions-next-id.test.ts
+index 95066ca..3042847 100644
+--- a/__tests__/api/actions-next-id.test.ts
++++ b/__tests__/api/actions-next-id.test.ts
+@@ -37,8 +37,8 @@ describe('/api/actions/next/[id]', () => {
+       children: [],
+       dependencies: [],
+       dependents: [],
+-      parent_context_summary: 'context',
+-      parent_vision_summary: 'vision',
++      family_context_summary: 'context',
++      family_vision_summary: 'vision',
+     };
+ 
+     mockedService.getNextActionScoped.mockResolvedValue(mockAction as any);
+diff --git a/__tests__/api/actions-next.test.ts b/__tests__/api/actions-next.test.ts
+index 638f5cd..7db3ec2 100644
+--- a/__tests__/api/actions-next.test.ts
++++ b/__tests__/api/actions-next.test.ts
+@@ -43,8 +43,8 @@ describe('/api/actions/next', () => {
+       children: [],
+       dependencies: [],
+       dependents: [],
+-      parent_context_summary: 'Test parent context summary',
+-      parent_vision_summary: 'Test parent vision summary'
++      family_context_summary: 'Test parent context summary',
++      family_vision_summary: 'Test parent vision summary'
+     };
+ 
+     mockedService.getNextAction.mockResolvedValue(mockAction);
+diff --git a/__tests__/lib/mcp/tools.test.ts b/__tests__/lib/mcp/tools.test.ts
+index c3b13f8..13d58f1 100644
+--- a/__tests__/lib/mcp/tools.test.ts
++++ b/__tests__/lib/mcp/tools.test.ts
+@@ -36,8 +36,8 @@ describe('MCP Tools', () => {
+       expect(mockServer.tool).toHaveBeenCalledWith('delete_action', expect.any(String), expect.any(Object), expect.any(Function));
+       expect(mockServer.tool).toHaveBeenCalledWith('remove_dependency', expect.any(String), expect.any(Object), expect.any(Function));
+       expect(mockServer.tool).toHaveBeenCalledWith('update_action', expect.any(String), expect.any(Object), expect.any(Function));
+-      expect(mockServer.tool).toHaveBeenCalledWith('update_parent', expect.any(String), expect.any(Object), expect.any(Function));
+-      expect(mockServer.tool).toHaveBeenCalledWith('suggest_parent', expect.any(String), expect.any(Object), expect.any(Function));
++      expect(mockServer.tool).toHaveBeenCalledWith('join_family', expect.any(String), expect.any(Object), expect.any(Function));
++      expect(mockServer.tool).toHaveBeenCalledWith('suggest_family', expect.any(String), expect.any(Object), expect.any(Function));
+     });
+   });
+ 
+@@ -48,12 +48,12 @@ describe('MCP Tools', () => {
+       expect(toolCapabilities).toHaveProperty('delete_action');
+       expect(toolCapabilities).toHaveProperty('remove_dependency');
+       expect(toolCapabilities).toHaveProperty('update_action');
+-      expect(toolCapabilities).toHaveProperty('update_parent');
+-      expect(toolCapabilities).toHaveProperty('suggest_parent');
++      expect(toolCapabilities).toHaveProperty('join_family');
++      expect(toolCapabilities).toHaveProperty('suggest_family');
+ 
+       expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with optional parent and dependencies');
+-      expect(toolCapabilities.update_parent.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
+-      expect(toolCapabilities.suggest_parent.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
++      expect(toolCapabilities.join_family.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
++      expect(toolCapabilities.suggest_family.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
+     });
+   });
+ 
+@@ -445,12 +445,12 @@ describe('MCP Tools', () => {
+     });
+   });
+ 
+-  describe('update_parent tool', () => {
++  describe('join_family tool', () => {
+     let updateParentHandler: Function;
+ 
+     beforeEach(() => {
+       registerTools(mockServer);
+-      const updateParentCall = mockServer.tool.mock.calls.find(call => call[0] === 'update_parent');
++      const updateParentCall = mockServer.tool.mock.calls.find(call => call[0] === 'join_family');
+       updateParentHandler = updateParentCall![3];
+     });
+ 
+@@ -461,14 +461,14 @@ describe('MCP Tools', () => {
+         new_parent_id: 'new-parent',
+       };
+ 
+-      mockActionsService.updateParent.mockResolvedValue(mockResult);
++      mockActionsService.updateFamily.mockResolvedValue(mockResult);
+ 
+       const result = await updateParentHandler({
+         action_id: 'action-id',
+         new_parent_id: 'new-parent',
+       }, {});
+ 
+-      expect(mockActionsService.updateParent).toHaveBeenCalledWith({
++      expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
+         action_id: 'action-id',
+         new_parent_id: 'new-parent',
+       });
+@@ -484,13 +484,13 @@ describe('MCP Tools', () => {
+         new_parent_id: undefined,
+       };
+ 
+-      mockActionsService.updateParent.mockResolvedValue(mockResult);
++      mockActionsService.updateFamily.mockResolvedValue(mockResult);
+ 
+       const result = await updateParentHandler({
+         action_id: 'action-id',
+       }, {});
+ 
+-      expect(mockActionsService.updateParent).toHaveBeenCalledWith({
++      expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
+         action_id: 'action-id',
+         new_parent_id: undefined,
+       });
+@@ -499,7 +499,7 @@ describe('MCP Tools', () => {
+     });
+ 
+     it('should handle errors gracefully', async () => {
+-      mockActionsService.updateParent.mockRejectedValue(new Error('Circular reference'));
++      mockActionsService.updateFamily.mockRejectedValue(new Error('Circular reference'));
+ 
+       const result = await updateParentHandler({
+         action_id: 'action-id',
+diff --git a/__tests__/mcp/resources.test.ts b/__tests__/mcp/resources.test.ts
+index 2f1c61d..9cd279c 100644
+--- a/__tests__/mcp/resources.test.ts
++++ b/__tests__/mcp/resources.test.ts
+@@ -168,8 +168,8 @@ describe("MCP Resources", () => {
+       children: [],
+       dependencies: [],
+       dependents: [],
+-      parent_context_summary: "test context summary",
+-      parent_vision_summary: "test vision summary"
++      family_context_summary: "test context summary",
++      family_vision_summary: "test vision summary"
+     };
+     mockedService.getNextAction.mockResolvedValue(mockAction);
+     mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
+@@ -181,8 +181,8 @@ describe("MCP Resources", () => {
+     expect(data.id).toBe("123");
+     expect(data.title).toBe("Next Action");
+     expect(data.parent_chain).toEqual([]);
+-    expect(data.parent_context_summary).toBe("test context summary");
+-    expect(data.parent_vision_summary).toBe("test vision summary");
++    expect(data.family_context_summary).toBe("test context summary");
++    expect(data.family_vision_summary).toBe("test vision summary");
+   });
+ 
+ 
+@@ -228,7 +228,7 @@ describe("MCP Resources", () => {
+       typeof call[1] !== 'string'
+     );
+     const handler = detailCall[2];
+-    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", parent_context_summary: "test context", parent_vision_summary: "test vision", dependency_completion_context: []  } as any;
++    const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", family_context_summary: "test context", family_vision_summary: "test vision", dependency_completion_context: []  } as any;
+     const expectedWithSummaries = { ...expected };
+     mockedService.getActionDetailResource.mockResolvedValue(expected);
+     const result = await handler(new URL("action://123"), { id: "123" });
+diff --git a/__tests__/mcp/tools.test.ts b/__tests__/mcp/tools.test.ts
+index 677fa1c..3c332c0 100644
+--- a/__tests__/mcp/tools.test.ts
++++ b/__tests__/mcp/tools.test.ts
+@@ -61,8 +61,8 @@ describe("MCP Tools", () => {
+       "delete_action",
+       "remove_dependency",
+       "update_action",
+-      "update_parent",
+-      "suggest_parent",
++      "join_family",
++      "suggest_family",
+     ]);
+   });
+ 
+diff --git a/__tests__/services/actions-full.test.ts b/__tests__/services/actions-full.test.ts
+index 2d7cc76..70c2958 100644
+--- a/__tests__/services/actions-full.test.ts
++++ b/__tests__/services/actions-full.test.ts
+@@ -176,7 +176,7 @@ describe("ActionsService - Full Coverage", () => {
+       await expect(ActionsService.createAction({
+         title: "Child Action",
+         parent_id: "non-existent"
+-      })).rejects.toThrow("Parent action with ID non-existent not found");
++      })).rejects.toThrow("Family action with ID non-existent not found");
+     });
+ 
+     it("should throw error if dependency not found", async () => {
+@@ -257,7 +257,7 @@ describe("ActionsService - Full Coverage", () => {
+     });
+   });
+ 
+-  describe("addChildAction", () => {
++  describe("addFamilyAction", () => {
+     const mockParent = { id: 'parent-id', data: { title: 'Parent' } };
+     const mockChild = { id: 'child-id', data: { title: 'Child' } };
+     const mockEdge = { src: 'parent-id', dst: 'child-id', kind: 'child' };
+@@ -285,7 +285,7 @@ describe("ActionsService - Full Coverage", () => {
+           }),
+         });
+ 
+-      const result = await ActionsService.addChildAction({
++      const result = await ActionsService.addFamilyAction({
+         title: "Child Action",
+         parent_id: "parent-id"
+       });
+@@ -304,10 +304,10 @@ describe("ActionsService - Full Coverage", () => {
+         }),
+       });
+ 
+-      await expect(ActionsService.addChildAction({
++      await expect(ActionsService.addFamilyAction({
+         title: "Child Action",
+         parent_id: "non-existent"
+-      })).rejects.toThrow("Parent action with ID non-existent not found");
++      })).rejects.toThrow("Family action with ID non-existent not found");
+     });
+   });
+ 
+diff --git a/__tests__/services/parent-summaries.test.ts b/__tests__/services/family-summaries.test.ts
+similarity index 75%
+rename from __tests__/services/parent-summaries.test.ts
+rename to __tests__/services/family-summaries.test.ts
+index 935c662..79eb6d2 100644
+--- a/__tests__/services/parent-summaries.test.ts
++++ b/__tests__/services/family-summaries.test.ts
+@@ -1,5 +1,5 @@
+ import { ActionsService } from '../../lib/services/actions';
+-import { ParentSummaryService } from '../../lib/services/parent-summary';
++import { FamilySummaryService } from '../../lib/services/family-summary';
+ import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
+ import { actions, edges } from '../../db/schema';
+ import { sql } from 'drizzle-orm';
+@@ -37,7 +37,7 @@ describe('Parent Summaries Integration', () => {
+     });
+ 
+     // Generate parent summaries for the child action
+-    const parentChain = await ParentSummaryService.getParentChain(childAction.id);
++    const parentChain = await FamilySummaryService.getParentChain(childAction.id);
+     const summaryInput = {
+       actionId: childAction.id,
+       title: childAction.data?.title || '',
+@@ -49,25 +49,25 @@ describe('Parent Summaries Integration', () => {
+     // Mock the AI calls to avoid needing API keys in tests
+     const mockContextSummary = "Test context summary: This action builds upon the parent vision.";
+     const mockVisionSummary = "Test vision summary: This contributes to the larger project goals.";
+-    await ParentSummaryService.updateParentSummaries(childAction.id, mockContextSummary, mockVisionSummary);
++    await FamilySummaryService.updateFamilySummaries(childAction.id, mockContextSummary, mockVisionSummary);
+ 
+     // Fetch the action detail resource (this is what the web page uses)
+     const actionDetails = await ActionsService.getActionDetailResource(childAction.id);
+ 
+     // Validate that parent summaries are populated and not showing default messages
+-    expect(actionDetails.parent_context_summary).toBeDefined();
+-    expect(actionDetails.parent_context_summary).not.toBe('This action has no parent context.');
+-    expect(actionDetails.parent_context_summary).not.toBe('This action has no parent context');
+-    expect(actionDetails.parent_context_summary).toContain('Parent Action');
++    expect(actionDetails.family_context_summary).toBeDefined();
++    expect(actionDetails.family_context_summary).not.toBe('This action has no parent context.');
++    expect(actionDetails.family_context_summary).not.toBe('This action has no parent context');
++    expect(actionDetails.family_context_summary).toContain('Parent Action');
+ 
+-    expect(actionDetails.parent_vision_summary).toBeDefined();
+-    expect(actionDetails.parent_vision_summary).not.toBe('This action has no parent vision context.');
+-    expect(actionDetails.parent_vision_summary).not.toBe('This action has no parent vision context');
+-    expect(actionDetails.parent_vision_summary).toContain('Child Action');
++    expect(actionDetails.family_vision_summary).toBeDefined();
++    expect(actionDetails.family_vision_summary).not.toBe('This action has no parent vision context.');
++    expect(actionDetails.family_vision_summary).not.toBe('This action has no parent vision context');
++    expect(actionDetails.family_vision_summary).toContain('Child Action');
+ 
+     // Log the actual values for debugging
+-    console.log('Parent context summary:', actionDetails.parent_context_summary);
+-    console.log('Parent vision summary:', actionDetails.parent_vision_summary);
++    console.log('Parent context summary:', actionDetails.family_context_summary);
++    console.log('Parent vision summary:', actionDetails.family_vision_summary);
+   });
+ 
+   test('should show default messages when no parent summaries exist', async () => {
+@@ -82,7 +82,7 @@ describe('Parent Summaries Integration', () => {
+     const actionDetails = await ActionsService.getActionDetailResource(action.id);
+ 
+     // Should show default messages when no parent context exists
+-    expect(actionDetails.parent_context_summary).toBe('This action has no parent context.');
+-    expect(actionDetails.parent_vision_summary).toBe('This action has no parent vision context.');
++    expect(actionDetails.family_context_summary).toBe('This action has no parent context.');
++    expect(actionDetails.family_vision_summary).toBe('This action has no parent vision context.');
+   });
+ });
+\ No newline at end of file
+diff --git a/__tests__/services/parent-summary-async.test.ts b/__tests__/services/family-summary-async.test.ts
+similarity index 88%
+rename from __tests__/services/parent-summary-async.test.ts
+rename to __tests__/services/family-summary-async.test.ts
+index 4ae3b3c..9a0ffab 100644
+--- a/__tests__/services/parent-summary-async.test.ts
++++ b/__tests__/services/family-summary-async.test.ts
+@@ -1,5 +1,5 @@
+ // Test the generateParentSummariesAsync function directly
+-import type { ParentSummaryService } from "../../lib/services/parent-summary";
++import type { FamilySummaryService } from "../../lib/services/family-summary";
+ 
+ // Mock the database and AI services
+ const mockDb = {
+@@ -110,7 +110,7 @@ describe('generateParentSummariesAsync Function', () => {
+     });
+   });
+ 
+-  describe('ParentSummaryService Integration', () => {
++  describe('FamilySummaryService Integration', () => {
+     beforeEach(() => {
+       // Mock successful action lookup
+       const mockQueryBuilder = {
+@@ -126,9 +126,9 @@ describe('generateParentSummariesAsync Function', () => {
+       mockDb.select.mockReturnValue(mockQueryBuilder);
+     });
+ 
+-    it('should call ParentSummaryService methods in correct order', async () => {
+-      // Mock ParentSummaryService
+-      const mockParentSummaryService = {
++    it('should call FamilySummaryService methods in correct order', async () => {
++      // Mock FamilySummaryService
++      const mockFamilySummaryService = {
+         getParentChain: jest.fn().mockResolvedValue([
+           { title: 'Parent 1', description: 'Parent 1 desc', vision: 'Parent 1 vision' },
+           { title: 'Parent 2', description: 'Parent 2 desc', vision: 'Parent 2 vision' }
+@@ -137,12 +137,12 @@ describe('generateParentSummariesAsync Function', () => {
+           contextSummary: 'Generated context summary',
+           visionSummary: 'Generated vision summary'
+         }),
+-        updateParentSummaries: jest.fn().mockResolvedValue(undefined)
++        updateFamilySummaries: jest.fn().mockResolvedValue(undefined)
+       };
+ 
+       // Mock the module
+       jest.doMock("../../lib/services/parent-summary", () => ({
+-        ParentSummaryService: mockParentSummaryService
++        FamilySummaryService: mockFamilySummaryService
+       }));
+ 
+       // Re-import to get updated mocks
+@@ -153,8 +153,8 @@ describe('generateParentSummariesAsync Function', () => {
+         await testFunction('test-action-id');
+ 
+         // Verify service methods called in order
+-        expect(mockParentSummaryService.getParentChain).toHaveBeenCalledWith('test-action-id');
+-        expect(mockParentSummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
++        expect(mockFamilySummaryService.getParentChain).toHaveBeenCalledWith('test-action-id');
++        expect(mockFamilySummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
+           actionId: 'test-action-id',
+           title: 'Test Action',
+           description: 'Test description',
+@@ -164,7 +164,7 @@ describe('generateParentSummariesAsync Function', () => {
+             expect.objectContaining({ title: 'Parent 2' })
+           ])
+         });
+-        expect(mockParentSummaryService.updateParentSummaries).toHaveBeenCalledWith(
++        expect(mockFamilySummaryService.updateFamilySummaries).toHaveBeenCalledWith(
+           'test-action-id',
+           'Generated context summary',
+           'Generated vision summary'
+@@ -177,15 +177,15 @@ describe('generateParentSummariesAsync Function', () => {
+     });
+ 
+     it('should handle service errors gracefully', async () => {
+-      // Mock ParentSummaryService to throw error
+-      const mockParentSummaryService = {
++      // Mock FamilySummaryService to throw error
++      const mockFamilySummaryService = {
+         getParentChain: jest.fn().mockRejectedValue(new Error('Parent chain error')),
+         generateBothParentSummaries: jest.fn(),
+-        updateParentSummaries: jest.fn()
++        updateFamilySummaries: jest.fn()
+       };
+ 
+       jest.doMock("../../lib/services/parent-summary", () => ({
+-        ParentSummaryService: mockParentSummaryService
++        FamilySummaryService: mockFamilySummaryService
+       }));
+ 
+       const actionsModule = await import("../../lib/services/actions");
+@@ -200,8 +200,8 @@ describe('generateParentSummariesAsync Function', () => {
+         );
+ 
+         // Should not call subsequent methods after error
+-        expect(mockParentSummaryService.generateBothParentSummaries).not.toHaveBeenCalled();
+-        expect(mockParentSummaryService.updateParentSummaries).not.toHaveBeenCalled();
++        expect(mockFamilySummaryService.generateBothParentSummaries).not.toHaveBeenCalled();
++        expect(mockFamilySummaryService.updateFamilySummaries).not.toHaveBeenCalled();
+       }
+     });
+ 
+@@ -224,17 +224,17 @@ describe('generateParentSummariesAsync Function', () => {
+       };
+       mockDb.select.mockReturnValue(mockQueryBuilder);
+ 
+-      const mockParentSummaryService = {
++      const mockFamilySummaryService = {
+         getParentChain: jest.fn().mockResolvedValue([]),
+         generateBothParentSummaries: jest.fn().mockResolvedValue({
+           contextSummary: 'Legacy context',
+           visionSummary: 'Legacy vision'
+         }),
+-        updateParentSummaries: jest.fn().mockResolvedValue(undefined)
++        updateFamilySummaries: jest.fn().mockResolvedValue(undefined)
+       };
+ 
+       jest.doMock("../../lib/services/parent-summary", () => ({
+-        ParentSummaryService: mockParentSummaryService
++        FamilySummaryService: mockFamilySummaryService
+       }));
+ 
+       const actionsModule = await import("../../lib/services/actions");
+@@ -243,7 +243,7 @@ describe('generateParentSummariesAsync Function', () => {
+       if (testFunction) {
+         await testFunction('legacy-action-id');
+ 
+-        expect(mockParentSummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
++        expect(mockFamilySummaryService.generateBothParentSummaries).toHaveBeenCalledWith({
+           actionId: 'legacy-action-id',
+           title: 'Legacy Title',
+           description: 'Legacy Description',
+@@ -285,14 +285,14 @@ describe('generateParentSummariesAsync Function', () => {
+       mockDb.select.mockReturnValue(mockQueryBuilder);
+ 
+       // Mock AI service timeout
+-      const mockParentSummaryService = {
++      const mockFamilySummaryService = {
+         getParentChain: jest.fn().mockResolvedValue([]),
+         generateBothParentSummaries: jest.fn().mockRejectedValue(new Error('Request timeout')),
+-        updateParentSummaries: jest.fn()
++        updateFamilySummaries: jest.fn()
+       };
+ 
+       jest.doMock("../../lib/services/parent-summary", () => ({
+-        ParentSummaryService: mockParentSummaryService
++        FamilySummaryService: mockFamilySummaryService
+       }));
+ 
+       const actionsModule = await import("../../lib/services/actions");
+diff --git a/__tests__/services/field-mapping.test.ts b/__tests__/services/field-mapping.test.ts
+index fd1f4d3..a524fbe 100644
+--- a/__tests__/services/field-mapping.test.ts
++++ b/__tests__/services/field-mapping.test.ts
+@@ -33,10 +33,10 @@ describe('Database Field Mapping', () => {
+       
+       // Check if parent summaries are available
+       console.log('📊 parentContextSummary (camelCase):', action.parentContextSummary);
+-      console.log('📊 parent_context_summary (snake_case):', (action as any).parent_context_summary);
++      console.log('📊 family_context_summary (snake_case):', (action as any).family_context_summary);
+       
+       console.log('📊 parentVisionSummary (camelCase):', action.parentVisionSummary);
+-      console.log('📊 parent_vision_summary (snake_case):', (action as any).parent_vision_summary);
++      console.log('📊 family_vision_summary (snake_case):', (action as any).family_vision_summary);
+     } else {
+       console.log('📊 No existing actions found');
+     }
+@@ -53,9 +53,9 @@ describe('Database Field Mapping', () => {
+     // Try a raw SQL query to see the actual column names
+     try {
+       const rawResult = await db.execute(sql`
+-        SELECT id, title, parent_context_summary, parent_vision_summary 
++        SELECT id, title, family_context_summary, family_vision_summary 
+         FROM actions 
+-        WHERE parent_context_summary IS NOT NULL 
++        WHERE family_context_summary IS NOT NULL 
+         LIMIT 1
+       `);
+       
+diff --git a/app/api/actions/[id]/parent-context/route.ts b/app/api/actions/[id]/family-context/route.ts
+similarity index 88%
+rename from app/api/actions/[id]/parent-context/route.ts
+rename to app/api/actions/[id]/family-context/route.ts
+index 7499215..c26d3a6 100644
+--- a/app/api/actions/[id]/parent-context/route.ts
++++ b/app/api/actions/[id]/family-context/route.ts
+@@ -21,14 +21,14 @@ export async function GET(
+       );
+     }
+     
+-    const description = await ActionsService.getParentContextSummary(actionId);
++    const description = await ActionsService.getFamilyContextSummary(actionId);
+ 
+     return NextResponse.json({
+       success: true,
+       data: { description }
+     });
+   } catch (error) {
+-    console.error('Error generating parent-context summary:', error);
++    console.error('Error generating family-context summary:', error);
+     return NextResponse.json(
+       {
+         success: false,
+diff --git a/app/api/actions/[id]/parent-vision/route.ts b/app/api/actions/[id]/family-vision/route.ts
+similarity index 88%
+rename from app/api/actions/[id]/parent-vision/route.ts
+rename to app/api/actions/[id]/family-vision/route.ts
+index cf09cfb..991d8de 100644
+--- a/app/api/actions/[id]/parent-vision/route.ts
++++ b/app/api/actions/[id]/family-vision/route.ts
+@@ -21,14 +21,14 @@ export async function GET(
+       );
+     }
+     
+-    const vision = await ActionsService.getParentVisionSummary(actionId);
++    const vision = await ActionsService.getFamilyVisionSummary(actionId);
+ 
+     return NextResponse.json({
+       success: true,
+       data: { vision }
+     });
+   } catch (error) {
+-    console.error('Error generating parent-vision summary:', error);
++    console.error('Error generating family-vision summary:', error);
+     return NextResponse.json(
+       {
+         success: false,
+diff --git a/app/api/actions/[id]/route.ts b/app/api/actions/[id]/route.ts
+index f1b5bcf..5cb7e2e 100644
+--- a/app/api/actions/[id]/route.ts
++++ b/app/api/actions/[id]/route.ts
+@@ -40,12 +40,12 @@ export async function GET(
+     // Get the detailed action data with relationships
+     const actionDetails = await ActionsService.getActionDetailResource(actionId);
+     
+-    // Parent summaries are now read directly from database columns
+-    // (they're automatically generated and regenerated by the ParentSummaryService)
++    // Family summaries are now read directly from database columns
++    // (they're automatically generated and regenerated by the FamilySummaryService)
+     const enhancedActionDetails = {
+       ...actionDetails,
+-      parent_context_summary: actionDetails.parent_context_summary || 'This action has no parent context.',
+-      parent_vision_summary: actionDetails.parent_vision_summary || 'This action has no parent vision context.'
++      family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
++      family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.'
+     };
+     
+     return NextResponse.json({
+diff --git a/app/api/actions/children/route.ts b/app/api/actions/family/route.ts
+similarity index 75%
+rename from app/api/actions/children/route.ts
+rename to app/api/actions/family/route.ts
+index 88ca2a6..1caa523 100644
+--- a/app/api/actions/children/route.ts
++++ b/app/api/actions/family/route.ts
+@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
+ import { z } from "zod";
+ import { ActionsService } from "../../../../lib/services/actions";
+ 
+-const addChildActionSchema = z.object({
++const addFamilyActionSchema = z.object({
+   title: z.string().min(1),
+   description: z.string().optional(),
+   vision: z.string().optional(),
+@@ -12,16 +12,16 @@ const addChildActionSchema = z.object({
+ export async function POST(request: NextRequest) {
+   try {
+     const body = await request.json();
+-    const params = addChildActionSchema.parse(body);
++    const params = addFamilyActionSchema.parse(body);
+     
+-    const result = await ActionsService.addChildAction(params);
++    const result = await ActionsService.addFamilyAction(params);
+     
+     return NextResponse.json({
+       success: true,
+       data: result
+     });
+   } catch (error) {
+-    console.error('Error creating child action:', error);
++    console.error('Error creating family action:', error);
+     return NextResponse.json(
+       {
+         success: false,
+diff --git a/app/api/actions/next/[id]/route.ts b/app/api/actions/next/[id]/route.ts
+index 8a18812..7b4b077 100644
+--- a/app/api/actions/next/[id]/route.ts
++++ b/app/api/actions/next/[id]/route.ts
+@@ -34,8 +34,8 @@ export async function GET(
+ 
+     const enhancedActionDetails = {
+       ...actionDetails,
+-      parent_context_summary: actionDetails.parent_context_summary || 'This action has no parent context.',
+-      parent_vision_summary: actionDetails.parent_vision_summary || 'This action has no parent vision context.'
++      family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
++      family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.'
+     };
+ 
+     return NextResponse.json({
+diff --git a/app/api/actions/next/route.ts b/app/api/actions/next/route.ts
+index 3e6049e..13916a9 100644
+--- a/app/api/actions/next/route.ts
++++ b/app/api/actions/next/route.ts
+@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
+     // Get the detailed action data with relationships
+     const actionDetails = await ActionsService.getActionDetailResource(nextAction.id);
+     
+-    // Parent summaries are read directly from database columns
+-    // (they're automatically generated and regenerated by the ParentSummaryService)
++    // Family summaries are read directly from database columns
++    // (they're automatically generated and regenerated by the FamilySummaryService)
+     const enhancedActionDetails = {
+       ...actionDetails,
+-      parent_context_summary: actionDetails.parent_context_summary || 'This action has no parent context.',
+-      parent_vision_summary: actionDetails.parent_vision_summary || 'This action has no parent vision context.'
++      family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
++      family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.'
+     };
+     
+     return NextResponse.json({
+diff --git a/app/api/actions/suggest-parents/route.ts b/app/api/actions/suggest-family/route.ts
+similarity index 93%
+rename from app/api/actions/suggest-parents/route.ts
+rename to app/api/actions/suggest-family/route.ts
+index 9416b0a..d808937 100644
+--- a/app/api/actions/suggest-parents/route.ts
++++ b/app/api/actions/suggest-family/route.ts
+@@ -1,5 +1,5 @@
+ /**
+- * /actions/suggest-parents endpoint
++ * /actions/suggest-family endpoint
+  * 
+  * Accept {title, description}, embed, K-NN search, return list with similarity scores & paths.
+  * Stable JSON schema; monitored latency < 100 ms P95.
+@@ -13,18 +13,18 @@ import { actions } from '../../../../db/schema';
+ import { eq } from 'drizzle-orm';
+ 
+ // Request schema
+-const SuggestParentsRequestSchema = z.object({
++const SuggestFamilyRequestSchema = z.object({
+   title: z.string().default("").describe("The title for the new action (optional if action_id is provided)"),
+   description: z.string().optional().describe("Detailed description of what the action involves"),
+   vision: z.string().optional().describe("The desired outcome when the action is complete"),
+   action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions, or provide to fetch action data automatically"),
+-  limit: z.number().min(1).max(50).default(15).optional().describe("Maximum number of parent suggestions (default: 15)"),
++  limit: z.number().min(1).max(50).default(15).optional().describe("Maximum number of family suggestions (default: 15)"),
+   threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold (default: 0.5)"),
+   excludeIds: z.array(z.string().uuid()).optional().describe("Action IDs to exclude from suggestions")
+ });
+ 
+ // Response schema for documentation
+-export interface SuggestParentsResponse {
++export interface SuggestFamilyResponse {
+   success: boolean;
+   data?: {
+     candidates: Array<{
+@@ -49,13 +49,13 @@ export interface SuggestParentsResponse {
+   error?: string;
+ }
+ 
+-export async function POST(request: NextRequest): Promise<NextResponse<SuggestParentsResponse>> {
++export async function POST(request: NextRequest): Promise<NextResponse<SuggestFamilyResponse>> {
+   const startTime = performance.now();
+ 
+   try {
+     // Parse and validate request body
+     const body = await request.json();
+-    const validatedInput = SuggestParentsRequestSchema.parse(body);
++    const validatedInput = SuggestFamilyRequestSchema.parse(body);
+ 
+     const {
+       title,
+@@ -109,8 +109,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
+       }, { status: 400 });
+     }
+ 
+-    // Use VectorPlacementService to find parent suggestions
+-    const result = await VectorPlacementService.findVectorParentSuggestions(
++    // Use VectorPlacementService to find family suggestions
++    const result = await VectorPlacementService.findVectorFamilySuggestions(
+       actionData,
+       {
+         limit,
+@@ -123,7 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
+     const totalRequestTimeMs = performance.now() - startTime;
+ 
+     // Build response
+-    const response: SuggestParentsResponse = {
++    const response: SuggestFamilyResponse = {
+       success: true,
+       data: {
+         candidates: result.candidates,
+@@ -143,7 +143,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SuggestPa
+     };
+ 
+     // Add performance logging for monitoring
+-    console.log(`[/actions/suggest-parents] Request completed in ${totalRequestTimeMs.toFixed(2)}ms`, {
++    console.log(`[/actions/suggest-family] Request completed in ${totalRequestTimeMs.toFixed(2)}ms`, {
+       title: actionData.title.substring(0, 50),
+       candidatesFound: result.candidates.length,
+       threshold,
+diff --git a/app/api/cron/parent-summaries/route.ts b/app/api/cron/family-summaries/route.ts
+similarity index 58%
+rename from app/api/cron/parent-summaries/route.ts
+rename to app/api/cron/family-summaries/route.ts
+index a9da83d..c0bcec1 100644
+--- a/app/api/cron/parent-summaries/route.ts
++++ b/app/api/cron/family-summaries/route.ts
+@@ -1,5 +1,5 @@
+ import { NextRequest, NextResponse } from 'next/server';
+-import { ParentSummaryService } from '../../../../lib/services/parent-summary';
++import { FamilySummaryService } from '../../../../lib/services/family-summary';
+ 
+ export const runtime = 'nodejs';
+ export const maxDuration = 800; // 800 seconds for Pro/Enterprise accounts
+@@ -13,52 +13,52 @@ export async function GET(request: NextRequest) {
+   }
+ 
+   try {
+-    console.log('Starting parent summaries cron job...');
++    console.log('Starting family summaries cron job...');
+     
+-    // Get actions without parent summaries (limit to 20 per run due to complexity)
+-    const actionsWithoutParentSummaries = await ParentSummaryService.getActionsWithoutParentSummaries(20);
++    // Get actions without family summaries (limit to 20 per run due to complexity)
++    const actionsWithoutFamilySummaries = await FamilySummaryService.getActionsWithoutFamilySummaries(20);
+     
+-    if (actionsWithoutParentSummaries.length === 0) {
+-      console.log('No actions need parent summaries');
++    if (actionsWithoutFamilySummaries.length === 0) {
++      console.log('No actions need family summaries');
+       return NextResponse.json({ 
+         success: true, 
+-        message: 'No actions need parent summaries',
++        message: 'No actions need family summaries',
+         processed: 0
+       });
+     }
+ 
+-    console.log(`Found ${actionsWithoutParentSummaries.length} actions without parent summaries`);
++    console.log(`Found ${actionsWithoutFamilySummaries.length} actions without family summaries`);
+ 
+-    // Process in batches of 2 to avoid API rate limits (parent summaries are complex with long prompts)
++    // Process in batches of 2 to avoid API rate limits (family summaries are complex with long prompts)
+     const batchSize = 2;
+     let totalProcessed = 0;
+     
+-    for (let i = 0; i < actionsWithoutParentSummaries.length; i += batchSize) {
+-      const batch = actionsWithoutParentSummaries.slice(i, i + batchSize);
++    for (let i = 0; i < actionsWithoutFamilySummaries.length; i += batchSize) {
++      const batch = actionsWithoutFamilySummaries.slice(i, i + batchSize);
+       console.log(`Processing batch ${Math.floor(i / batchSize) + 1}: ${batch.length} actions`);
+       
+       try {
+-        // Generate parent summaries for this batch
+-        const summaryResults = await ParentSummaryService.generateBatchParentSummaries(batch);
++        // Generate family summaries for this batch
++        const summaryResults = await FamilySummaryService.generateBatchFamilySummaries(batch);
+         
+         // Store each summary
+         for (const result of summaryResults) {
+           try {
+-            await ParentSummaryService.updateParentSummaries(
++            await FamilySummaryService.updateFamilySummaries(
+               result.id, 
+               result.contextSummary, 
+               result.visionSummary
+             );
+             totalProcessed++;
+           } catch (error) {
+-            console.error(`Failed to store parent summaries for action ${result.id}:`, error);
++            console.error(`Failed to store family summaries for action ${result.id}:`, error);
+           }
+         }
+         
+-        console.log(`Completed batch ${Math.floor(i / batchSize) + 1}: processed ${summaryResults.length} parent summaries`);
++        console.log(`Completed batch ${Math.floor(i / batchSize) + 1}: processed ${summaryResults.length} family summaries`);
+         
+         // Small delay between batches to be respectful to API limits
+-        if (i + batchSize < actionsWithoutParentSummaries.length) {
++        if (i + batchSize < actionsWithoutFamilySummaries.length) {
+           await new Promise(resolve => setTimeout(resolve, 500));
+         }
+       } catch (error) {
+@@ -70,18 +70,18 @@ export async function GET(request: NextRequest) {
+     // Get updated stats (with error handling)
+     let stats;
+     try {
+-      stats = await ParentSummaryService.getParentSummaryStats();
++      stats = await FamilySummaryService.getFamilySummaryStats();
+     } catch (error) {
+-      console.error('Failed to get parent summary stats:', error);
++      console.error('Failed to get family summary stats:', error);
+       stats = {
+         totalActions: 0,
+-        actionsWithParentSummaries: 0,
+-        actionsWithoutParentSummaries: 0,
++        actionsWithFamilySummaries: 0,
++        actionsWithoutFamilySummaries: 0,
+         coveragePercentage: 0
+       };
+     }
+     
+-    console.log(`Parent summaries cron job completed. Processed: ${totalProcessed}, Stats:`, stats);
++    console.log(`Family summaries cron job completed. Processed: ${totalProcessed}, Stats:`, stats);
+     
+     return NextResponse.json({
+       success: true,
+@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
+     });
+ 
+   } catch (error) {
+-    console.error('Parent summaries cron job failed:', error);
++    console.error('Family summaries cron job failed:', error);
+     return NextResponse.json(
+       { 
+         error: 'Internal server error',
+diff --git a/app/api/debug/check-db/route.ts b/app/api/debug/check-db/route.ts
+index c300e98..634e216 100644
+--- a/app/api/debug/check-db/route.ts
++++ b/app/api/debug/check-db/route.ts
+@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
+       .select({
+         id: actions.id,
+         title: actions.title,
+-        parent_context_summary: actions.parentContextSummary,
+-        parent_vision_summary: actions.parentVisionSummary
++        family_context_summary: actions.familyContextSummary,
++        family_vision_summary: actions.familyVisionSummary
+       })
+       .from(actions)
+       .where(eq(actions.id, actionId))
+diff --git a/app/api/debug/force-generate/route.ts b/app/api/debug/force-generate/route.ts
+index 3b0302b..d244c95 100644
+--- a/app/api/debug/force-generate/route.ts
++++ b/app/api/debug/force-generate/route.ts
+@@ -1,5 +1,5 @@
+ import { NextRequest, NextResponse } from 'next/server';
+-import { ParentSummaryService } from '../../../../lib/services/parent-summary';
++import { FamilySummaryService } from '../../../../lib/services/family-summary';
+ 
+ export const runtime = 'nodejs';
+ export const maxDuration = 800;
+@@ -9,11 +9,11 @@ export async function GET(request: NextRequest) {
+     const { searchParams } = new URL(request.url);
+     const actionId = searchParams.get('actionId') || 'fc37de88-37ae-41d2-84f7-5bb230fac631';
+     
+-    console.log(`Forcing parent summary generation for action: ${actionId}`);
++    console.log(`Forcing family summary generation for action: ${actionId}`);
+     
+     // Get the action details
+-    const parentChain = await ParentSummaryService.getParentChain(actionId);
+-    console.log(`Parent chain length: ${parentChain.length}`);
++    const familyChain = await FamilySummaryService.getFamilyChain(actionId);
++    console.log(`Family chain length: ${familyChain.length}`);
+     
+     // Build the input
+     const input = {
+@@ -21,19 +21,19 @@ export async function GET(request: NextRequest) {
+       title: 'Test the completion context capture UI',
+       description: 'Complete this test action to validate the completion context capture UI works properly.',
+       vision: 'A working demonstration of the completion context system.',
+-      parentChain: parentChain
++      familyChain: familyChain
+     };
+     
+-    console.log('Generating parent summaries...');
+-    const { contextSummary, visionSummary } = await ParentSummaryService.generateBothParentSummaries(input);
++    console.log('Generating family summaries...');
++    const { contextSummary, visionSummary } = await FamilySummaryService.generateBothFamilySummaries(input);
+     
+     console.log(`Generated context summary length: ${contextSummary.length}`);
+     console.log(`Generated vision summary length: ${visionSummary.length}`);
+     
+     console.log('Updating database...');
+-    await ParentSummaryService.updateParentSummaries(actionId, contextSummary, visionSummary);
++    await FamilySummaryService.updateFamilySummaries(actionId, contextSummary, visionSummary);
+     
+-    console.log('Successfully updated parent summaries');
++    console.log('Successfully updated family summaries');
+     
+     return NextResponse.json({
+       success: true,
+@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
+     });
+     
+   } catch (error) {
+-    console.error('Error forcing parent summary generation:', error);
++    console.error('Error forcing family summary generation:', error);
+     return NextResponse.json({
+       success: false,
+       error: error instanceof Error ? error.message : 'Unknown error',
+diff --git a/app/api/debug/query-test/route.ts b/app/api/debug/query-test/route.ts
+index 3da174b..4826bed 100644
+--- a/app/api/debug/query-test/route.ts
++++ b/app/api/debug/query-test/route.ts
+@@ -9,17 +9,17 @@ export async function GET(request: NextRequest) {
+   try {
+     const db = getDb();
+     
+-    // Run the exact same query as getActionsWithoutParentSummaries
++    // Run the exact same query as getActionsWithoutFamilySummaries
+     const results = await db.execute(sql`
+       SELECT 
+         id,
+         COALESCE(title, data->>'title') as title,
+         COALESCE(description, data->>'description') as description,
+         COALESCE(vision, data->>'vision') as vision,
+-        parent_context_summary,
+-        parent_vision_summary
++        family_context_summary,
++        family_vision_summary
+       FROM ${actions}
+-      WHERE (parent_context_summary IS NULL OR parent_vision_summary IS NULL)
++      WHERE (family_context_summary IS NULL OR family_vision_summary IS NULL)
+         AND COALESCE(title, data->>'title') IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT 20
+diff --git a/app/api/debug/query-test2/route.ts b/app/api/debug/query-test2/route.ts
+index 16c0744..35bec99 100644
+--- a/app/api/debug/query-test2/route.ts
++++ b/app/api/debug/query-test2/route.ts
+@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
+         id,
+         title,
+         data,
+-        parent_context_summary,
+-        parent_vision_summary,
++        family_context_summary,
++        family_vision_summary,
+         COALESCE(title, data->>'title') as coalesced_title
+       FROM ${actions}
+       WHERE id = 'fc37de88-37ae-41d2-84f7-5bb230fac631'
+@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
+       SELECT 
+         id,
+         title,
+-        parent_context_summary,
+-        parent_vision_summary,
+-        (parent_context_summary IS NULL) as context_is_null,
+-        (parent_vision_summary IS NULL) as vision_is_null,
+-        (parent_context_summary IS NULL OR parent_vision_summary IS NULL) as null_condition,
++        family_context_summary,
++        family_vision_summary,
++        (family_context_summary IS NULL) as context_is_null,
++        (family_vision_summary IS NULL) as vision_is_null,
++        (family_context_summary IS NULL OR family_vision_summary IS NULL) as null_condition,
+         COALESCE(title, data->>'title') as coalesced_title,
+         (COALESCE(title, data->>'title') IS NOT NULL) as title_condition
+       FROM ${actions}
+@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
+       targetAction,
+       conditionTest,
+       explanation: {
+-        shouldMatch: "Action should match if: (parent_context_summary IS NULL OR parent_vision_summary IS NULL) AND COALESCE(title, data->>'title') IS NOT NULL"
++        shouldMatch: "Action should match if: (family_context_summary IS NULL OR family_vision_summary IS NULL) AND COALESCE(title, data->>'title') IS NOT NULL"
+       }
+     });
+     
+diff --git a/app/api/debug/raw-response/route.ts b/app/api/debug/raw-response/route.ts
+index 736ebf9..3205c0a 100644
+--- a/app/api/debug/raw-response/route.ts
++++ b/app/api/debug/raw-response/route.ts
+@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
+       SELECT 
+         id,
+         title,
+-        parent_context_summary,
+-        parent_vision_summary
++        family_context_summary,
++        family_vision_summary
+       FROM ${actions}
+       WHERE id = 'fc37de88-37ae-41d2-84f7-5bb230fac631'
+     `);
+diff --git a/app/next/components/ActionNavigation.tsx b/app/next/components/ActionNavigation.tsx
+index 41c1b7f..6ca9d77 100644
+--- a/app/next/components/ActionNavigation.tsx
++++ b/app/next/components/ActionNavigation.tsx
+@@ -10,10 +10,10 @@ interface Props {
+ }
+ 
+ export default function ActionNavigation({ action, siblings, colors, nextChildId }: Props) {
+-  const hasParents = action.parent_chain && action.parent_chain.length > 0;
++  const hasFamily = action.parent_chain && action.parent_chain.length > 0;
+   const hasChildren = action.children && action.children.length > 0;
+   const hasSiblings = siblings && siblings.length > 0;
+-  const hasNavigation = hasParents || hasChildren || hasSiblings;
++  const hasNavigation = hasFamily || hasChildren || hasSiblings;
+ 
+   if (!hasNavigation) return (
+     <div style={{
+@@ -36,7 +36,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
+         border: `1px solid ${colors.border}`,
+         borderRadius: '0.5rem'
+       }}>
+-        {hasParents && (
++        {hasFamily && (
+           <div style={{ marginBottom: hasChildren || hasSiblings ? '1rem' : 0 }}>
+             <div style={{
+               fontSize: '0.75rem',
+@@ -102,7 +102,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
+         {hasChildren && (
+           <div style={{ marginBottom: hasSiblings ? '1rem' : 0 }}>
+             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
+-              SUB-TASKS ({action.children.length})
++              ACTIONS IN FAMILY ({action.children.length})
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+               {action.children.map(child => (
+@@ -165,7 +165,7 @@ export default function ActionNavigation({ action, siblings, colors, nextChildId
+         {hasSiblings && (
+           <div style={{ marginBottom: 0 }}>
+             <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: '0.5rem', fontWeight: 500 }}>
+-              SIBLINGS ({siblings.length})
++              RELATED ACTIONS ({siblings.length})
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+               {siblings.map(sibling => (
+diff --git a/app/next/components/NextActionDisplay.tsx b/app/next/components/NextActionDisplay.tsx
+index 48f1111..ab42c4f 100644
+--- a/app/next/components/NextActionDisplay.tsx
++++ b/app/next/components/NextActionDisplay.tsx
+@@ -191,9 +191,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
+     prompt += `\n## Vision\n`;
+     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
+     prompt += `## Broader Context\n`;
+-    prompt += `${action.parent_context_summary || 'This action has no parent context.'}\n\n`;
++    prompt += `${action.family_context_summary || 'This action has no family context.'}\n\n`;
+     prompt += `## Broader Vision\n`;
+-    prompt += `${action.parent_vision_summary || 'This action has no parent vision context.'}\n\n`;
++    prompt += `${action.family_vision_summary || 'This action has no family vision context.'}\n\n`;
+     
+     // Add completion context from dependencies
+     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
+@@ -236,10 +236,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
+     else prompt += `\n`;
+     prompt += `# Vision\n`;
+     prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
+-    prompt += `# Context from Parent Chain\n`;
+-    prompt += `${action.parent_context_summary || 'No parent context.'}\n\n`;
++    prompt += `# Context from Family Chain\n`;
++    prompt += `${action.family_context_summary || 'No family context.'}\n\n`;
+     prompt += `# Broader Vision\n`;
+-    prompt += `${action.parent_vision_summary || 'No parent vision context.'}\n\n`;
++    prompt += `${action.family_vision_summary || 'No family vision context.'}\n\n`;
+     
+     // Add completion context from dependencies
+     if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
+@@ -568,7 +568,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
+         </div>
+         <div style={{ backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 3 : 'unset' }}>
+           <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textMuted, margin: '0 0 0.75rem 0' }}>Broader Context</h3>
+-          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.parent_context_summary || 'This action has no parent context.'}</p>
++          <p style={{ fontSize: '0.8rem', color: colors.textSubtle, margin: 0, lineHeight: '1.5' }}>{actionData.family_context_summary || 'This action has no family context.'}</p>
+         </div>
+         <div style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '1rem', borderLeft: `4px solid ${colors.textFaint}`, order: isMobile ? 4 : 'unset' }}>
+           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+@@ -578,7 +578,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
+             </svg>
+             <h3 style={{ fontWeight: '500', color: colors.textMuted, fontSize: '0.875rem', margin: 0 }}>Broader Vision</h3>
+           </div>
+-          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.parent_vision_summary || 'This action has no parent vision context.'}</p>
++          <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.family_vision_summary || 'This action has no family vision context.'}</p>
+         </div>
+       </div>
+       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+diff --git a/components/TreeNode.tsx b/components/TreeNode.tsx
+index 11786d0..abd7823 100644
+--- a/components/TreeNode.tsx
++++ b/components/TreeNode.tsx
+@@ -92,7 +92,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({
+           className={`disclosure-triangle ${hasChildren ? 'has-children' : 'no-children'} ${isExpanded ? 'expanded' : 'collapsed'}`}
+           onClick={handleToggleExpanded}
+           disabled={!hasChildren}
+-          aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No children'}
++          aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No actions in family'}
+         >
+           {hasChildren ? (isExpanded ? '▼' : '▶') : ''}
+         </button>
+diff --git a/db/migrations/0006_extract_json_data.sql b/db/migrations/0006_extract_json_data.sql
+deleted file mode 100644
+index 51c737d..0000000
+--- a/db/migrations/0006_extract_json_data.sql
++++ /dev/null
+@@ -1,12 +0,0 @@
+--- Extract title, description, vision from JSON blob to dedicated columns
+--- Only update where the new columns are NULL to avoid overwriting manually set values
+-UPDATE actions 
+-SET 
+-  title = COALESCE(title, data->>'title'),
+-  description = COALESCE(description, data->>'description'),
+-  vision = COALESCE(vision, data->>'vision'),
+-  updated_at = NOW()
+-WHERE 
+-  (title IS NULL AND data->>'title' IS NOT NULL) OR
+-  (description IS NULL AND data->>'description' IS NOT NULL) OR
+-  (vision IS NULL AND data->>'vision' IS NOT NULL);
+\ No newline at end of file
+diff --git a/db/migrations/0007_update_family_terminology.sql b/db/migrations/0007_update_family_terminology.sql
+new file mode 100644
+index 0000000..6d6eec5
+--- /dev/null
++++ b/db/migrations/0007_update_family_terminology.sql
+@@ -0,0 +1,4 @@
++-- Rename parent columns to family terminology
++-- NOTE: After running this migration, update schema.ts to use 'family_context_summary' and 'family_vision_summary'
++ALTER TABLE "actions" RENAME COLUMN "parent_context_summary" TO "family_context_summary";
++ALTER TABLE "actions" RENAME COLUMN "parent_vision_summary" TO "family_vision_summary";
+\ No newline at end of file
+diff --git a/db/migrations/0008_update_family_edge_kind.sql b/db/migrations/0008_update_family_edge_kind.sql
+new file mode 100644
+index 0000000..67e5891
+--- /dev/null
++++ b/db/migrations/0008_update_family_edge_kind.sql
+@@ -0,0 +1,2 @@
++-- Update edge kind from 'child' to 'family' terminology
++UPDATE "edges" SET "kind" = 'family' WHERE "kind" = 'child';
+\ No newline at end of file
+diff --git a/db/migrations/meta/0007_snapshot.json b/db/migrations/meta/0007_snapshot.json
+new file mode 100644
+index 0000000..7957faa
+--- /dev/null
++++ b/db/migrations/meta/0007_snapshot.json
+@@ -0,0 +1,12 @@
++{
++  "version": "7",
++  "dialect": "postgresql",
++  "tables": {},
++  "enums": {},
++  "schemas": {},
++  "_meta": {
++    "schemas": {},
++    "tables": {},
++    "columns": {}
++  }
++}
+\ No newline at end of file
+diff --git a/db/migrations/meta/0008_snapshot.json b/db/migrations/meta/0008_snapshot.json
+new file mode 100644
+index 0000000..7957faa
+--- /dev/null
++++ b/db/migrations/meta/0008_snapshot.json
+@@ -0,0 +1,12 @@
++{
++  "version": "7",
++  "dialect": "postgresql",
++  "tables": {},
++  "enums": {},
++  "schemas": {},
++  "_meta": {
++    "schemas": {},
++    "tables": {},
++    "columns": {}
++  }
++}
+\ No newline at end of file
+diff --git a/db/migrations/meta/_journal.json b/db/migrations/meta/_journal.json
+index 107e93f..32a02c1 100644
+--- a/db/migrations/meta/_journal.json
++++ b/db/migrations/meta/_journal.json
+@@ -50,6 +50,20 @@
+       "when": 1750604596606,
+       "tag": "0006_young_zaladane",
+       "breakpoints": true
++    },
++    {
++      "idx": 7,
++      "version": "7",
++      "when": 1750700000000,
++      "tag": "0007_update_family_terminology",
++      "breakpoints": true
++    },
++    {
++      "idx": 8,
++      "version": "7",
++      "when": 1750700001000,
++      "tag": "0008_update_family_edge_kind",
++      "breakpoints": true
+     }
+   ]
+ }
+\ No newline at end of file
+diff --git a/db/schema.ts b/db/schema.ts
+index c43e3f9..bb3dd1e 100644
+--- a/db/schema.ts
++++ b/db/schema.ts
+@@ -25,8 +25,8 @@ export const actions = pgTable('actions', {
+   embeddingVector: vector('embedding_vector', { dimensions: 1536 }), // OpenAI embedding dimensions
+   nodeSummary: text('node_summary'),
+   subtreeSummary: text('subtree_summary'),
+-  parentContextSummary: text('parent_context_summary'),
+-  parentVisionSummary: text('parent_vision_summary'),
++  familyContextSummary: text('family_context_summary'),
++  familyVisionSummary: text('family_vision_summary'),
+ });
+ 
+ export const edges = pgTable('edges', {
+diff --git a/lib/mcp/resources.ts b/lib/mcp/resources.ts
+index 8af2828..3b3fbdc 100644
+--- a/lib/mcp/resources.ts
++++ b/lib/mcp/resources.ts
+@@ -72,7 +72,7 @@ export function registerResources(server: any) {
+ 
+   // action://tree - Hierarchical view of actions
+   server.resource(
+-    "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default)",
++    "Hierarchical view of actions showing family relationships (excludes completed actions by default)",
+     "action://tree",
+     async (uri: any) => {
+       try {
+@@ -237,12 +237,12 @@ export function registerResources(server: any) {
+         
+         const result = await ActionsService.getActionDetailResource(actionId);
+         
+-        // Parent summaries are read directly from database columns
+-        // (they're automatically generated and regenerated by the ParentSummaryService)
++        // Family summaries are read directly from database columns
++        // (they're automatically generated and regenerated by the FamilySummaryService)
+         const enhancedResult = {
+           ...result,
+-          parent_context_summary: result.parent_context_summary || 'This action has no parent context.',
+-          parent_vision_summary: result.parent_vision_summary || 'This action has no parent vision context.'
++          family_context_summary: result.family_context_summary || 'This action has no family context.',
++          family_vision_summary: result.family_vision_summary || 'This action has no family vision context.'
+         };
+         
+         return {
+@@ -263,7 +263,7 @@ export function registerResources(server: any) {
+ 
+   // action://next - Get the next actionable task with complete metadata context
+   server.resource(
+-    "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
++    "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all family actions",
+     "action://next",
+     async (uri: any) => {
+       try {
+@@ -300,12 +300,12 @@ export function registerResources(server: any) {
+         // Get complete action details with metadata for action and all parents
+         const actionDetails = await ActionsService.getActionDetailResource(action.id);
+         
+-        // Parent summaries are read directly from database columns
+-        // (they're automatically generated and regenerated by the ParentSummaryService)
++        // Family summaries are read directly from database columns
++        // (they're automatically generated and regenerated by the FamilySummaryService)
+         const enhancedActionDetails = {
+           ...actionDetails,
+-          parent_context_summary: actionDetails.parent_context_summary || 'This action has no parent context.',
+-          parent_vision_summary: actionDetails.parent_vision_summary || 'This action has no parent vision context.'
++          family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
++          family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.'
+         };
+         
+         return {
+@@ -336,7 +336,7 @@ export function registerResources(server: any) {
+ 
+   // action://tree/{id} - Hierarchical view of actions scoped to a specific subtree
+   server.resource(
+-    "Hierarchical view of actions showing parent-child relationships within a specific subtree (excludes completed actions by default)",
++    "Hierarchical view of actions showing family relationships within a specific subtree (excludes completed actions by default)",
+     new ResourceTemplate("action://tree/{id}", { list: undefined }),
+     async (uri: any, { id }: { id: string | string[] }) => {
+       try {
+@@ -464,12 +464,12 @@ export function registerResources(server: any) {
+         // Get complete action details with metadata for action and all parents
+         const actionDetails = await ActionsService.getActionDetailResource(action.id);
+         
+-        // Parent summaries are read directly from database columns
+-        // (they're automatically generated and regenerated by the ParentSummaryService)
++        // Family summaries are read directly from database columns
++        // (they're automatically generated and regenerated by the FamilySummaryService)
+         const enhancedActionDetails = {
+           ...actionDetails,
+-          parent_context_summary: actionDetails.parent_context_summary || 'This action has no parent context.',
+-          parent_vision_summary: actionDetails.parent_vision_summary || 'This action has no parent vision context.',
++          family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
++          family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.',
+           scope: scopeActionId
+         };
+         
+@@ -506,7 +506,7 @@ export const resourceCapabilities = {
+     description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
+   },
+   "action://tree": {
+-    description: "Hierarchical view of actions showing parent-child relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
++    description: "Hierarchical view of actions showing family relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
+   },
+   "action://tree/{id}": {
+     description: "Hierarchical view of actions within a specific subtree, scoped to the given action ID and its descendants (excludes completed actions by default, use ?includeCompleted=true to include them)",
+@@ -515,7 +515,7 @@ export const resourceCapabilities = {
+     description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",
+   },
+   "action://next": {
+-    description: "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all parent actions",
++    description: "Get the next action that should be worked on based on dependencies, with complete metadata for the action and all family actions",
+   },
+   "action://next/{id}": {
+     description: "Get the next action that should be worked on within a specific subtree, scoped to the given action ID and its descendants",
+diff --git a/lib/mcp/tools.ts b/lib/mcp/tools.ts
+index 833c572..c91a92a 100644
+--- a/lib/mcp/tools.ts
++++ b/lib/mcp/tools.ts
+@@ -69,12 +69,12 @@ export function registerTools(server: any) {
+   // create_action - Create a new action
+   server.tool(
+     "create_action",
+-    "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
++    "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+     {
+       title: z.string().min(1).describe("The title for the action"),
+       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
+       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
+-      parent_id: z.string().uuid().describe("Required parent action ID to create a child relationship (use suggest_parent tool to find appropriate parent)"),
++      parent_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
+       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
+       override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
+     },
+@@ -84,10 +84,10 @@ export function registerTools(server: any) {
+         
+         // Validate parent_id exists
+         const db = getDb();
+-        const parentAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
++        const familyAction = await db.select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+         
+-        if (parentAction.length === 0) {
+-          throw new Error(`Parent action with ID ${parent_id} not found. Use suggest_parent tool to find a valid parent.`);
++        if (familyAction.length === 0) {
++          throw new Error(`Family action with ID ${parent_id} not found. Use suggest_family tool to find a valid family.`);
+         }
+         
+         // Call ActionsService directly to avoid HTTP authentication issues
+@@ -455,29 +455,29 @@ export function registerTools(server: any) {
+     },
+   );
+ 
+-  // update_parent - Update an action's parent relationship
++  // join_family - Update an action's family relationship
+   server.tool(
+-    "update_parent",
+-    "Update an action's parent relationship by moving it under a new parent or making it a root action",
++    "join_family",
++    "Update an action's family relationship by having it join a new family or making it independent",
+     {
+-      action_id: z.string().uuid().describe("The ID of the action to reparent"),
+-      new_parent_id: z.string().uuid().optional().describe("The ID of the new parent action, or omit to make this a root action"),
++      action_id: z.string().uuid().describe("The ID of the action to move"),
++      new_family_id: z.string().uuid().optional().describe("The ID of the new family action to join, or omit to make this an independent action"),
+     },
+-    async ({ action_id, new_parent_id }: { action_id: string; new_parent_id?: string }, extra: any) => {
++    async ({ action_id, new_family_id }: { action_id: string; new_family_id?: string }, extra: any) => {
+       try {
+-        console.log(`Updating parent for action ${action_id} to parent ${new_parent_id || 'none (root action)'}`);
++        console.log(`Updating family for action ${action_id} to family ${new_family_id || 'none (independent action)'}`);
+         
+         // Call ActionsService directly to avoid HTTP authentication issues
+-        const result = await ActionsService.updateParent({
++        const result = await ActionsService.updateFamily({
+           action_id,
+-          new_parent_id
++          new_family_id: new_family_id
+         });
+         
+-        let message = `Updated parent relationship for action: ${action_id}`;
+-        if (new_parent_id) {
+-          message += `\nNew parent: ${new_parent_id}`;
++        let message = `Updated family relationship for action: ${action_id}`;
++        if (new_family_id) {
++          message += `\nJoined family: ${new_family_id}`;
+         } else {
+-          message += `\nAction is now a root action (no parent)`;
++          message += `\nAction is now independent (no family)`;
+         }
+ 
+         return {
+@@ -489,12 +489,12 @@ export function registerTools(server: any) {
+           ],
+         };
+       } catch (error) {
+-        console.error('Error updating parent:', error);
++        console.error('Error updating family:', error);
+         return {
+           content: [
+             {
+               type: "text",
+-              text: `Error updating parent: ${error instanceof Error ? error.message : "Unknown error"}`,
++              text: `Error updating family: ${error instanceof Error ? error.message : "Unknown error"}`,
+             },
+           ],
+         };
+@@ -502,17 +502,17 @@ export function registerTools(server: any) {
+     },
+   );
+ 
+-  // suggest_parent - Get intelligent placement suggestion for a new action
++  // suggest_family - Get intelligent family suggestion for a new action
+   server.tool(
+-    "suggest_parent",
+-    "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details (title, description, vision) or just an action_id to fetch data automatically.",
++    "suggest_family",
++    "Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details (title, description, vision) or just an action_id to fetch data automatically.",
+     {
+       title: z.string().default("").describe("The title for the new action (optional if action_id is provided)"),
+       description: z.string().optional().describe("Detailed description of what the action involves"),
+       vision: z.string().optional().describe("The desired outcome when the action is complete"),
+       action_id: z.string().uuid().optional().describe("Optional action ID to exclude from suggestions, or provide to fetch action data automatically"),
+       similarity_threshold: z.number().min(0).max(1).default(0.5).optional().describe("Minimum similarity threshold for vector matching (0-1, default: 0.5). Higher values = stricter matching"),
+-      limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of parent suggestions to return (default: 10)"),
++      limit: z.number().min(1).max(20).default(10).optional().describe("Maximum number of family suggestions to return (default: 10)"),
+     },
+     async ({ title = "", description, vision, action_id, similarity_threshold = 0.5, limit = 10 }: { 
+       title: string; 
+@@ -581,9 +581,9 @@ export function registerTools(server: any) {
+           };
+         }
+         
+-        console.log(`Getting vector-based placement suggestion for action: ${actionData.title}`);
++        console.log(`Getting vector-based family suggestion for action: ${actionData.title}`);
+         
+-        // Use VectorPlacementService to find parent suggestions
++        // Use VectorPlacementService to find family suggestions
+         // Ensure all fields are strings (not undefined) for the EmbeddingInput type
+         const embeddingInput = {
+           title: actionData.title,
+@@ -591,7 +591,7 @@ export function registerTools(server: any) {
+           vision: actionData.vision || undefined
+         };
+         
+-        const vectorResult = await VectorPlacementService.findVectorParentSuggestions(
++        const vectorResult = await VectorPlacementService.findVectorFamilySuggestions(
+           embeddingInput,
+           {
+             limit,
+@@ -602,7 +602,7 @@ export function registerTools(server: any) {
+         );
+         
+         // Debug logging for MCP tool
+-        console.log('MCP suggest_parent debug:', {
++        console.log('MCP suggest_family debug:', {
+           vectorResultType: typeof vectorResult,
+           vectorResultKeys: Object.keys(vectorResult || {}),
+           candidatesType: typeof vectorResult?.candidates,
+@@ -624,7 +624,7 @@ export function registerTools(server: any) {
+           };
+         }
+         
+-        let message = `🔍 **Vector-Based Placement Analysis for:** "${actionData.title}"\n`;
++        let message = `🔍 **Vector-Based Family Analysis for:** "${actionData.title}"\n`;
+         if (action_id && (!title || title.trim() === "" || title === "_fetch_")) {
+           message += `📄 **Source:** Automatically fetched from action ${action_id}\n`;
+         }
+@@ -632,7 +632,7 @@ export function registerTools(server: any) {
+         message += `🎛️ **Threshold:** Similarity ≥ ${similarity_threshold}\n\n`;
+         
+         if (vectorResult.candidates.length > 0) {
+-          message += `✅ **Found ${vectorResult.candidates.length} Similar Parent Candidates:**\n\n`;
++          message += `✅ **Found ${vectorResult.candidates.length} Similar Family Candidates:**\n\n`;
+           
+           vectorResult.candidates.forEach((candidate, index) => {
+             message += `${index + 1}. **${candidate.title}** (${(candidate.similarity * 100).toFixed(1)}% match)\n`;
+@@ -645,10 +645,10 @@ export function registerTools(server: any) {
+           });
+           
+           const bestCandidate = vectorResult.candidates[0];
+-          message += `🏆 **Top Recommendation:** Use "${bestCandidate.title}" (ID: ${bestCandidate.id}) as parent\n`;
++          message += `🏆 **Top Recommendation:** Join the "${bestCandidate.title}" family (ID: ${bestCandidate.id})\n`;
+           message += `📊 **Match Quality:** ${(bestCandidate.similarity * 100).toFixed(1)}% semantic similarity\n`;
+         } else {
+-          message += `❌ **No similar parent actions found**\n`;
++          message += `❌ **No similar family actions found**\n`;
+           message += `   No existing actions meet the ${(similarity_threshold * 100).toFixed(0)}% similarity threshold\n`;
+           message += `💡 **Suggestion:** This action should be created as a root-level action\n`;
+           message += `   or consider lowering the similarity threshold to see more options.\n`;
+@@ -665,12 +665,12 @@ export function registerTools(server: any) {
+           ],
+         };
+       } catch (error) {
+-        console.error('Error getting vector placement suggestion:', error);
++        console.error('Error getting vector family suggestion:', error);
+         return {
+           content: [
+             {
+               type: "text",
+-              text: `Error getting placement suggestion: ${error instanceof Error ? error.message : "Unknown error"}`,
++              text: `Error getting family suggestion: ${error instanceof Error ? error.message : "Unknown error"}`,
+             },
+           ],
+         };
+@@ -802,7 +802,7 @@ export function registerTools(server: any) {
+ 
+ export const toolCapabilities = {
+   create_action: {
+-    description: "Create a new action in the database with a required parent (use suggest_parent to find appropriate placement)",
++    description: "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+   },
+   add_dependency: {
+     description: "Create a dependency relationship between two existing actions",
+@@ -822,11 +822,11 @@ export const toolCapabilities = {
+   uncomplete_action: {
+     description: "Mark a completed action as incomplete again (reopens action for further work)",
+   },
+-  update_parent: {
+-    description: "Update an action's parent relationship by moving it under a new parent or making it a root action",
++  join_family: {
++    description: "Update an action's family relationship by having it join a new family or making it independent",
+   },
+-  suggest_parent: {
+-    description: "Get an intelligent placement suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
++  suggest_family: {
++    description: "Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.",
+   },
+   search_actions: {
+     description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+diff --git a/lib/services/actions.ts b/lib/services/actions.ts
+index 7c1b96e..957c52e 100644
+--- a/lib/services/actions.ts
++++ b/lib/services/actions.ts
+@@ -17,7 +17,7 @@ import { EmbeddingsService } from './embeddings';
+ import { VectorService } from './vector';
+ import { SummaryService } from './summary';
+ import { SubtreeSummaryService } from './subtree-summary';
+-import { ParentSummaryService } from './parent-summary';
++import { FamilySummaryService } from './family-summary';
+ import { CompletionContextService } from './completion-context';
+ import { ActionSearchService } from './action-search';
+ import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
+@@ -37,7 +37,7 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
+     
+     for (const actionId of currentLevel) {
+       const childEdgesResult = await getDb().select().from(edges).where(
+-        and(eq(edges.src, actionId), eq(edges.kind, "child"))
++        and(eq(edges.src, actionId), eq(edges.kind, "family"))
+       );
+       const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+       
+@@ -54,33 +54,33 @@ async function getAllDescendants(actionIds: string[]): Promise<string[]> {
+ }
+ 
+ // Check if all dependencies for an action have been completed
+-// Helper function to check if parent dependencies are met recursively
+-async function parentDependenciesMet(actionId: string): Promise<boolean> {
+-  // Get parent relationship
+-  const parentEdgesResult = await getDb()
++// Helper function to check if family dependencies are met recursively
++async function familyDependenciesMet(actionId: string): Promise<boolean> {
++  // Get family relationship
++  const familyEdgesResult = await getDb()
+     .select()
+     .from(edges)
+-    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+-  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
++    .where(and(eq(edges.dst, actionId), eq(edges.kind, "family")));
++  const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
+   
+-  if (parentEdges.length === 0) {
+-    // No parent, so parent dependencies are met
++  if (familyEdges.length === 0) {
++    // No family, so family dependencies are met
+     return true;
+   }
+   
+-  const parentId = parentEdges[0].src;
+-  if (!parentId) {
++  const familyId = familyEdges[0].src;
++  if (!familyId) {
+     return true;
+   }
+   
+-  // Check if parent's direct dependencies are met
+-  const parentDepsOk = await dependenciesMetDirectly(parentId);
+-  if (!parentDepsOk) {
++  // Check if family's direct dependencies are met
++  const familyDepsOk = await dependenciesMetDirectly(familyId);
++  if (!familyDepsOk) {
+     return false;
+   }
+   
+-  // Recursively check parent's parent dependencies
+-  return await parentDependenciesMet(parentId);
++  // Recursively check family's family dependencies
++  return await familyDependenciesMet(familyId);
+ }
+ 
+ // Helper function to check only direct dependencies (not parent dependencies)
+@@ -108,26 +108,26 @@ async function dependenciesMetDirectly(actionId: string): Promise<boolean> {
+ }
+ 
+ async function dependenciesMet(actionId: string): Promise<boolean> {
+-  // Check both direct dependencies and parent dependencies
++  // Check both direct dependencies and family dependencies
+   const directDepsOk = await dependenciesMetDirectly(actionId);
+   if (!directDepsOk) {
+     return false;
+   }
+   
+-  const parentDepsOk = await parentDependenciesMet(actionId);
+-  return parentDepsOk;
++  const familyDepsOk = await familyDependenciesMet(actionId);
++  return familyDepsOk;
+ }
+ 
+ // Scoped version of dependency checking that only considers dependencies within a subtree
+ async function dependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+-  // Check both direct dependencies and parent dependencies, but only within scope
++  // Check both direct dependencies and family dependencies, but only within scope
+   const directDepsOk = await dependenciesMetDirectlyScoped(actionId, scopeActionIds);
+   if (!directDepsOk) {
+     return false;
+   }
+   
+-  const parentDepsOk = await parentDependenciesMetScoped(actionId, scopeActionIds);
+-  return parentDepsOk;
++  const familyDepsOk = await familyDependenciesMetScoped(actionId, scopeActionIds);
++  return familyDepsOk;
+ }
+ 
+ // Helper function to check only direct dependencies within scope
+@@ -163,38 +163,38 @@ async function dependenciesMetDirectlyScoped(actionId: string, scopeActionIds: s
+   return true;
+ }
+ 
+-// Helper function to check parent dependencies within scope
+-async function parentDependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
+-  // Get parent relationship
+-  const parentEdgesResult = await getDb()
++// Helper function to check family dependencies within scope
++async function familyDependenciesMetScoped(actionId: string, scopeActionIds: string[]): Promise<boolean> {
++  // Get family relationship
++  const familyEdgesResult = await getDb()
+     .select()
+     .from(edges)
+-    .where(and(eq(edges.dst, actionId), eq(edges.kind, "child")));
+-  const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
++    .where(and(eq(edges.dst, actionId), eq(edges.kind, "family")));
++  const familyEdges = Array.isArray(familyEdgesResult) ? familyEdgesResult : [];
+   
+-  if (parentEdges.length === 0) {
+-    // No parent, so parent dependencies are met
++  if (familyEdges.length === 0) {
++    // No family, so family dependencies are met
+     return true;
+   }
+   
+-  const parentId = parentEdges[0].src;
+-  if (!parentId) {
++  const familyId = familyEdges[0].src;
++  if (!familyId) {
+     return true;
+   }
+   
+-  // If parent is outside scope, ignore parent dependencies
+-  if (!scopeActionIds.includes(parentId)) {
++  // If family is outside scope, ignore family dependencies
++  if (!scopeActionIds.includes(familyId)) {
+     return true;
+   }
+   
+-  // Check if parent's direct dependencies are met (within scope)
+-  const parentDepsOk = await dependenciesMetDirectlyScoped(parentId, scopeActionIds);
+-  if (!parentDepsOk) {
++  // Check if family's direct dependencies are met (within scope)
++  const familyDepsOk = await dependenciesMetDirectlyScoped(familyId, scopeActionIds);
++  if (!familyDepsOk) {
+     return false;
+   }
+   
+-  // Recursively check parent's parent dependencies (within scope)
+-  return await parentDependenciesMetScoped(parentId, scopeActionIds);
++  // Recursively check family's family dependencies (within scope)
++  return await familyDependenciesMetScoped(familyId, scopeActionIds);
+ }
+ 
+ // Recursively find the next actionable child of a given action
+@@ -202,20 +202,20 @@ async function findNextActionInChildren(actionId: string): Promise<{ action: any
+   const childEdgesResult = await getDb()
+     .select()
+     .from(edges)
+-    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
++    .where(and(eq(edges.src, actionId), eq(edges.kind, "family")));
+   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+-  const childIds = childEdges
++  const memberIds = childEdges
+     .map((edge: any) => edge.dst)
+     .filter((id: any): id is string => id !== null);
+ 
+-  if (childIds.length === 0) {
++  if (memberIds.length === 0) {
+     return { action: null, allDone: true };
+   }
+ 
+   const children = await getDb()
+     .select()
+     .from(actions)
+-    .where(inArray(actions.id, childIds))
++    .where(inArray(actions.id, memberIds))
+     .orderBy(actions.createdAt);
+ 
+   let allChildrenDone = true;
+@@ -248,21 +248,21 @@ async function findNextActionInChildrenScoped(actionId: string, scopeActionIds:
+   const childEdgesResult = await getDb()
+     .select()
+     .from(edges)
+-    .where(and(eq(edges.src, actionId), eq(edges.kind, "child")));
++    .where(and(eq(edges.src, actionId), eq(edges.kind, "family")));
+   const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+-  const childIds = childEdges
++  const memberIds = childEdges
+     .map((edge: any) => edge.dst)
+     .filter((id: any): id is string => id !== null)
+     .filter(id => scopeActionIds.includes(id)); // Only consider children within scope
+ 
+-  if (childIds.length === 0) {
++  if (memberIds.length === 0) {
+     return { action: null, allDone: true };
+   }
+ 
+   const children = await getDb()
+     .select()
+     .from(actions)
+-    .where(inArray(actions.id, childIds))
++    .where(inArray(actions.id, memberIds))
+     .orderBy(actions.createdAt);
+ 
+   let allChildrenDone = true;
+@@ -294,7 +294,7 @@ export interface CreateActionParams {
+   title: string;
+   description?: string;
+   vision?: string;
+-  parent_id?: string;
++  parent_id?: string;  // Parent action that this action belongs to
+   depends_on_ids?: string[];
+   override_duplicate_check?: boolean;
+ }
+@@ -325,11 +325,11 @@ export interface ListActionsParams {
+   includeCompleted?: boolean;
+ }
+ 
+-export interface AddChildActionParams {
++export interface AddFamilyActionParams {
+   title: string;
+   description?: string;
+   vision?: string;
+-  parent_id: string;
++  parent_id: string;  // Will be renamed to family_id in next iteration
+ }
+ 
+ export interface AddDependencyParams {
+@@ -340,7 +340,7 @@ export interface AddDependencyParams {
+ export interface DeleteActionParams {
+   action_id: string;
+   child_handling?: "delete_recursive" | "reparent";
+-  new_parent_id?: string;
++  new_parent_id?: string;  // Will be renamed to new_family_id in next iteration
+ }
+ 
+ export interface RemoveDependencyParams {
+@@ -362,9 +362,9 @@ export interface UpdateActionParams {
+   };
+ }
+ 
+-export interface UpdateParentParams {
++export interface UpdateFamilyParams {
+   action_id: string;
+-  new_parent_id?: string; // undefined means remove parent (make it a root action)
++  new_family_id?: string; // undefined means leave family (make it an independent action)
+ }
+ 
+ export class ActionsService {
+@@ -373,11 +373,11 @@ export class ActionsService {
+   ): Promise<CreateActionResult> {
+     const { title, description, vision, parent_id, depends_on_ids, override_duplicate_check } = params;
+     
+-    // Validate parent exists if provided
++    // Validate family exists if provided
+     if (parent_id) {
+-      const parentAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
+-      if (parentAction.length === 0) {
+-        throw new Error(`Parent action with ID ${parent_id} not found`);
++      const familyAction = await getDb().select().from(actions).where(eq(actions.id, parent_id)).limit(1);
++      if (familyAction.length === 0) {
++        throw new Error(`Family action with ID ${parent_id} not found`);
+       }
+     }
+ 
+@@ -468,16 +468,16 @@ export class ActionsService {
+       })
+       .returning();
+ 
+-    // Create parent relationship if specified
++    // Create family relationship if specified
+     if (parent_id) {
+       await getDb().insert(edges).values({
+         src: parent_id,
+         dst: newAction[0].id,
+-        kind: "child",
++        kind: "family",
+       });
+       
+-      // Generate parent summaries for actions with explicit parents
+-      generateParentSummariesAsync(newAction[0].id).catch(console.error);
++      // Generate family summaries for actions with explicit families
++      generateFamilySummariesAsync(newAction[0].id).catch(console.error);
+     }
+ 
+     // Create dependency relationships if specified
+@@ -491,7 +491,7 @@ export class ActionsService {
+       }
+     }
+ 
+-    let appliedParentId: string | undefined = parent_id;
++    let appliedFamilyId: string | undefined = parent_id;
+ 
+     // Generate embedding and node summary asynchronously (fire-and-forget)
+     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
+@@ -500,7 +500,7 @@ export class ActionsService {
+     return {
+       action: newAction[0],
+       parent_id,
+-      applied_parent_id: appliedParentId,
++      applied_parent_id: appliedFamilyId,
+       dependencies_count: depends_on_ids?.length || 0,
+     };
+   }
+@@ -525,7 +525,7 @@ export class ActionsService {
+     return actionList;
+   }
+ 
+-  static async addChildAction(params: AddChildActionParams) {
++  static async addFamilyAction(params: AddFamilyActionParams) {
+     const { title, description, vision, parent_id } = params;
+     
+     // Check that parent exists
+@@ -565,7 +565,7 @@ export class ActionsService {
+       .values({
+         src: parent_id,
+         dst: newAction[0].id,
+-        kind: "child",
++        kind: "family",
+       })
+       .returning();
+ 
+@@ -574,7 +574,7 @@ export class ActionsService {
+     generateNodeSummaryAsync(newAction[0].id, validatedData).catch(console.error);
+     
+     // Generate parent summaries for the new child action (since it now has a parent chain)
+-    generateParentSummariesAsync(newAction[0].id).catch(console.error);
++    generateFamilySummariesAsync(newAction[0].id).catch(console.error);
+     
+     // Generate subtree summary for parent asynchronously (since it now has a new child)
+     generateSubtreeSummaryAsync(parent_id).catch(console.error);
+@@ -613,28 +613,28 @@ export class ActionsService {
+ 
+     // Get parent of action being deleted (for subtree summary regeneration)
+     const parentEdgesResult = await getDb().select().from(edges).where(
+-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
++      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
+     ).limit(1);
+     const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+     const parent_id = parentEdges.length > 0 ? parentEdges[0].src : undefined;
+ 
+     // Find all children (actions where this action is the parent)
+     const childEdgesResult = await getDb().select().from(edges).where(
+-      and(eq(edges.src, action_id), eq(edges.kind, "child"))
++      and(eq(edges.src, action_id), eq(edges.kind, "family"))
+     );
+ 
+     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+-    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
++    const memberIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
+     
+     // Handle children based on strategy
+-    if (child_handling === "delete_recursive" && childIds.length > 0) {
+-      const allDescendants = await getAllDescendants(childIds);
++    if (child_handling === "delete_recursive" && memberIds.length > 0) {
++      const allDescendants = await getAllDescendants(memberIds);
+       
+       // Delete all descendant actions (edges will cascade delete)
+       for (const descendantId of allDescendants) {
+         await getDb().delete(actions).where(eq(actions.id, descendantId));
+       }
+-    } else if (child_handling === "reparent" && childIds.length > 0) {
++    } else if (child_handling === "reparent" && memberIds.length > 0) {
+       if (!new_parent_id) {
+         throw new Error("new_parent_id is required when child_handling is 'reparent'");
+       }
+@@ -646,12 +646,12 @@ export class ActionsService {
+       }
+ 
+       // Update all child edges to point to new parent
+-      for (const childId of childIds) {
+-        if (childId) {
++      for (const memberId of memberIds) {
++        if (memberId) {
+           await getDb().insert(edges).values({
+             src: new_parent_id,
+-            dst: childId,
+-            kind: "child",
++            dst: memberId,
++            kind: "family",
+           });
+         }
+       }
+@@ -665,23 +665,23 @@ export class ActionsService {
+       // Regenerate subtree summary for original parent (child was removed)
+       generateSubtreeSummaryAsync(parent_id).catch(console.error);
+     }
+-    if (child_handling === "reparent" && new_parent_id && childIds.length > 0) {
++    if (child_handling === "reparent" && new_parent_id && memberIds.length > 0) {
+       // Regenerate subtree summary for new parent (children were added)
+       generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
+       
+       // Regenerate parent summaries for all reparented children and their descendants
+       // (their parent chains have changed)
+-      for (const childId of childIds) {
+-        const allDescendants = await getAllDescendants([childId]);
++      for (const memberId of memberIds) {
++        const allDescendants = await getAllDescendants([memberId]);
+         for (const descendantId of allDescendants) {
+-          generateParentSummariesAsync(descendantId).catch(console.error);
++          generateFamilySummariesAsync(descendantId).catch(console.error);
+         }
+       }
+     }
+ 
+     return {
+       deleted_action: deletedAction[0],
+-      children_count: childIds.length,
++      children_count: memberIds.length,
+       child_handling,
+       new_parent_id
+     };
+@@ -795,7 +795,7 @@ export class ActionsService {
+       const allDescendants = await getAllDescendants([action_id]);
+       for (const descendantId of allDescendants) {
+         if (descendantId !== action_id) { // Don't regenerate for the current action itself
+-          generateParentSummariesAsync(descendantId).catch(console.error);
++          generateFamilySummariesAsync(descendantId).catch(console.error);
+         }
+       }
+     }
+@@ -816,14 +816,14 @@ export class ActionsService {
+       }
+     }
+ 
+-    // If done status changed, regenerate subtree summary for parent (child completion affects parent summary)
++    // If done status changed, regenerate subtree summary for family (member completion affects family summary)
+     if (done !== undefined) {
+-      // Find parent of this action and regenerate its subtree summary
+-      getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "child"))).limit(1)
+-        .then((parentEdges: any) => {
+-          const parentEdgeResults = Array.isArray(parentEdges) ? parentEdges : [];
+-          if (parentEdgeResults.length > 0 && parentEdgeResults[0].src) {
+-            generateSubtreeSummaryAsync(parentEdgeResults[0].src).catch(console.error);
++      // Find family of this action and regenerate its subtree summary
++      getDb().select().from(edges).where(and(eq(edges.dst, action_id), eq(edges.kind, "family"))).limit(1)
++        .then((familyEdges: any) => {
++          const familyEdgeResults = Array.isArray(familyEdges) ? familyEdges : [];
++          if (familyEdgeResults.length > 0 && familyEdgeResults[0].src) {
++            generateSubtreeSummaryAsync(familyEdgeResults[0].src).catch(console.error);
+           }
+         })
+         .catch(console.error);
+@@ -832,8 +832,8 @@ export class ActionsService {
+     return updatedAction[0];
+   }
+ 
+-  static async updateParent(params: UpdateParentParams) {
+-    const { action_id, new_parent_id } = params;
++  static async updateFamily(params: UpdateFamilyParams) {
++    const { action_id, new_family_id } = params;
+     
+     // Check that action exists
+     const existingAction = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+@@ -841,38 +841,38 @@ export class ActionsService {
+       throw new Error(`Action with ID ${action_id} not found`);
+     }
+ 
+-    // Check that new parent exists if provided
+-    if (new_parent_id) {
+-      const newParentAction = await getDb().select().from(actions).where(eq(actions.id, new_parent_id)).limit(1);
+-      if (newParentAction.length === 0) {
+-        throw new Error(`New parent action with ID ${new_parent_id} not found`);
++    // Check that new family exists if provided
++    if (new_family_id) {
++      const newFamilyAction = await getDb().select().from(actions).where(eq(actions.id, new_family_id)).limit(1);
++      if (newFamilyAction.length === 0) {
++        throw new Error(`New family action with ID ${new_family_id} not found`);
+       }
+ 
+-      // Check for circular reference - new parent cannot be a descendant of this action
++      // Check for circular reference - new family cannot be a descendant of this action
+       const descendants = await getAllDescendants([action_id]);
+-      if (descendants.includes(new_parent_id)) {
+-        throw new Error(`Cannot set ${new_parent_id} as parent of ${action_id} - this would create a circular reference`);
++      if (descendants.includes(new_family_id)) {
++        throw new Error(`Cannot set ${new_family_id} as family of ${action_id} - this would create a circular reference`);
+       }
+     }
+ 
+-    // Get existing parent before removing relationship (for subtree summary regeneration)
+-    const existingParentEdges = await getDb().select().from(edges).where(
+-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
++    // Get existing family before removing relationship (for subtree summary regeneration)
++    const existingFamilyEdges = await getDb().select().from(edges).where(
++      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
+     ).limit(1);
+-    const existingParentEdgeResults = Array.isArray(existingParentEdges) ? existingParentEdges : [];
+-    const old_parent_id = existingParentEdgeResults.length > 0 ? existingParentEdgeResults[0].src : undefined;
++    const existingFamilyEdgeResults = Array.isArray(existingFamilyEdges) ? existingFamilyEdges : [];
++    const old_family_id = existingFamilyEdgeResults.length > 0 ? existingFamilyEdgeResults[0].src : undefined;
+ 
+-    // Remove existing parent relationship
++    // Remove existing family relationship
+     await getDb().delete(edges).where(
+-      and(eq(edges.dst, action_id), eq(edges.kind, "child"))
++      and(eq(edges.dst, action_id), eq(edges.kind, "family"))
+     );
+ 
+-    // Add new parent relationship if provided
+-    if (new_parent_id) {
++    // Add new family relationship if provided
++    if (new_family_id) {
+       await getDb().insert(edges).values({
+-        src: new_parent_id,
++        src: new_family_id,
+         dst: action_id,
+-        kind: "child",
++        kind: "family",
+       });
+     }
+ 
+@@ -882,25 +882,25 @@ export class ActionsService {
+       .set({ updatedAt: new Date() })
+       .where(eq(actions.id, action_id));
+ 
+-    // Regenerate subtree summaries for both old and new parents (if they exist)
+-    if (old_parent_id) {
+-      generateSubtreeSummaryAsync(old_parent_id).catch(console.error);
++    // Regenerate subtree summaries for both old and new families (if they exist)
++    if (old_family_id) {
++      generateSubtreeSummaryAsync(old_family_id).catch(console.error);
+     }
+-    if (new_parent_id) {
+-      generateSubtreeSummaryAsync(new_parent_id).catch(console.error);
++    if (new_family_id) {
++      generateSubtreeSummaryAsync(new_family_id).catch(console.error);
+     }
+ 
+-    // Regenerate parent summaries for the moved action and all its descendants
+-    // (their parent chains have changed)
++    // Regenerate family summaries for the moved action and all its descendants
++    // (their family chains have changed)
+     const allDescendants = await getAllDescendants([action_id]);
+     for (const descendantId of allDescendants) {
+-      generateParentSummariesAsync(descendantId).catch(console.error);
++      generateFamilySummariesAsync(descendantId).catch(console.error);
+     }
+ 
+     return {
+       action_id,
+-      old_parent_id,
+-      new_parent_id,
++      old_family_id,
++      new_family_id,
+     };
+   }
+ 
+@@ -961,7 +961,7 @@ export class ActionsService {
+       // Execute all queries in parallel for better performance
+       const [allActions, childEdgesResult, dependencyEdgesResult] = await Promise.all([
+         actionQuery.orderBy(actions.createdAt),
+-        getDb().select().from(edges).where(eq(edges.kind, "child")).limit(1000),
++        getDb().select().from(edges).where(eq(edges.kind, "family")).limit(1000),
+         getDb().select().from(edges).where(eq(edges.kind, "depends_on")).limit(1000)
+       ]);
+       
+@@ -977,18 +977,18 @@ export class ActionsService {
+ 
+       // Build lookup maps more efficiently
+       const actionMap = new Map(allActions.map((action: any) => [action.id, action]));
+-      const childrenMap = new Map<string, string[]>();
+-      const parentMap = new Map<string, string>();
++      const membersMap = new Map<string, string[]>();
++      const familyMap = new Map<string, string>();
+       const dependenciesMap = new Map<string, string[]>();
+ 
+-      // Build parent-child relationships
++      // Build family-member relationships
+       for (const edge of allEdges) {
+         if (edge.src && edge.dst) {
+-          if (!childrenMap.has(edge.src)) {
+-            childrenMap.set(edge.src, []);
++          if (!membersMap.has(edge.src)) {
++            membersMap.set(edge.src, []);
+           }
+-          childrenMap.get(edge.src)!.push(edge.dst);
+-          parentMap.set(edge.dst, edge.src);
++          membersMap.get(edge.src)!.push(edge.dst);
++          familyMap.set(edge.dst, edge.src);
+         }
+       }
+       
+@@ -1021,12 +1021,12 @@ export class ActionsService {
+           return null;
+         }
+         
+-        const children = childrenMap.get(actionId) || [];
++        const children = membersMap.get(actionId) || [];
+         const dependencies = dependenciesMap.get(actionId) || [];
+ 
+-        // Filter children to exclude completed ones (unless includeCompleted is true)
+-        const filteredChildren = children
+-          .map(childId => buildNode(childId, depth + 1))
++        // Filter members to exclude completed ones (unless includeCompleted is true)
++        const filteredMembers = children
++          .map(memberId => buildNode(memberId, depth + 1))
+           .filter((child): child is ActionNode => child !== null);
+ 
+         return {
+@@ -1034,14 +1034,14 @@ export class ActionsService {
+           title: action.data?.title || 'untitled',
+           done: action.done,
+           created_at: action.createdAt.toISOString(),
+-          children: filteredChildren,
++          children: filteredMembers,
+           dependencies,
+         };
+       }
+ 
+-      // Find root actions (actions with no parents)
++      // Find root actions (actions with no family)
+       const rootActionIds = allActions
+-        .filter((action: any) => !parentMap.has(action.id))
++        .filter((action: any) => !familyMap.has(action.id))
+         .map((action: any) => action.id);
+ 
+       console.log('[SERVICE] Found root actions:', rootActionIds.length);
+@@ -1065,7 +1065,7 @@ export class ActionsService {
+ 
+   /**
+    * Get all descendant action IDs for a given root action
+-   * Uses recursive traversal of the parent-child hierarchy
++   * Uses recursive traversal of the family-member hierarchy
+    */
+   private static async getAllDescendants(rootActionId: string): Promise<string[]> {
+     const descendants: string[] = [];
+@@ -1075,16 +1075,16 @@ export class ActionsService {
+     const childEdges = await getDb()
+       .select()
+       .from(edges)
+-      .where(eq(edges.kind, "child"));
++      .where(eq(edges.kind, "family"));
+     
+     // Build children map
+-    const childrenMap = new Map<string, string[]>();
++    const membersMap = new Map<string, string[]>();
+     for (const edge of childEdges) {
+       if (edge.src && edge.dst) {
+-        if (!childrenMap.has(edge.src)) {
+-          childrenMap.set(edge.src, []);
++        if (!membersMap.has(edge.src)) {
++          membersMap.set(edge.src, []);
+         }
+-        childrenMap.get(edge.src)!.push(edge.dst);
++        membersMap.get(edge.src)!.push(edge.dst);
+       }
+     }
+     
+@@ -1095,10 +1095,10 @@ export class ActionsService {
+       }
+       visited.add(actionId);
+       
+-      const children = childrenMap.get(actionId) || [];
+-      for (const childId of children) {
+-        descendants.push(childId);
+-        collectDescendants(childId);
++      const children = membersMap.get(actionId) || [];
++      for (const memberId of children) {
++        descendants.push(memberId);
++        collectDescendants(memberId);
+       }
+     }
+     
+@@ -1156,7 +1156,7 @@ export class ActionsService {
+           .select()
+           .from(edges)
+           .where(and(
+-            eq(edges.kind, "child"),
++            eq(edges.kind, "family"),
+             sql`${edges.src} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`,
+             sql`${edges.dst} = ANY(${sql.raw(`ARRAY[${scopedActionIds.map(id => `'${id}'::uuid`).join(',')}]`)})`
+           )),
+@@ -1185,18 +1185,18 @@ export class ActionsService {
+ 
+       // Build lookup maps
+       const actionMap = new Map(scopedActions.map((action: any) => [action.id, action]));
+-      const childrenMap = new Map<string, string[]>();
+-      const parentMap = new Map<string, string>();
++      const membersMap = new Map<string, string[]>();
++      const familyMap = new Map<string, string>();
+       const dependenciesMap = new Map<string, string[]>();
+ 
+       // Build parent-child relationships (only within scope)
+       for (const edge of allEdges) {
+         if (edge.src && edge.dst) {
+-          if (!childrenMap.has(edge.src)) {
+-            childrenMap.set(edge.src, []);
++          if (!membersMap.has(edge.src)) {
++            membersMap.set(edge.src, []);
+           }
+-          childrenMap.get(edge.src)!.push(edge.dst);
+-          parentMap.set(edge.dst, edge.src);
++          membersMap.get(edge.src)!.push(edge.dst);
++          familyMap.set(edge.dst, edge.src);
+         }
+       }
+       
+@@ -1228,12 +1228,12 @@ export class ActionsService {
+           return null;
+         }
+         
+-        const children = childrenMap.get(actionId) || [];
++        const children = membersMap.get(actionId) || [];
+         const dependencies = dependenciesMap.get(actionId) || [];
+ 
+-        // Filter children to exclude completed ones (unless includeCompleted is true)
+-        const filteredChildren = children
+-          .map(childId => buildNode(childId, depth + 1))
++        // Filter members to exclude completed ones (unless includeCompleted is true)
++        const filteredMembers = children
++          .map(memberId => buildNode(memberId, depth + 1))
+           .filter((child): child is ActionNode => child !== null);
+ 
+         return {
+@@ -1241,7 +1241,7 @@ export class ActionsService {
+           title: action.data?.title || 'untitled',
+           done: action.done,
+           created_at: action.createdAt.toISOString(),
+-          children: filteredChildren,
++          children: filteredMembers,
+           dependencies,
+         };
+       }
+@@ -1334,7 +1334,7 @@ export class ActionsService {
+ 
+     // Get parent relationship
+     const parentEdgesResult = await getDb().select().from(edges).where(
+-      and(eq(edges.dst, actionId), eq(edges.kind, "child"))
++      and(eq(edges.dst, actionId), eq(edges.kind, "family"))
+     );
+     const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];
+     const parentId = parentEdges.length > 0 ? parentEdges[0].src : undefined;
+@@ -1352,7 +1352,7 @@ export class ActionsService {
+       
+       // Find the next parent
+       const nextParentEdgesResult = await getDb().select().from(edges).where(
+-        and(eq(edges.dst, currentParentId), eq(edges.kind, "child"))
++        and(eq(edges.dst, currentParentId), eq(edges.kind, "family"))
+       );
+       const nextParentEdges = Array.isArray(nextParentEdgesResult) ? nextParentEdgesResult : [];
+       currentParentId = nextParentEdges.length > 0 ? nextParentEdges[0].src : undefined;
+@@ -1360,12 +1360,12 @@ export class ActionsService {
+ 
+     // Get children
+     const childEdgesResult = await getDb().select().from(edges).where(
+-      and(eq(edges.src, actionId), eq(edges.kind, "child"))
++      and(eq(edges.src, actionId), eq(edges.kind, "family"))
+     );
+     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+-    const childIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
+-    const children = childIds.length > 0 
+-      ? await getDb().select().from(actions).where(inArray(actions.id, childIds))
++    const memberIds = childEdges.map((edge: any) => edge.dst).filter((id: any): id is string => id !== null);
++    const children = memberIds.length > 0 
++      ? await getDb().select().from(actions).where(inArray(actions.id, memberIds))
+       : [];
+ 
+     // Get dependencies (actions this depends on)
+@@ -1434,9 +1434,9 @@ export class ActionsService {
+       dependencies: dependencies.map(toActionMetadata),
+       dependents: dependents.map(toActionMetadata),
+       dependency_completion_context: dependencyCompletionContext,
+-      // Parent summaries from database columns
+-      parent_context_summary: action[0].parentContextSummary,
+-      parent_vision_summary: action[0].parentVisionSummary,
++      // Family summaries from database columns
++      family_context_summary: action[0].familyContextSummary,
++      family_vision_summary: action[0].familyVisionSummary,
+     };
+   }
+ 
+@@ -1557,7 +1557,7 @@ export class ActionsService {
+     return null;
+   }
+ 
+-  static async getParentContextSummary(actionId: string): Promise<string> {
++  static async getFamilyContextSummary(actionId: string): Promise<string> {
+     const detail = await this.getActionDetailResource(actionId);
+     
+     // Get only parent descriptions, excluding the current action
+@@ -1570,7 +1570,7 @@ export class ActionsService {
+     
+     // If no parent descriptions, return empty summary
+     if (parentDescriptions.length === 0) {
+-      return "This action has no parent context.";
++      return "This action has no family context.";
+     }
+     
+     // Reverse the array so we go from closest to furthest parent
+@@ -1583,7 +1583,7 @@ export class ActionsService {
+       prompt += `: ${detail.description}`;
+     }
+     prompt += "\n\n";
+-    prompt += "PARENT CONTEXTS (from closest to furthest):\n";
++    prompt += "FAMILY CONTEXTS (from closest to furthest):\n";
+     prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+     prompt += `\n\nWrite a concise summary that explains how "${detail.title}" connects to and supports the broader project goals. Focus on the relationship between this specific action and the larger context it serves. Make it clear why this action matters in the bigger picture.`;
+ 
+@@ -1599,7 +1599,7 @@ export class ActionsService {
+     return result.text;
+   }
+ 
+-  static async getParentVisionSummary(actionId: string): Promise<string> {
++  static async getFamilyVisionSummary(actionId: string): Promise<string> {
+     const detail = await this.getActionDetailResource(actionId);
+     
+     // Get only parent visions, excluding the current action
+@@ -1612,7 +1612,7 @@ export class ActionsService {
+     
+     // If no parent visions, return empty summary
+     if (parentVisions.length === 0) {
+-      return "This action has no parent vision context.";
++      return "This action has no family vision context.";
+     }
+     
+     // Reverse the array so we go from closest to furthest parent
+@@ -1628,7 +1628,7 @@ export class ActionsService {
+       prompt += ` (Success criteria: ${detail.vision})`;
+     }
+     prompt += "\n\n";
+-    prompt += "PARENT VISIONS (from closest to furthest):\n";
++    prompt += "FAMILY VISIONS (from closest to furthest):\n";
+     prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
+     prompt += `\n\nWrite a concise summary that explains how completing "${detail.title}" moves the project toward these broader visions. Focus on the connection between this specific action's success and the larger outcomes it enables. Make it clear what bigger picture this action serves.`;
+ 
+@@ -1738,7 +1738,7 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
+ 
+     // Get children to check if this action needs a subtree summary
+     const childEdgesResult = await getDb().select().from(edges).where(
+-      and(eq(edges.src, actionId), eq(edges.kind, "child"))
++      and(eq(edges.src, actionId), eq(edges.kind, "family"))
+     );
+     const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+     
+@@ -1748,8 +1748,8 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
+     }
+ 
+     // Get children details
+-    const childIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
+-    const childrenResult = await getDb().select().from(actions).where(inArray(actions.id, childIds));
++    const memberIds = childEdges.map(edge => edge.dst).filter((id): id is string => id !== null);
++    const childrenResult = await getDb().select().from(actions).where(inArray(actions.id, memberIds));
+     const children = Array.isArray(childrenResult) ? childrenResult : [];
+ 
+     const subtreeSummaryInput = {
+@@ -1774,16 +1774,16 @@ async function generateSubtreeSummaryAsync(actionId: string): Promise<void> {
+ }
+ 
+ /**
+- * Generate parent summaries for an action asynchronously (fire-and-forget)
++ * Generate family summaries for an action asynchronously (fire-and-forget)
+  * This function runs in the background and doesn't block the main operation
+- * Generates both context and vision summaries based on parent chain
++ * Generates both context and vision summaries based on family chain
+  */
+-async function generateParentSummariesAsync(actionId: string): Promise<void> {
++async function generateFamilySummariesAsync(actionId: string): Promise<void> {
+   try {
+     // Get the action details
+     const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+     if (actionResult.length === 0) {
+-      console.log(`Action ${actionId} not found, skipping parent summaries generation`);
++      console.log(`Action ${actionId} not found, skipping family summaries generation`);
+       return;
+     }
+ 
+@@ -1795,27 +1795,27 @@ async function generateParentSummariesAsync(actionId: string): Promise<void> {
+     const vision = action.vision || (action.data as any)?.vision;
+ 
+     if (!title) {
+-      console.log(`Action ${actionId} has no title, skipping parent summaries generation`);
++      console.log(`Action ${actionId} has no title, skipping family summaries generation`);
+       return;
+     }
+ 
+-    // Get parent chain
+-    const parentChain = await ParentSummaryService.getParentChain(actionId);
++    // Get family chain
++    const familyChain = await FamilySummaryService.getFamilyChain(actionId);
+ 
+-    const parentSummaryInput = {
++    const familySummaryInput = {
+       actionId: actionId,
+       title: title,
+       description: description,
+       vision: vision,
+-      parentChain: parentChain
++      familyChain: familyChain
+     };
+ 
+-    const { contextSummary, visionSummary } = await ParentSummaryService.generateBothParentSummaries(parentSummaryInput);
+-    await ParentSummaryService.updateParentSummaries(actionId, contextSummary, visionSummary);
++    const { contextSummary, visionSummary } = await FamilySummaryService.generateBothFamilySummaries(familySummaryInput);
++    await FamilySummaryService.updateFamilySummaries(actionId, contextSummary, visionSummary);
+     
+-    console.log(`Generated parent summaries for action ${actionId}`);
++    console.log(`Generated family summaries for action ${actionId}`);
+   } catch (error) {
+-    console.error(`Failed to generate parent summaries for action ${actionId}:`, error);
++    console.error(`Failed to generate family summaries for action ${actionId}:`, error);
+     // Don't throw - this is fire-and-forget
+   }
+ }
+\ No newline at end of file
+diff --git a/lib/services/parent-summary.ts b/lib/services/family-summary.ts
+similarity index 56%
+rename from lib/services/parent-summary.ts
+rename to lib/services/family-summary.ts
+index 6e45a2d..d174128 100644
+--- a/lib/services/parent-summary.ts
++++ b/lib/services/family-summary.ts
+@@ -1,8 +1,8 @@
+ /**
+- * Parent summary generation service for hierarchical action management
++ * Family summary generation service for hierarchical action management
+  * 
+  * This service generates AI-powered summaries that describe how an action
+- * fits into the broader context and vision of its parent chain.
++ * fits into the broader context and vision of its family chain.
+  */
+ 
+ import { generateText } from 'ai';
+@@ -11,44 +11,44 @@ import { getDb } from '../db/adapter';
+ import { actions, edges } from '../../db/schema';
+ import { sql, eq, and } from 'drizzle-orm';
+ 
+-export interface ParentSummaryInput {
++export interface FamilySummaryInput {
+   actionId: string;
+   title: string;
+   description?: string;
+   vision?: string;
+-  parentChain: Array<{
++  familyChain: Array<{
+     title: string;
+     description?: string;
+     vision?: string;
+   }>;
+ }
+ 
+-export class ParentSummaryService {
++export class FamilySummaryService {
+   /**
+-   * Generate a parent context summary that explains how the action fits into broader project context
++   * Generate a family context summary that explains how the action fits into broader project context
+    */
+-  static async generateParentContextSummary(input: ParentSummaryInput): Promise<string> {
++  static async generateFamilyContextSummary(input: FamilySummaryInput): Promise<string> {
+     // Return dummy summary for tests or when no API key
+     if (process.env.NODE_ENV === 'test' || !process.env.OPENAI_API_KEY) {
+-      const parentCount = input.parentChain.length;
+-      return parentCount > 0 
+-        ? `This action fits within ${parentCount} levels of parent context`
+-        : 'This action has no parent context.';
++      const familyCount = input.familyChain.length;
++      return familyCount > 0 
++        ? `This action fits within ${familyCount} levels of family context`
++        : 'This action has no family context.';
+     }
+ 
+-    // Get only parent descriptions, excluding the current action
+-    const parentDescriptions = input.parentChain
+-      .map(parent => parent.description)
++    // Get only family descriptions, excluding the current action
++    const familyDescriptions = input.familyChain
++      .map(family => family.description)
+       .filter((desc): desc is string => Boolean(desc));
+     
+-    // If no parent descriptions, return default summary
+-    if (parentDescriptions.length === 0) {
+-      return "This action has no parent context.";
++    // If no family descriptions, return default summary
++    if (familyDescriptions.length === 0) {
++      return "This action has no family context.";
+     }
+ 
+     try {
+       // Reverse the array so we go from closest to furthest parent
+-      const reversedDescriptions = [...parentDescriptions].reverse();
++      const reversedDescriptions = [...familyDescriptions].reverse();
+       
+       let prompt = `You are creating a contextual summary to help someone understand how the current action "${input.title}" fits into the broader project context.\n\n`;
+       prompt += "CURRENT ACTION:\n";
+@@ -57,7 +57,7 @@ export class ParentSummaryService {
+         prompt += `: ${input.description}`;
+       }
+       prompt += "\n\n";
+-      prompt += "PARENT CONTEXTS (from closest to furthest):\n";
++      prompt += "FAMILY CONTEXTS (from closest to furthest):\n";
+       prompt += reversedDescriptions.map((d, i) => `${i + 1}. ${d}`).join("\n");
+       prompt += `\n\nWrite a concise summary that explains how "${input.title}" connects to and supports the broader project goals. Focus on the relationship between this specific action and the larger context it serves. Make it clear why this action matters in the bigger picture.`;
+ 
+@@ -70,37 +70,37 @@ export class ParentSummaryService {
+ 
+       return summary.trim();
+     } catch (error) {
+-      console.error('Failed to generate parent context summary:', error);
++      console.error('Failed to generate family context summary:', error);
+       // Fallback to simple summary
+-      return `This action contributes to ${parentDescriptions.length} broader project contexts.`;
++      return `This action contributes to ${familyDescriptions.length} broader project contexts.`;
+     }
+   }
+ 
+   /**
+-   * Generate a parent vision summary that explains how completing the action contributes to broader outcomes
++   * Generate a family vision summary that explains how completing the action contributes to broader outcomes
+    */
+-  static async generateParentVisionSummary(input: ParentSummaryInput): Promise<string> {
++  static async generateFamilyVisionSummary(input: FamilySummaryInput): Promise<string> {
+     // Return dummy summary for tests or when no API key
+     if (process.env.NODE_ENV === 'test' || !process.env.OPENAI_API_KEY) {
+-      const parentCount = input.parentChain.length;
+-      return parentCount > 0 
+-        ? `Completing this action advances ${parentCount} levels of parent visions`
+-        : 'This action has no parent vision context.';
++      const familyCount = input.familyChain.length;
++      return familyCount > 0 
++        ? `Completing this action advances ${familyCount} levels of family visions`
++        : 'This action has no family vision context.';
+     }
+ 
+-    // Get only parent visions, excluding the current action
+-    const parentVisions = input.parentChain
+-      .map(parent => parent.vision)
++    // Get only family visions, excluding the current action
++    const familyVisions = input.familyChain
++      .map(family => family.vision)
+       .filter((vision): vision is string => Boolean(vision));
+     
+-    // If no parent visions, return default summary
+-    if (parentVisions.length === 0) {
+-      return "This action has no parent vision context.";
++    // If no family visions, return default summary
++    if (familyVisions.length === 0) {
++      return "This action has no family vision context.";
+     }
+ 
+     try {
+       // Reverse the array so we go from closest to furthest parent
+-      const reversedVisions = [...parentVisions].reverse();
++      const reversedVisions = [...familyVisions].reverse();
+       
+       let prompt = `You are creating a vision summary to help someone understand how completing the current action "${input.title}" contributes to the broader project outcomes.\n\n`;
+       prompt += "CURRENT ACTION:\n";
+@@ -112,7 +112,7 @@ export class ParentSummaryService {
+         prompt += ` (Success criteria: ${input.vision})`;
+       }
+       prompt += "\n\n";
+-      prompt += "PARENT VISIONS (from closest to furthest):\n";
++      prompt += "FAMILY VISIONS (from closest to furthest):\n";
+       prompt += reversedVisions.map((v, i) => `${i + 1}. ${v}`).join("\n");
+       prompt += `\n\nWrite a concise summary that explains how completing "${input.title}" moves the project toward these broader visions. Focus on the connection between this specific action's success and the larger outcomes it enables. Make it clear what bigger picture this action serves.`;
+ 
+@@ -125,66 +125,66 @@ export class ParentSummaryService {
+ 
+       return summary.trim();
+     } catch (error) {
+-      console.error('Failed to generate parent vision summary:', error);
++      console.error('Failed to generate family vision summary:', error);
+       // Fallback to simple summary
+-      return `Completing this action advances ${parentVisions.length} broader project visions.`;
++      return `Completing this action advances ${familyVisions.length} broader project visions.`;
+     }
+   }
+ 
+   /**
+-   * Generate both parent summaries for an action
++   * Generate both family summaries for an action
+    */
+-  static async generateBothParentSummaries(input: ParentSummaryInput): Promise<{
++  static async generateBothFamilySummaries(input: FamilySummaryInput): Promise<{
+     contextSummary: string;
+     visionSummary: string;
+   }> {
+     const [contextSummary, visionSummary] = await Promise.all([
+-      this.generateParentContextSummary(input),
+-      this.generateParentVisionSummary(input)
++      this.generateFamilyContextSummary(input),
++      this.generateFamilyVisionSummary(input)
+     ]);
+ 
+     return { contextSummary, visionSummary };
+   }
+ 
+   /**
+-   * Update parent summaries for an action
++   * Update family summaries for an action
+    */
+-  static async updateParentSummaries(actionId: string, contextSummary: string, visionSummary: string): Promise<void> {
++  static async updateFamilySummaries(actionId: string, contextSummary: string, visionSummary: string): Promise<void> {
+     const db = getDb();
+     
+     try {
+       await db.execute(sql`
+         UPDATE ${actions}
+-        SET parent_context_summary = ${contextSummary},
+-            parent_vision_summary = ${visionSummary},
++        SET family_context_summary = ${contextSummary},
++            family_vision_summary = ${visionSummary},
+             updated_at = NOW()
+         WHERE id = ${actionId}
+       `);
+       
+-      console.log(`Successfully stored parent summaries for action ${actionId}`);
++      console.log(`Successfully stored family summaries for action ${actionId}`);
+     } catch (error) {
+-      console.error(`Failed to store parent summaries for action ${actionId}:`, error);
++      console.error(`Failed to store family summaries for action ${actionId}:`, error);
+       throw error;
+     }
+   }
+ 
+   /**
+-   * Get parent chain for an action to build summary input
++   * Get family chain for an action to build summary input
+    */
+-  static async getParentChain(actionId: string): Promise<Array<{
++  static async getFamilyChain(actionId: string): Promise<Array<{
+     title: string;
+     description?: string;
+     vision?: string;
+   }>> {
+     const db = getDb();
+-    const parentChain: Array<{ title: string; description?: string; vision?: string }> = [];
++    const familyChain: Array<{ title: string; description?: string; vision?: string }> = [];
+     let currentActionId = actionId;
+ 
+-    // Traverse up the parent chain
++    // Traverse up the family chain
+     while (true) {
+-      // Get parent relationship
+-      const parentEdgeResult = await db.execute(sql`
+-        SELECT e.src as parent_id
++      // Get family relationship
++      const familyEdgeResult = await db.execute(sql`
++        SELECT e.src as family_id
+         FROM ${edges} e
+         WHERE e.dst = ${currentActionId} AND e.kind = 'child'
+         LIMIT 1
+@@ -192,69 +192,69 @@ export class ParentSummaryService {
+ 
+       // Handle different database result formats
+       let rows: any[] = [];
+-      if (Array.isArray(parentEdgeResult)) {
+-        rows = parentEdgeResult;
+-      } else if (parentEdgeResult.rows && Array.isArray(parentEdgeResult.rows)) {
+-        rows = parentEdgeResult.rows;
+-      } else if (parentEdgeResult && typeof parentEdgeResult[Symbol.iterator] === 'function') {
+-        rows = [...parentEdgeResult];
+-      } else if (parentEdgeResult && parentEdgeResult.length !== undefined) {
+-        rows = Array.prototype.slice.call(parentEdgeResult);
++      if (Array.isArray(familyEdgeResult)) {
++        rows = familyEdgeResult;
++      } else if (familyEdgeResult.rows && Array.isArray(familyEdgeResult.rows)) {
++        rows = familyEdgeResult.rows;
++      } else if (familyEdgeResult && typeof familyEdgeResult[Symbol.iterator] === 'function') {
++        rows = [...familyEdgeResult];
++      } else if (familyEdgeResult && familyEdgeResult.length !== undefined) {
++        rows = Array.prototype.slice.call(familyEdgeResult);
+       }
+ 
+       if (rows.length === 0) {
+-        break; // No more parents
++        break; // No more family members in chain
+       }
+ 
+-      const parentId = rows[0].parent_id;
+-      if (!parentId) {
++      const familyId = rows[0].family_id;
++      if (!familyId) {
+         break;
+       }
+ 
+-      // Get parent action details
+-      const parentActionResult = await db.execute(sql`
++      // Get family action details
++      const familyActionResult = await db.execute(sql`
+         SELECT 
+           COALESCE(title, data->>'title') as title,
+           COALESCE(description, data->>'description') as description,
+           COALESCE(vision, data->>'vision') as vision
+         FROM ${actions}
+-        WHERE id = ${parentId}
++        WHERE id = ${familyId}
+         LIMIT 1
+       `);
+ 
+-      // Handle different database result formats for parent action
+-      let parentRows: any[] = [];
+-      if (Array.isArray(parentActionResult)) {
+-        parentRows = parentActionResult;
+-      } else if (parentActionResult.rows && Array.isArray(parentActionResult.rows)) {
+-        parentRows = parentActionResult.rows;
+-      } else if (parentActionResult && typeof parentActionResult[Symbol.iterator] === 'function') {
+-        parentRows = [...parentActionResult];
+-      } else if (parentActionResult && parentActionResult.length !== undefined) {
+-        parentRows = Array.prototype.slice.call(parentActionResult);
++      // Handle different database result formats for family action
++      let familyRows: any[] = [];
++      if (Array.isArray(familyActionResult)) {
++        familyRows = familyActionResult;
++      } else if (familyActionResult.rows && Array.isArray(familyActionResult.rows)) {
++        familyRows = familyActionResult.rows;
++      } else if (familyActionResult && typeof familyActionResult[Symbol.iterator] === 'function') {
++        familyRows = [...familyActionResult];
++      } else if (familyActionResult && familyActionResult.length !== undefined) {
++        familyRows = Array.prototype.slice.call(familyActionResult);
+       }
+ 
+-      if (parentRows.length === 0) {
++      if (familyRows.length === 0) {
+         break;
+       }
+ 
+-      const parent = parentRows[0];
+-      parentChain.push({
+-        title: parent.title || 'Untitled',
+-        description: parent.description || undefined,
+-        vision: parent.vision || undefined
++      const family = familyRows[0];
++      familyChain.push({
++        title: family.title || 'Untitled',
++        description: family.description || undefined,
++        vision: family.vision || undefined
+       });
+ 
+-      currentActionId = parentId;
++      currentActionId = familyId;
+     }
+ 
+-    return parentChain;
++    return familyChain;
+   }
+ 
+   /**
+-   * Get actions that don't have parent summaries yet (for batch processing)
++   * Get actions that don't have family summaries yet (for batch processing)
+    */
+-  static async getActionsWithoutParentSummaries(limit: number = 50): Promise<Array<ParentSummaryInput>> {
++  static async getActionsWithoutFamilySummaries(limit: number = 50): Promise<Array<FamilySummaryInput>> {
+     const db = getDb();
+     
+     const results = await db.execute(sql`
+@@ -264,7 +264,7 @@ export class ParentSummaryService {
+         COALESCE(description, data->>'description') as description,
+         COALESCE(vision, data->>'vision') as vision
+       FROM ${actions}
+-      WHERE (parent_context_summary IS NULL OR parent_vision_summary IS NULL)
++      WHERE (family_context_summary IS NULL OR family_vision_summary IS NULL)
+         AND COALESCE(title, data->>'title') IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT ${limit}
+@@ -287,50 +287,50 @@ export class ParentSummaryService {
+         return [];
+       }
+       
+-      console.log(`Successfully extracted ${rows.length} actions without parent summaries`);
++      console.log(`Successfully extracted ${rows.length} actions without family summaries`);
+     } catch (error) {
+       console.error('Error extracting rows from database results:', error);
+       return [];
+     }
+     
+-    // For each action, get its parent chain
+-    const parentSummaryInputs: ParentSummaryInput[] = [];
++    // For each action, get its family chain
++    const familySummaryInputs: FamilySummaryInput[] = [];
+     
+     for (const row of rows) {
+       try {
+-        const parentChain = await this.getParentChain(row.id);
++        const familyChain = await this.getFamilyChain(row.id);
+         
+-        parentSummaryInputs.push({
++        familySummaryInputs.push({
+           actionId: row.id,
+           title: row.title,
+           description: row.description || undefined,
+           vision: row.vision || undefined,
+-          parentChain
++          familyChain
+         });
+       } catch (error) {
+-        console.error(`Failed to get parent chain for action ${row.id}:`, error);
++        console.error(`Failed to get family chain for action ${row.id}:`, error);
+         continue;
+       }
+     }
+     
+-    return parentSummaryInputs;
++    return familySummaryInputs;
+   }
+ 
+   /**
+-   * Generate batch parent summaries for multiple actions
++   * Generate batch family summaries for multiple actions
+    */
+-  static async generateBatchParentSummaries(inputs: Array<ParentSummaryInput>): Promise<Array<{ 
++  static async generateBatchFamilySummaries(inputs: Array<FamilySummaryInput>): Promise<Array<{ 
+     id: string; 
+     contextSummary: string; 
+     visionSummary: string; 
+   }>> {
+     const results: Array<{ id: string; contextSummary: string; visionSummary: string }> = [];
+     
+-    // Process in batches of 2 to avoid API rate limits (parent summaries are complex with long prompts)
++    // Process in batches of 2 to avoid API rate limits (family summaries are complex with long prompts)
+     for (let i = 0; i < inputs.length; i += 2) {
+       const batch = inputs.slice(i, i + 2);
+       const batchPromises = batch.map(async (input) => {
+-        const { contextSummary, visionSummary } = await this.generateBothParentSummaries(input);
++        const { contextSummary, visionSummary } = await this.generateBothFamilySummaries(input);
+         return { id: input.actionId, contextSummary, visionSummary };
+       });
+       
+@@ -347,12 +347,12 @@ export class ParentSummaryService {
+   }
+ 
+   /**
+-   * Get parent summary statistics for monitoring
++   * Get family summary statistics for monitoring
+    */
+-  static async getParentSummaryStats(): Promise<{
++  static async getFamilySummaryStats(): Promise<{
+     totalActions: number;
+-    actionsWithParentSummaries: number;
+-    actionsWithoutParentSummaries: number;
++    actionsWithFamilySummaries: number;
++    actionsWithoutFamilySummaries: number;
+     coveragePercentage: number;
+   }> {
+     const db = getDb();
+@@ -360,33 +360,33 @@ export class ParentSummaryService {
+     const results = await db.execute(sql`
+       SELECT 
+         COUNT(*) as total_actions,
+-        COUNT(CASE WHEN parent_context_summary IS NOT NULL AND parent_vision_summary IS NOT NULL THEN 1 END) as actions_with_parent_summaries,
+-        COUNT(CASE WHEN parent_context_summary IS NULL OR parent_vision_summary IS NULL THEN 1 END) as actions_without_parent_summaries
++        COUNT(CASE WHEN family_context_summary IS NOT NULL AND family_vision_summary IS NOT NULL THEN 1 END) as actions_with_family_summaries,
++        COUNT(CASE WHEN family_context_summary IS NULL OR family_vision_summary IS NULL THEN 1 END) as actions_without_family_summaries
+       FROM ${actions}
+     `);
+     
+     // Handle different database result formats
+     const rows = results.rows || results;
+     if (!Array.isArray(rows) || rows.length === 0) {
+-      console.error('No results from parent summary stats query:', results);
++      console.error('No results from family summary stats query:', results);
+       return {
+         totalActions: 0,
+-        actionsWithParentSummaries: 0,
+-        actionsWithoutParentSummaries: 0,
++        actionsWithFamilySummaries: 0,
++        actionsWithoutFamilySummaries: 0,
+         coveragePercentage: 0
+       };
+     }
+     
+     const row = rows[0] as any;
+     const totalActions = parseInt(row.total_actions) || 0;
+-    const actionsWithParentSummaries = parseInt(row.actions_with_parent_summaries) || 0;
+-    const actionsWithoutParentSummaries = parseInt(row.actions_without_parent_summaries) || 0;
++    const actionsWithFamilySummaries = parseInt(row.actions_with_family_summaries) || 0;
++    const actionsWithoutFamilySummaries = parseInt(row.actions_without_family_summaries) || 0;
+     
+     return {
+       totalActions,
+-      actionsWithParentSummaries,
+-      actionsWithoutParentSummaries,
+-      coveragePercentage: totalActions > 0 ? (actionsWithParentSummaries / totalActions) * 100 : 0
++      actionsWithFamilySummaries,
++      actionsWithoutFamilySummaries,
++      coveragePercentage: totalActions > 0 ? (actionsWithFamilySummaries / totalActions) * 100 : 0
+     };
+   }
+ }
+\ No newline at end of file
+diff --git a/lib/services/vector-placement.ts b/lib/services/vector-placement.ts
+index 22be749..092ac8c 100644
+--- a/lib/services/vector-placement.ts
++++ b/lib/services/vector-placement.ts
+@@ -1,7 +1,7 @@
+ /**
+- * Vector-based parent suggestion service
++ * Vector-based family suggestion service
+  * 
+- * This service uses vector embeddings and similarity search to find potential parent
++ * This service uses vector embeddings and similarity search to find potential family
+  * actions for new actions. It generates embeddings for input content, performs K-NN
+  * search using VectorService, and returns candidates with similarity scores and 
+  * hierarchy paths.
+@@ -12,7 +12,7 @@ import { VectorService, type VectorSearchOptions } from './vector';
+ import { ActionsService } from './actions';
+ import type { ActionMetadata } from '../types/resources';
+ 
+-export interface VectorParentCandidate {
++export interface VectorFamilyCandidate {
+   id: string;
+   title: string;
+   description?: string;
+@@ -21,8 +21,8 @@ export interface VectorParentCandidate {
+   depth: number;
+ }
+ 
+-export interface VectorParentSuggestionResult {
+-  candidates: VectorParentCandidate[];
++export interface VectorFamilySuggestionResult {
++  candidates: VectorFamilyCandidate[];
+   queryEmbedding: number[];
+   totalProcessingTimeMs: number;
+   searchTimeMs: number;
+@@ -38,19 +38,19 @@ export interface VectorPlacementOptions {
+ 
+ export class VectorPlacementService {
+   /**
+-   * Find potential parent actions using vector similarity search with improved parent detection
++   * Find potential family actions using vector similarity search with improved family detection
+    * 
+-   * This enhanced algorithm analyzes parent commonality among similar actions to better
+-   * distinguish between sibling-level matches and true parent candidates.
++   * This enhanced algorithm analyzes family commonality among similar actions to better
++   * distinguish between sibling-level matches and true family candidates.
+    * 
+-   * @param input - The action content to find parents for
++   * @param input - The action content to find families for
+    * @param options - Search configuration options
+-   * @returns Vector-based parent suggestions with similarity scores and hierarchy paths
++   * @returns Vector-based family suggestions with similarity scores and hierarchy paths
+    */
+-  static async findVectorParentSuggestions(
++  static async findVectorFamilySuggestions(
+     input: EmbeddingInput,
+     options: VectorPlacementOptions = {}
+-  ): Promise<VectorParentSuggestionResult> {
++  ): Promise<VectorFamilySuggestionResult> {
+     const startTime = performance.now();
+     
+     const {
+@@ -84,7 +84,7 @@ export class VectorPlacementService {
+     });
+ 
+     // Step 3: Build hierarchy paths for similar actions
+-    let candidates: VectorParentCandidate[] = [];
++    let candidates: VectorFamilyCandidate[] = [];
+     
+     // Safety check: ensure similarActions is a valid array
+     if (!Array.isArray(similarActions)) {
+@@ -112,80 +112,80 @@ export class VectorPlacementService {
+         console.error('ActionsService.listActions returned non-array:', typeof allActions, allActions);
+       }
+ 
+-      // Build parent relationships from edges table
+-      const parentMap = await this.buildParentMap();
++      // Build family relationships from edges table
++      const familyMap = await this.buildFamilyMap();
+ 
+-      // Step 3: Analyze parent frequency among similar actions
+-      const parentFrequency = new Map<string, number>();
+-      const parentSimilarities = new Map<string, number[]>();
++      // Step 3: Analyze family frequency among similar actions
++      const familyFrequency = new Map<string, number>();
++      const familySimilarities = new Map<string, number[]>();
+       
+-      // Count how often each parent appears among similar actions
++      // Count how often each family appears among similar actions
+       similarActions.forEach(action => {
+-        const parentId = parentMap.get(action.id);
+-        if (parentId) {
+-          parentFrequency.set(parentId, (parentFrequency.get(parentId) || 0) + 1);
++        const familyId = familyMap.get(action.id);
++        if (familyId) {
++          familyFrequency.set(familyId, (familyFrequency.get(familyId) || 0) + 1);
+           
+-          // Track similarities of children to help score the parent
+-          if (!parentSimilarities.has(parentId)) {
+-            parentSimilarities.set(parentId, []);
++          // Track similarities of family members to help score the family
++          if (!familySimilarities.has(familyId)) {
++            familySimilarities.set(familyId, []);
+           }
+-          parentSimilarities.get(parentId)!.push(action.similarity);
++          familySimilarities.get(familyId)!.push(action.similarity);
+         }
+       });
+       
+       // Step 4: Build candidate list prioritizing common parents
+-      const parentCandidates: VectorParentCandidate[] = [];
+-      const siblingCandidates: VectorParentCandidate[] = [];
++      const familyCandidates: VectorFamilyCandidate[] = [];
++      const siblingCandidates: VectorFamilyCandidate[] = [];
+       
+-      // First, add frequently appearing parents
+-      for (const [parentId, frequency] of parentFrequency.entries()) {
+-        const parentAction = actionMap.get(parentId);
+-        if (parentAction && frequency >= 2) { // Parent appears at least twice
+-          const childSimilarities = parentSimilarities.get(parentId) || [];
+-          const avgChildSimilarity = childSimilarities.reduce((a, b) => a + b, 0) / childSimilarities.length;
++      // First, add frequently appearing families
++      for (const [familyId, frequency] of familyFrequency.entries()) {
++        const familyAction = actionMap.get(familyId);
++        if (familyAction && frequency >= 2) { // Family appears at least twice
++          const memberSimilarities = familySimilarities.get(familyId) || [];
++          const avgMemberSimilarity = memberSimilarities.reduce((a, b) => a + b, 0) / memberSimilarities.length;
+           
+-          // Calculate direct similarity between query and parent if parent has embedding
+-          let directParentSimilarity = 0;
+-          const parentEmbedding = await this.getActionEmbedding(parentId);
+-          if (parentEmbedding && parentEmbedding.length === queryEmbedding.length) {
+-            directParentSimilarity = this.cosineSimilarity(queryEmbedding, parentEmbedding);
++          // Calculate direct similarity between query and family if family has embedding
++          let directFamilySimilarity = 0;
++          const familyEmbedding = await this.getActionEmbedding(familyId);
++          if (familyEmbedding && familyEmbedding.length === queryEmbedding.length) {
++            directFamilySimilarity = this.cosineSimilarity(queryEmbedding, familyEmbedding);
+           }
+           
+           // Score based on:
+-          // - Frequency of parent among similar actions (30%)
+-          // - Average similarity of children (40%)
+-          // - Direct parent-to-query similarity (30%)
+-          const parentScore = 
++          // - Frequency of family among similar actions (30%)
++          // - Average similarity of members (40%)
++          // - Direct family-to-query similarity (30%)
++          const familyScore = 
+             (frequency / Math.min(10, similarActions.length)) * 0.3 + 
+-            avgChildSimilarity * 0.4 +
+-            directParentSimilarity * 0.3;
++            avgMemberSimilarity * 0.4 +
++            directFamilySimilarity * 0.3;
+           
+-          const hierarchyPath = this.buildHierarchyPathFromEdges(parentId, actionMap, parentMap);
+-          parentCandidates.push({
+-            id: parentId,
+-            title: parentAction.title || parentAction.data?.title || 'Untitled',
+-            description: parentAction.description || parentAction.data?.description,
+-            similarity: parentScore,
++          const hierarchyPath = this.buildHierarchyPathFromEdges(familyId, actionMap, familyMap);
++          familyCandidates.push({
++            id: familyId,
++            title: familyAction.title || familyAction.data?.title || 'Untitled',
++            description: familyAction.description || familyAction.data?.description,
++            similarity: familyScore,
+             hierarchyPath,
+             depth: hierarchyPath.length
+           });
+         }
+       }
+       
+-      // Sort parent candidates by score
+-      parentCandidates.sort((a, b) => b.similarity - a.similarity);
++      // Sort family candidates by score
++      familyCandidates.sort((a, b) => b.similarity - a.similarity);
+       
+-      // Then add high-similarity individual actions that could also be parents
++      // Then add high-similarity individual actions that could also be families
+       similarActions.forEach(similar => {
+-        // Skip if this action's parent is already in parent candidates
+-        const parentId = parentMap.get(similar.id);
+-        if (parentId && parentCandidates.some(p => p.id === parentId)) {
++        // Skip if this action's family is already in family candidates
++        const familyId = familyMap.get(similar.id);
++        if (familyId && familyCandidates.some(f => f.id === familyId)) {
+           return;
+         }
+         
+-        // Add high-similarity actions that might be good parents themselves
++        // Add high-similarity actions that might be good families themselves
+         if (similar.similarity >= similarityThreshold) {
+-          const hierarchyPath = this.buildHierarchyPathFromEdges(similar.id, actionMap, parentMap);
++          const hierarchyPath = this.buildHierarchyPathFromEdges(similar.id, actionMap, familyMap);
+           siblingCandidates.push({
+             id: similar.id,
+             title: similar.title,
+@@ -197,19 +197,19 @@ export class VectorPlacementService {
+         }
+       });
+       
+-      // Combine results: parents first, then siblings
++      // Combine results: families first, then siblings
+       candidates = [
+-        ...parentCandidates.slice(0, Math.ceil(limit * 0.6)), // 60% parent candidates
++        ...familyCandidates.slice(0, Math.ceil(limit * 0.6)), // 60% family candidates
+         ...siblingCandidates.slice(0, Math.floor(limit * 0.4)) // 40% sibling candidates
+       ].slice(0, limit);
+       
+-      console.log('Parent frequency analysis:', {
++      console.log('Family frequency analysis:', {
+         totalSimilarActions: similarActions.length,
+-        uniqueParents: parentFrequency.size,
+-        commonParents: Array.from(parentFrequency.entries())
++        uniqueFamilies: familyFrequency.size,
++        commonFamilies: Array.from(familyFrequency.entries())
+           .filter(([_, freq]) => freq >= 2)
+           .map(([id, freq]) => ({ id, frequency: freq })),
+-        parentCandidatesCount: parentCandidates.length,
++        familyCandidatesCount: familyCandidates.length,
+         siblingCandidatesCount: siblingCandidates.length
+       });
+     } else {
+@@ -238,44 +238,44 @@ export class VectorPlacementService {
+   }
+ 
+   /**
+-   * Build a map of child -> parent relationships from the edges table
++   * Build a map of member -> family relationships from the edges table
+    * 
+-   * @returns Map of child action ID to parent action ID
++   * @returns Map of member action ID to family action ID
+    */
+-  private static async buildParentMap(): Promise<Map<string, string>> {
++  private static async buildFamilyMap(): Promise<Map<string, string>> {
+     const { getDb } = await import('../db/adapter');
+     const { edges } = await import('../../db/schema');
+     const { eq, and } = await import('drizzle-orm');
+     
+-    const parentEdges = await getDb()
++    const familyEdges = await getDb()
+       .select()
+       .from(edges)
+       .where(eq(edges.kind, "child"));
+     
+-    const parentMap = new Map<string, string>();
++    const familyMap = new Map<string, string>();
+     
+-    // Build parent map from edges (edges are src=parent, dst=child for "child" kind)
+-    for (const edge of parentEdges) {
++    // Build family map from edges (edges are src=family, dst=member for "child" kind)
++    for (const edge of familyEdges) {
+       if (edge.src && edge.dst) {
+-        parentMap.set(edge.dst, edge.src); // child -> parent
++        familyMap.set(edge.dst, edge.src); // member -> family
+       }
+     }
+     
+-    return parentMap;
++    return familyMap;
+   }
+ 
+   /**
+-   * Build hierarchy path for an action using edges table for parent relationships
++   * Build hierarchy path for an action using edges table for family relationships
+    * 
+    * @param actionId - The action ID to build path for
+    * @param actionMap - Map of all actions for efficient lookup
+-   * @param parentMap - Map of child -> parent relationships
++   * @param familyMap - Map of member -> family relationships
+    * @returns Array of action titles from root to the target action
+    */
+   private static buildHierarchyPathFromEdges(
+     actionId: string,
+     actionMap: Map<string, any>,
+-    parentMap: Map<string, string>
++    familyMap: Map<string, string>
+   ): string[] {
+     const path: string[] = [];
+     let currentId: string | undefined = actionId;
+@@ -296,33 +296,33 @@ export class VectorPlacementService {
+       const title = currentAction.title || currentAction.data?.title || 'Untitled';
+       path.unshift(title);
+       
+-      // Get parent from parent map
+-      currentId = parentMap.get(currentId);
++      // Get family from family map
++      currentId = familyMap.get(currentId);
+     }
+ 
+     return path.length > 0 ? path : ['Unknown Action'];
+   }
+ 
+   /**
+-   * Get parent suggestions for a new action combining vector and LLM approaches
++   * Get family suggestions for a new action combining vector and LLM approaches
+    * 
+    * This method provides both vector-based similarity suggestions and traditional
+    * LLM-based placement reasoning for comparison and validation.
+    * 
+-   * @param input - The action content to find parents for
++   * @param input - The action content to find families for
+    * @param options - Search configuration options
+-   * @returns Combined vector and LLM parent suggestions
++   * @returns Combined vector and LLM family suggestions
+    */
+-  static async getHybridParentSuggestions(
++  static async getHybridFamilySuggestions(
+     input: EmbeddingInput,
+     options: VectorPlacementOptions = {}
+   ): Promise<{
+-    vectorSuggestions: VectorParentSuggestionResult;
++    vectorSuggestions: VectorFamilySuggestionResult;
+     // Future: Could add LLM suggestions here for comparison
+     hybridScore?: number;
+   }> {
+     // Get vector-based suggestions
+-    const vectorSuggestions = await this.findVectorParentSuggestions(input, options);
++    const vectorSuggestions = await this.findVectorFamilySuggestions(input, options);
+ 
+     return {
+       vectorSuggestions
+@@ -332,7 +332,7 @@ export class VectorPlacementService {
+ 
+   /**
+    * Get action embedding from database
+-   * Helper method to fetch stored embeddings for parent context comparison
++   * Helper method to fetch stored embeddings for family context comparison
+    * 
+    * @param actionId - The action ID to get embedding for
+    * @returns The embedding vector or null if not found
+diff --git a/lib/types/resources.ts b/lib/types/resources.ts
+index 671d898..54cdfcf 100644
+--- a/lib/types/resources.ts
++++ b/lib/types/resources.ts
+@@ -77,8 +77,8 @@ export interface ActionDetailResource {
+   updated_at: string;
+   parent_id?: string;
+   parent_chain: ActionMetadata[]; // all parent actions up to root
+-  parent_context_summary?: string; // AI-generated summary of parent context
+-  parent_vision_summary?: string; // AI-generated summary of parent vision
++  family_context_summary?: string; // AI-generated summary of family context
++  family_vision_summary?: string; // AI-generated summary of family vision
+   children: ActionMetadata[];
+   dependencies: ActionMetadata[]; // actions this depends on
+   dependents: ActionMetadata[]; // actions that depend on this one
