@@ -52,7 +52,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .replace(/\n/g, ' ');
   
   const title = `${changelogItem.actionTitle} - ActionBias Changelog`;
-  const ogImageUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://actionbias.com'}/api/og/log/${id}`;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.actionbias.ai' : 'http://localhost:3000');
+  const ogImageUrl = `${baseUrl}/api/og/log/${id}`;
   
   return {
     title,

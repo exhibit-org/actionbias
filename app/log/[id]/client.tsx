@@ -47,12 +47,12 @@ export default function ChangelogPageClient({ initialData }: ChangelogPageClient
     author: {
       '@type': 'Organization',
       name: 'ActionBias',
-      url: 'https://actionbias.com'
+      url: 'https://www.actionbias.ai'
     },
     publisher: {
       '@type': 'Organization', 
       name: 'ActionBias',
-      url: 'https://actionbias.com'
+      url: 'https://www.actionbias.ai'
     }
   };
 

@@ -1,23 +1,43 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge';
+// Removed edge runtime to support database connections
 
-// Fetch changelog data
+import { getDb } from '@/lib/db/adapter';
+import { completionContexts, actions } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+// Fetch changelog data directly from database
 async function getChangelogItem(id: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  
   try {
-    const response = await fetch(`${baseUrl}/api/changelog/${id}`, {
-      cache: 'no-store',
-    });
+    const db = getDb();
     
-    if (!response.ok) {
-      return null;
-    }
+    const result = await db
+      .select({
+        // Completion context fields
+        id: completionContexts.id,
+        actionId: completionContexts.actionId,
+        implementationStory: completionContexts.implementationStory,
+        impactStory: completionContexts.impactStory,
+        learningStory: completionContexts.learningStory,
+        changelogVisibility: completionContexts.changelogVisibility,
+        completionTimestamp: completionContexts.completionTimestamp,
+        createdAt: completionContexts.createdAt,
+        updatedAt: completionContexts.updatedAt,
+        
+        // Action fields
+        actionTitle: actions.title,
+        actionDescription: actions.description,
+        actionVision: actions.vision,
+        actionDone: actions.done,
+        actionCreatedAt: actions.createdAt,
+      })
+      .from(completionContexts)
+      .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+      .where(eq(actions.id, id))
+      .limit(1);
     
-    const data = await response.json();
-    return data.success ? data.data : null;
+    return result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error('Error fetching changelog item for OG:', error);
     return null;
@@ -208,7 +228,7 @@ export async function GET(
               Dream like a human. Execute like a machine.
             </div>
             <div style={{ fontSize: '14px', color: '#475569' }}>
-              actionbias.com
+              actionbias.ai
             </div>
           </div>
           
