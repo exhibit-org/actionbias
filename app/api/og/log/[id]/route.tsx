@@ -123,38 +123,16 @@ export async function GET(
           
           {/* Main content */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {/* Status indicator */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '24px',
-              }}
-            >
-              <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#10b981',
-                }}
-              />
-              <div style={{ fontSize: '16px', color: '#10b981', fontWeight: 500, display: 'flex' }}>
-                Completed {completionDate}
-              </div>
-            </div>
-            
             {/* Title */}
             <h1
               style={{
-                fontSize: '48px',
+                fontSize: '32px',
                 fontWeight: 'bold',
                 color: 'white',
-                lineHeight: 1.2,
-                marginBottom: '32px',
+                lineHeight: 1.3,
+                marginBottom: '24px',
                 display: '-webkit-box',
-                WebkitLineClamp: 2,
+                WebkitLineClamp: 3,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
               }}
@@ -165,11 +143,12 @@ export async function GET(
             {/* Description */}
             <p
               style={{
-                fontSize: '20px',
-                color: '#cbd5e1',
-                lineHeight: 1.5,
+                fontSize: '42px',
+                color: '#e2e8f0',
+                lineHeight: 1.4,
+                fontWeight: 300,
                 display: '-webkit-box',
-                WebkitLineClamp: 3,
+                WebkitLineClamp: 5,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
               }}
