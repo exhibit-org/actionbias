@@ -71,11 +71,15 @@ node scripts/test-streamable-http-client.mjs http://localhost:3000
 - HTTP Streaming: `/mcp` endpoint for streamable HTTP transport
 
 ### MCP Resources
-- **action://tree**: Complete action hierarchy tree visualization
-- **action://[id]**: Individual action details and context
-- **action://dependencies/[id]**: Action dependency relationships
-- **action://next**: Next recommended action to work on
-- **actions://**: List of all actions with filtering options
+- **action://list**: List all actions with pagination support (excludes completed by default)
+- **action://tree**: Complete action hierarchy tree visualization (excludes completed by default)
+- **action://tree/{id}**: Hierarchical view within a specific subtree
+- **action://dependencies**: Dependency graph showing all dependencies and dependents
+- **action://next**: Next recommended action to work on based on dependencies
+- **action://next/{id}**: Next action within a specific subtree
+- **action://item/{id}**: Individual action details with relationships
+- **action://log**: Recent completion logs with pagination and visibility filtering
+- **action://log/{id}**: Completion log for a specific action
 
 ### AI-Powered Features
 - **Semantic Action Placement**: Uses OpenAI GPT-4o-mini for intelligent parent suggestions
