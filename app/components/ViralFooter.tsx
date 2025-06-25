@@ -1,5 +1,8 @@
+'use client'
+
 import Link from 'next/link';
-import { ArrowRight, Zap, Users, GitBranch } from 'react-feather';
+import { ArrowRight, Zap, Users, GitBranch, ChevronDown, ChevronUp } from 'react-feather';
+import { useState } from 'react';
 
 interface ViralFooterProps {
   colors: {
@@ -12,6 +15,8 @@ interface ViralFooterProps {
 }
 
 export default function ViralFooter({ colors }: ViralFooterProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
     <footer style={{
       position: 'fixed',
@@ -22,14 +27,96 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
       backdropFilter: 'blur(20px) saturate(180%)',
       WebkitBackdropFilter: 'blur(20px) saturate(180%)',
       borderTop: `1px solid ${colors.border}`,
-      padding: '2rem 1rem',
+      padding: isCollapsed ? '0.75rem 1rem' : '2rem 1rem',
       zIndex: 10,
-      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.08)'
+      boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.08)',
+      transition: 'padding 0.3s ease'
     }}>
+      {/* Collapse button */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        style={{
+          position: 'absolute',
+          top: '-20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '40px',
+          height: '40px',
+          borderRadius: '50%',
+          background: 'white',
+          border: `2px solid ${colors.border}`,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 11,
+          transition: 'transform 0.3s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+        }}
+        aria-label={isCollapsed ? 'Expand footer' : 'Collapse footer'}
+      >
+        {isCollapsed ? <ChevronUp size={20} color={colors.textMuted} /> : <ChevronDown size={20} color={colors.textMuted} />}
+      </button>
       <div style={{
         maxWidth: '64rem',
         margin: '0 auto',
       }}>
+        {isCollapsed ? (
+          /* Collapsed view - single line */
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <Zap size={20} style={{ color: '#3b82f6' }} />
+              <span style={{
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: colors.text
+              }}>ActionBias</span>
+            </div>
+            <Link 
+              href="/" 
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                borderRadius: '0.5rem',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Try ActionBias Free
+              <ArrowRight size={16} />
+            </Link>
+          </div>
+        ) : (
+        <>
         {/* Main content */}
         <div style={{
           display: 'grid',
@@ -201,6 +288,8 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             </a>
           </div>
         </div>
+        </>
+        )}
       </div>
     </footer>
   );
