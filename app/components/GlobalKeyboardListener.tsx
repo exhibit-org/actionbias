@@ -8,11 +8,22 @@ export default function GlobalKeyboardListener() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check for CMD+K on Mac or CTRL+K on Windows/Linux
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault(); // Prevent browser's default search behavior
+      // Check for + or = key (same physical key) to add new action
+      // Avoid triggering when user is typing in an input field
+      const isInputActive = document.activeElement?.tagName === 'INPUT' || 
+                           document.activeElement?.tagName === 'TEXTAREA' ||
+                           document.activeElement?.getAttribute('contenteditable') === 'true';
+      
+      if (!isInputActive && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
         openModal();
       }
+      
+      // TODO: CMD+K reserved for search functionality
+      // if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      //   e.preventDefault();
+      //   // openSearchModal();
+      // }
     };
 
     // Add event listener

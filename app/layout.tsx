@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { QuickActionProvider } from "./contexts/QuickActionContext";
 import QuickActionModal from "./components/QuickActionModal";
 import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
-import QuickActionHint from "./components/QuickActionHint";
 
 export const metadata: Metadata = {
   title: "ActionBias - Dream like a human. Execute like a machine.",
@@ -49,7 +48,6 @@ export default function RootLayout({
           <GlobalKeyboardListener />
           {children}
           <QuickActionModal />
-          <QuickActionHint />
         </QuickActionProvider>
       </body>
     </html>
