@@ -22,38 +22,64 @@ export async function POST(request: NextRequest) {
     
     // Get all root-level actions (those that have children but no parent)
     // First, get actions that are parents (have children)
-    const parentActions = await db.execute(sql`
-      SELECT DISTINCT 
-        a.id,
-        COALESCE(a.title, a.data->>'title', 'Untitled') as title,
-        COALESCE(a.description, a.data->>'description', '') as description,
-        COALESCE(a.vision, a.data->>'vision', '') as vision
-      FROM actions a
-      WHERE EXISTS (
-        SELECT 1 FROM edges e WHERE e.src = a.id AND e.kind = 'child'
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM edges e2 WHERE e2.dst = a.id AND e2.kind = 'child'
-      )
-      LIMIT 100
-    `);
+    let rootActions: any[] = [];
     
-    // If no root actions found, just get any actions that could be parents
-    const rootActions = parentActions.rows.length > 0 ? parentActions.rows : 
-      await db.execute(sql`
-        SELECT 
+    try {
+      const parentActions = await db.execute(sql`
+        SELECT DISTINCT 
           a.id,
           COALESCE(a.title, a.data->>'title', 'Untitled') as title,
           COALESCE(a.description, a.data->>'description', '') as description,
           COALESCE(a.vision, a.data->>'vision', '') as vision
         FROM actions a
-        WHERE a.done = false
-        ORDER BY a.created_at DESC
+        WHERE EXISTS (
+          SELECT 1 FROM edges e WHERE e.src = a.id AND e.kind = 'child'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM edges e2 WHERE e2.dst = a.id AND e2.kind = 'child'
+        )
         LIMIT 100
-      `).then((r: any) => r.rows);
+      `);
+      
+      if (parentActions?.rows && parentActions.rows.length > 0) {
+        rootActions = parentActions.rows;
+      }
+    } catch (e) {
+      console.log('Error getting parent actions:', e);
+    }
+    
+    // If no root actions found, just get any actions that could be parents
+    if (rootActions.length === 0) {
+      try {
+        const allActions = await db.execute(sql`
+          SELECT 
+            a.id,
+            COALESCE(a.title, a.data->>'title', 'Untitled') as title,
+            COALESCE(a.description, a.data->>'description', '') as description,
+            COALESCE(a.vision, a.data->>'vision', '') as vision
+          FROM actions a
+          WHERE a.done = false
+          ORDER BY a.created_at DESC
+          LIMIT 100
+        `);
+        
+        rootActions = allActions?.rows || [];
+      } catch (e) {
+        console.error('Error getting all actions:', e);
+        rootActions = [];
+      }
+    }
 
     // Simple similarity: find actions with overlapping words
     const titleWords = title.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    
+    // If no actions found, return empty results
+    if (!rootActions || rootActions.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: { candidates: [] }
+      });
+    }
     
     const scoredActions = rootActions.map((action: any) => {
       const actionTitle = String(action.title).toLowerCase();
