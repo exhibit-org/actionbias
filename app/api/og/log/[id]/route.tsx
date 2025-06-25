@@ -68,8 +68,8 @@ export async function GET(
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            <div style={{ fontSize: 60, color: '#666', marginBottom: 20 }}>🚫</div>
-            <div style={{ fontSize: 32, color: '#666' }}>Action Not Found</div>
+            <div style={{ fontSize: 60, color: '#666', marginBottom: 20, display: 'flex' }}>🚫</div>
+            <div style={{ fontSize: 32, color: '#666', display: 'flex' }}>Action Not Found</div>
           </div>
         ),
         {
@@ -129,17 +129,15 @@ export async function GET(
               marginBottom: '60px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div
-                style={{
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                ActionBias
-              </div>
+            <div
+              style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: 'white',
+                letterSpacing: '-0.5px',
+              }}
+            >
+              ActionBias
             </div>
             <div
               style={{
@@ -175,7 +173,7 @@ export async function GET(
                   backgroundColor: '#10b981',
                 }}
               />
-              <div style={{ fontSize: '16px', color: '#10b981', fontWeight: 500 }}>
+              <div style={{ fontSize: '16px', color: '#10b981', fontWeight: 500, display: 'flex' }}>
                 Completed {completionDate}
               </div>
             </div>
@@ -282,8 +280,8 @@ export async function GET(
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <div style={{ fontSize: 32, color: 'white', marginBottom: 16 }}>ActionBias</div>
-          <div style={{ fontSize: 18, color: '#64748b' }}>Dream like a human. Execute like a machine.</div>
+          <div style={{ fontSize: 32, color: 'white', marginBottom: 16, display: 'flex' }}>ActionBias</div>
+          <div style={{ fontSize: 18, color: '#64748b', display: 'flex' }}>Dream like a human. Execute like a machine.</div>
         </div>
       ),
       {
