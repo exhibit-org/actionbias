@@ -1,24 +1,127 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuickAction } from '../contexts/QuickActionContext';
-import { X } from 'react-feather';
+import { X, Loader } from 'react-feather';
+
+interface ActionFields {
+  title: string;
+  description: string;
+  vision: string;
+}
+
+interface FamilySuggestion {
+  id: string;
+  title: string;
+  similarity: number;
+}
 
 export default function QuickActionModal() {
   const { isOpen, closeModal } = useQuickAction();
   const [actionText, setActionText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [actionFields, setActionFields] = useState<ActionFields | null>(null);
+  const [familySuggestion, setFamilySuggestion] = useState<FamilySuggestion | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-focus textarea when modal opens and reset error
+  // Auto-focus textarea when modal opens and reset state
   useEffect(() => {
     if (isOpen && textareaRef.current) {
       textareaRef.current.focus();
       setError(null);
+      setActionFields(null);
+      setFamilySuggestion(null);
     }
   }, [isOpen]);
+
+  // Generate action fields from text
+  const generateActionFields = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setActionFields(null);
+      setFamilySuggestion(null);
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      // Parse the text into structured fields
+      const parseResponse = await fetch('/api/actions/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!parseResponse.ok) {
+        throw new Error('Failed to parse action text');
+      }
+
+      const parseData = await parseResponse.json();
+      setActionFields(parseData.data);
+
+      // Get family suggestion based on the generated title
+      if (parseData.data?.title) {
+        const suggestResponse = await fetch('/api/actions/suggest-family', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: parseData.data.title,
+            description: parseData.data.description,
+            vision: parseData.data.vision,
+            limit: 1,
+            threshold: 0.3,
+          }),
+        });
+
+        if (suggestResponse.ok) {
+          const suggestData = await suggestResponse.json();
+          const topCandidate = suggestData.data?.candidates?.[0];
+          if (topCandidate) {
+            setFamilySuggestion({
+              id: topCandidate.id,
+              title: topCandidate.title,
+              similarity: topCandidate.similarity,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error generating fields:', err);
+      // Don't show error for generation failures, just don't update fields
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  // Debounced text change handler
+  const handleTextChange = useCallback((text: string) => {
+    setActionText(text);
+    setError(null);
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer
+    debounceTimerRef.current = setTimeout(() => {
+      generateActionFields(text);
+    }, 500); // 500ms debounce
+  }, [generateActionFields]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   // Handle escape key
   useEffect(() => {
@@ -50,36 +153,26 @@ export default function QuickActionModal() {
     e.preventDefault();
     if (!actionText.trim() || isSubmitting) return;
 
+    // If we don't have generated fields yet, wait for generation
+    if (!actionFields && actionText.trim()) {
+      setError('Please wait for the action preview to generate');
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // First, get family suggestions
-      const suggestResponse = await fetch('/api/actions/suggest-family', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: actionText.trim(),
-          limit: 1,
-          threshold: 0.3
-        }),
-      });
-
-      const suggestData = await suggestResponse.json();
-      
-      // Use the first suggestion as parent, if any
-      const parentId = suggestData.data?.candidates?.[0]?.id;
-      
-      // Create the action
+      // Create the action with generated fields
       const createResponse = await fetch('/api/actions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: actionText.trim(),
-          parent_id: parentId,
+          title: actionFields?.title || actionText.trim(),
+          description: actionFields?.description,
+          vision: actionFields?.vision,
+          parent_id: familySuggestion?.id,
         }),
       });
 
@@ -94,6 +187,8 @@ export default function QuickActionModal() {
       console.log('Action created:', createData);
       
       setActionText('');
+      setActionFields(null);
+      setFamilySuggestion(null);
       closeModal();
       
       // Show success message (could be improved with a toast notification)
@@ -133,23 +228,78 @@ export default function QuickActionModal() {
           Quick Add Action
         </h2>
 
-        <form onSubmit={handleSubmit}>
-          <textarea
-            ref={textareaRef}
-            value={actionText}
-            onChange={(e) => {
-              setActionText(e.target.value);
-              setError(null); // Clear error when user types
-            }}
-            placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            rows={4}
-            disabled={isSubmitting}
-          />
-          
-          {error && (
-            <div className="mt-2 text-sm text-red-600">
-              {error}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <textarea
+              ref={textareaRef}
+              value={actionText}
+              onChange={(e) => handleTextChange(e.target.value)}
+              placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              disabled={isSubmitting}
+            />
+            
+            {error && (
+              <div className="mt-2 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Real-time preview */}
+          {(actionText.trim() || actionFields) && (
+            <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-gray-700">Preview</h3>
+                {isGenerating && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader size={14} className="animate-spin" />
+                    <span>Generating...</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Title</label>
+                  <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
+                    {actionFields?.title || <span className="text-gray-400">Generating...</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Description</label>
+                  <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
+                    {actionFields?.description || <span className="text-gray-400">Generating...</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Vision</label>
+                  <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
+                    {actionFields?.vision || <span className="text-gray-400">Generating...</span>}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-gray-600">Family</label>
+                  <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
+                    {familySuggestion ? (
+                      <span>
+                        {familySuggestion.title}
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({Math.round(familySuggestion.similarity * 100)}% match)
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">
+                        {actionFields ? 'No matching family found' : 'Generating...'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -165,9 +315,9 @@ export default function QuickActionModal() {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!actionText.trim() || isSubmitting}
+              disabled={!actionText.trim() || isSubmitting || isGenerating || !actionFields}
             >
-              {isSubmitting ? 'Creating...' : 'Create Action'}
+              {isSubmitting ? 'Creating...' : isGenerating ? 'Generating...' : 'Create Action'}
             </button>
           </div>
         </form>
