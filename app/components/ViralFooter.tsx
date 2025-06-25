@@ -320,7 +320,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 0.75rem 0',
               color: colors.text
             }}>
-              Why teams love ActionBias
+              Why people love ActionBias
             </h4>
             <ul style={{
               margin: 0,
@@ -370,7 +370,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 color: colors.textMuted
               }}>
                 <Users size={16} />
-                <span>Used by engineers worldwide</span>
+                <span>Used by doers worldwide</span>
               </div>
             </div>
             <div style={{
@@ -416,7 +416,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
           flexWrap: 'wrap',
           gap: '0.5rem'
         }}>
-          <span>Built for engineers who ship</span>
+          <span>Built for people who get things done</span>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Link href="/" style={{ color: colors.textSubtle, textDecoration: 'none' }}>
               Learn More
