@@ -86,7 +86,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             <div style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.75rem',
+              gap: '0.5rem',
             }}>
               {/* First row: Tagline with arc effect */}
               <div style={{
@@ -112,7 +112,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                     }}
                   >
                     <textPath href="#mobileArc" startOffset="50%" textAnchor="middle">
-                      The best software knows when to get out of your way.
+                      Great software knows how to get out of your way.
                     </textPath>
                   </text>
                 </svg>
@@ -216,7 +216,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                     }}
                   >
                     <textPath href="#arc" startOffset="50%" textAnchor="middle">
-                      The best software knows when to get out of your way.
+                      Great software knows how to get out of your way.
                     </textPath>
                   </text>
                 </svg>
@@ -345,7 +345,8 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             </ul>
           </div>
 
-          {/* Social Proof */}
+          {/* Social Proof - Only show on desktop */}
+          {!isMobile && (
           <div>
             <h4 style={{
               fontSize: '1rem',
@@ -400,6 +401,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               </a>
             </div>
           </div>
+          )}
         </div>
 
         {/* Bottom bar */}
