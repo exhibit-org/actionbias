@@ -7,6 +7,9 @@ export interface CreateCompletionContextParams {
   implementationStory?: string; // Supports markdown formatting
   impactStory?: string; // Supports markdown formatting
   learningStory?: string; // Supports markdown formatting
+  headline?: string; // AI-generated compelling headline
+  deck?: string; // AI-generated standfirst/subtitle
+  pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   structuredData?: Record<string, any>;
 }
@@ -16,6 +19,9 @@ export interface UpdateCompletionContextParams {
   implementationStory?: string; // Supports markdown formatting
   impactStory?: string; // Supports markdown formatting
   learningStory?: string; // Supports markdown formatting
+  headline?: string; // AI-generated compelling headline
+  deck?: string; // AI-generated standfirst/subtitle
+  pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   structuredData?: Record<string, any>;
 }
@@ -25,7 +31,7 @@ export class CompletionContextService {
    * Create a new completion context for an action
    */
   static async createCompletionContext(params: CreateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, changelogVisibility, structuredData } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData } = params;
     
     // Check if completion context already exists for this action
     const existing = await getDb()
@@ -46,6 +52,9 @@ export class CompletionContextService {
         implementationStory,
         impactStory,
         learningStory,
+        headline,
+        deck,
+        pullQuotes,
         changelogVisibility: changelogVisibility || 'team',
         structuredData,
       })
@@ -58,7 +67,7 @@ export class CompletionContextService {
    * Update or create completion context for an action
    */
   static async upsertCompletionContext(params: UpdateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, changelogVisibility, structuredData } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData } = params;
     
     // Check if completion context already exists
     const existing = await getDb()
@@ -76,6 +85,9 @@ export class CompletionContextService {
       if (implementationStory !== undefined) updateData.implementationStory = implementationStory;
       if (impactStory !== undefined) updateData.impactStory = impactStory;
       if (learningStory !== undefined) updateData.learningStory = learningStory;
+      if (headline !== undefined) updateData.headline = headline;
+      if (deck !== undefined) updateData.deck = deck;
+      if (pullQuotes !== undefined) updateData.pullQuotes = pullQuotes;
       if (changelogVisibility !== undefined) updateData.changelogVisibility = changelogVisibility;
       if (structuredData !== undefined) updateData.structuredData = structuredData;
       

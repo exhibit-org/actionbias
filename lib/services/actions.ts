@@ -20,6 +20,7 @@ import { SubtreeSummaryService } from './subtree-summary';
 import { FamilySummaryService } from './family-summary';
 import { CompletionContextService } from './completion-context';
 import { ActionSearchService } from './action-search';
+import { EditorialAIService } from './editorial-ai';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
@@ -358,6 +359,9 @@ export interface UpdateActionParams {
     implementation_story?: string;
     impact_story?: string;
     learning_story?: string;
+    headline?: string;
+    deck?: string;
+    pull_quotes?: string[];
     changelog_visibility?: string;
   };
 }
@@ -803,11 +807,45 @@ export class ActionsService {
     // Handle completion context if provided
     if (completion_context !== undefined) {
       try {
+        // If marking as done and editorial content not provided, generate it
+        let editorial: any = {};
+        if (done === true && 
+            completion_context.implementation_story && 
+            completion_context.impact_story && 
+            completion_context.learning_story &&
+            !completion_context.headline && 
+            !completion_context.deck && 
+            !completion_context.pull_quotes) {
+          
+          // Generate editorial content asynchronously (don't wait)
+          EditorialAIService.generateEditorialContent({
+            actionTitle: updatedAction[0].title || existingAction[0].title || 'Untitled Action',
+            actionDescription: updatedAction[0].description || existingAction[0].description,
+            actionVision: updatedAction[0].vision || existingAction[0].vision,
+            implementationStory: completion_context.implementation_story,
+            impactStory: completion_context.impact_story,
+            learningStory: completion_context.learning_story,
+          }).then(generatedContent => {
+            // Update with generated content if available
+            if (generatedContent.headline || generatedContent.deck || generatedContent.pullQuotes) {
+              CompletionContextService.upsertCompletionContext({
+                actionId: action_id,
+                headline: generatedContent.headline,
+                deck: generatedContent.deck,
+                pullQuotes: generatedContent.pullQuotes,
+              }).catch(console.error);
+            }
+          }).catch(console.error);
+        }
+
         await CompletionContextService.upsertCompletionContext({
           actionId: action_id,
           implementationStory: completion_context.implementation_story,
           impactStory: completion_context.impact_story,
           learningStory: completion_context.learning_story,
+          headline: completion_context.headline,
+          deck: completion_context.deck,
+          pullQuotes: completion_context.pull_quotes,
           changelogVisibility: completion_context.changelog_visibility,
         });
       } catch (error) {

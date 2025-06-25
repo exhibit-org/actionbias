@@ -44,7 +44,11 @@ export const completionContextSchema = z.object({
   implementation_story: z.string().optional(),  // "How did you build this?" (supports markdown)
   impact_story: z.string().optional(),          // "What did you accomplish?" (supports markdown)
   learning_story: z.string().optional(),        // "What did you learn?" (supports markdown)
-  structured_data: z.record(z.any()).optional() // Future AI parsing/enhancement
+  structured_data: z.record(z.any()).optional(), // Future AI parsing/enhancement
+  // Magazine-style editorial content (stored in structuredData)
+  headline: z.string().optional(),              // AI-generated compelling headline
+  deck: z.string().optional(),                  // AI-generated standfirst/subtitle
+  pull_quotes: z.array(z.string()).optional()   // AI-extracted key quotes
 });
 
 export type CompletionContext = z.infer<typeof completionContextSchema>;
@@ -57,6 +61,11 @@ export const completionContexts = pgTable('completion_contexts', {
   implementationStory: text('implementation_story'), // "How did you build this?"
   impactStory: text('impact_story'),                 // "What did you accomplish?"
   learningStory: text('learning_story'),             // "What did you learn?"
+  
+  // Magazine-style editorial content
+  headline: text('headline'),                        // AI-generated compelling headline
+  deck: text('deck'),                                // AI-generated standfirst/subtitle
+  pullQuotes: jsonb('pull_quotes').$type<string[]>(), // AI-extracted key quotes
   
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),

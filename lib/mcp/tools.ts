@@ -361,13 +361,20 @@ export function registerTools(server: any) {
       impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting."),
       learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting."),
       changelog_visibility: z.enum(["private", "team", "public"]).default("team").describe("Who should see this completion context in changelog generation (default: 'team')"),
+      // Optional editorial content for magazine-style display
+      headline: z.string().optional().describe("AI-generated compelling headline for the completion story (e.g., 'Revolutionary Search Architecture Cuts Query Time by 70%')"),
+      deck: z.string().optional().describe("AI-generated standfirst/subtitle that expands on the headline (2-3 sentences that hook the reader)"),
+      pull_quotes: z.array(z.string()).optional().describe("AI-extracted powerful quotes from the completion stories to highlight key achievements or insights"),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility }: { 
+    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes }: { 
       action_id: string; 
       implementation_story: string;
       impact_story: string;
       learning_story: string;
       changelog_visibility: "private" | "team" | "public";
+      headline?: string;
+      deck?: string;
+      pull_quotes?: string[];
     }, extra: any) => {
       try {
         console.log(`Completing action ${action_id} with completion context`);
@@ -380,7 +387,11 @@ export function registerTools(server: any) {
             implementation_story,
             impact_story,
             learning_story,
-            changelog_visibility
+            changelog_visibility,
+            // Include editorial content if provided
+            ...(headline && { headline }),
+            ...(deck && { deck }),
+            ...(pull_quotes && { pull_quotes })
           }
         });
         

@@ -1,6 +1,6 @@
 {
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "prevId": "f3502930-345c-460e-9ff5-ec07d7c82994",
+  "id": "a3a6a1eb-f418-4e9c-8dc5-7efa2fca5ef6",
+  "prevId": "a2222222-2222-2222-2222-222222222222",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -137,6 +137,24 @@
         "learning_story": {
           "name": "learning_story",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "headline": {
+          "name": "headline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deck": {
+          "name": "deck",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pull_quotes": {
+          "name": "pull_quotes",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -316,45 +334,13 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "idx_waitlist_email": {
-          "name": "idx_waitlist_email",
-          "columns": [
-            {
-              "expression": "email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "with": {},
-          "method": "btree",
-          "where": undefined,
-          "concurrently": false
-        },
-        "idx_waitlist_created_at": {
-          "name": "idx_waitlist_created_at",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "with": {},
-          "method": "btree",
-          "where": undefined,
-          "concurrently": false
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "waitlist_email_unique": {
           "name": "waitlist_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
           ]
