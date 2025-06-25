@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/parent-summaries",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/editorial-content",
+      "schedule": "*/10 * * * *"
     }
   ]
 }

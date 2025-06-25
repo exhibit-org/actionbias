@@ -34,3 +34,49 @@ body {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+/* Magazine Article Typography */
+.magazine-article {
+  font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.magazine-article h1,
+.magazine-article h2,
+.magazine-article h3 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Drop cap for article lead */
+.magazine-lead::first-letter {
+  float: left;
+  font-size: 4.5rem;
+  line-height: 1;
+  font-weight: bold;
+  margin-right: 0.5rem;
+  margin-top: -0.25rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Magazine pull quotes */
+.magazine-pullquote {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.magazine-pullquote::before {
+  content: '"';
+  position: absolute;
+  left: 0;
+  top: -1rem;
+  font-size: 4rem;
+  color: #e5e7eb;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+
+/* Smooth scroll behavior */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
