@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowRight, Zap, Users, GitBranch, ChevronDown, ChevronUp } from 'react-feather';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ViralFooterProps {
   colors: {
@@ -16,6 +16,17 @@ interface ViralFooterProps {
 
 export default function ViralFooter({ colors }: ViralFooterProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
     <footer style={{
@@ -68,90 +79,157 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
         margin: '0 auto',
       }}>
         {isCollapsed ? (
-          /* Collapsed view - single line */
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '1rem',
-            position: 'relative'
-          }}>
+          /* Collapsed view */
+          isMobile ? (
+            /* Mobile layout - two lines */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+            }}>
+              {/* First row: Logo and CTA */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}>
+                  <Zap size={20} style={{ color: '#3b82f6' }} />
+                  <span style={{
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    color: colors.text
+                  }}>ActionBias</span>
+                </div>
+                <Link 
+                  href="/" 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '0.5rem',
+                    textDecoration: 'none',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2563eb';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3b82f6';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Begin
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+              {/* Second row: Tagline */}
+              <div style={{
+                textAlign: 'center',
+                fontSize: '0.875rem',
+                color: colors.textSubtle,
+                fontStyle: 'italic',
+              }}>
+                The best software knows when to get out of your way.
+              </div>
+            </div>
+          ) : (
+            /* Desktop layout - single line with arc */
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem'
+              justifyContent: 'space-between',
+              gap: '1rem',
+              position: 'relative'
             }}>
-              <Zap size={20} style={{ color: '#3b82f6' }} />
-              <span style={{
-                fontSize: '1rem',
-                fontWeight: '600',
-                color: colors.text
-              }}>ActionBias</span>
-            </div>
-            
-            {/* Centered text with arc effect */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              transform: 'translateX(-50%) translateY(-50%)',
-              width: '100%',
-              textAlign: 'center',
-              pointerEvents: 'none'
-            }}>
-              <svg 
-                viewBox="0 0 600 40" 
-                style={{ 
-                  width: '600px', 
-                  height: '40px',
-                  margin: '0 auto'
-                }}
-              >
-                <defs>
-                  <path id="arc" d="M 50 20 Q 300 30 550 20" />
-                </defs>
-                <text 
-                  style={{
-                    fontSize: '14px',
-                    fill: colors.textSubtle,
-                    fontStyle: 'italic',
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                <Zap size={20} style={{ color: '#3b82f6' }} />
+                <span style={{
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: colors.text
+                }}>ActionBias</span>
+              </div>
+              
+              {/* Centered text with arc effect */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translateX(-50%) translateY(-50%)',
+                width: '100%',
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <svg 
+                  viewBox="0 0 600 40" 
+                  style={{ 
+                    width: '600px', 
+                    height: '40px',
+                    margin: '0 auto'
                   }}
                 >
-                  <textPath href="#arc" startOffset="50%" textAnchor="middle">
-                    The best software knows when to get out of your way.
-                  </textPath>
-                </text>
-              </svg>
+                  <defs>
+                    <path id="arc" d="M 50 20 Q 300 30 550 20" />
+                  </defs>
+                  <text 
+                    style={{
+                      fontSize: '14px',
+                      fill: colors.textSubtle,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    <textPath href="#arc" startOffset="50%" textAnchor="middle">
+                      The best software knows when to get out of your way.
+                    </textPath>
+                  </text>
+                </svg>
+              </div>
+              
+              <Link 
+                href="/" 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  borderRadius: '0.5rem',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2563eb';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                Begin
+                <ArrowRight size={16} />
+              </Link>
             </div>
-            
-            <Link 
-              href="/" 
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                borderRadius: '0.5rem',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2563eb';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#3b82f6';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              Begin
-              <ArrowRight size={16} />
-            </Link>
-          </div>
+          )
         ) : (
         <>
         {/* Main content */}
