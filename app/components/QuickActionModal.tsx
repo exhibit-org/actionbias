@@ -66,20 +66,27 @@ export default function QuickActionModal() {
 
       // Get family suggestion based on the generated title
       if (parseData.data?.title) {
-        // Try the simpler find-similar endpoint first
-        const suggestResponse = await fetch('/api/actions/find-similar', {
+        // Use the same suggest-family endpoint that the MCP tools use
+        const suggestResponse = await fetch('/api/actions/suggest-family', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: parseData.data.title,
             description: parseData.data.description,
             vision: parseData.data.vision,
-            limit: 5,
+            limit: 10, // Get more candidates to see what's available
+            threshold: 0.05, // Very low threshold to be more inclusive
           }),
         });
 
         if (suggestResponse.ok) {
           const suggestData = await suggestResponse.json();
+          console.log('Generated action fields:', {
+            title: parseData.data.title,
+            description: parseData.data.description,
+            vision: parseData.data.vision
+          });
+          
           console.log('Family suggestions response:', {
             candidatesCount: suggestData.data?.candidates?.length || 0,
             metadata: suggestData.data?.metadata,
