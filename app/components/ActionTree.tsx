@@ -35,9 +35,8 @@ export default function ActionTree({ actions, colors, expandedNodes, onToggleExp
 
   // Recursive function to render action tree
   const renderAction = (action: any, depth: number = 0): React.ReactNode => {
-    // Indent so child triangle aligns with parent text
-    // Parent has: count (2rem) + margin (0.25rem) + triangle (16px) + gap (0.15rem) + checkmark (16px) + gap (0.15rem)
-    const indentLevel = depth > 0 ? `calc(${depth} * (2rem + 0.25rem + 16px + 0.15rem + 16px + 0.15rem))` : '0';
+    // Fixed small indentation for each level
+    const indentLevel = depth > 0 ? `${depth * 20}px` : '0';
     const hasChildren = action.children && action.children.length > 0;
     const isExpanded = expandedNodes.has(action.id);
     
