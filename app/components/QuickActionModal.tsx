@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuickAction } from '../contexts/QuickActionContext';
 import { X, Loader } from 'react-feather';
+import SuccessToast from './SuccessToast';
 
 interface ActionFields {
   title: string;
@@ -24,6 +25,8 @@ export default function QuickActionModal() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [actionFields, setActionFields] = useState<ActionFields | null>(null);
   const [familySuggestion, setFamilySuggestion] = useState<FamilySuggestion | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -216,16 +219,16 @@ export default function QuickActionModal() {
       const createData = await createResponse.json();
       console.log('Action created:', createData);
       
+      // Show success message
+      const actionTitle = actionFields?.title || actionText.trim();
+      setSuccessMessage(`Action "${actionTitle}" created successfully!`);
+      setShowSuccess(true);
+      
+      // Reset form and close modal
       setActionText('');
       setActionFields(null);
       setFamilySuggestion(null);
       closeModal();
-      
-      // Show success message (could be improved with a toast notification)
-      // For now, just reload the page to show the new action
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
     } catch (error) {
       console.error('Error creating action:', error);
       setError('An unexpected error occurred. Please try again.');
@@ -234,13 +237,15 @@ export default function QuickActionModal() {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !showSuccess) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      style={{ backdropFilter: 'blur(4px)' }}
-    >
+    <>
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          style={{ backdropFilter: 'blur(4px)' }}
+        >
       <div 
         ref={modalRef}
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 relative"
@@ -357,5 +362,14 @@ export default function QuickActionModal() {
         </div>
       </div>
     </div>
+      )}
+      
+      {showSuccess && (
+        <SuccessToast
+          message={successMessage}
+          onClose={() => setShowSuccess(false)}
+        />
+      )}
+    </>
   );
 }
