@@ -73,7 +73,8 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1rem'
+            gap: '1rem',
+            position: 'relative'
           }}>
             <div style={{
               display: 'flex',
@@ -87,15 +88,42 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 color: colors.text
               }}>ActionBias</span>
             </div>
-            <span style={{
-              fontSize: '0.875rem',
-              color: colors.textMuted,
-              fontStyle: 'italic',
-              flex: 1,
-              textAlign: 'center'
+            
+            {/* Centered text with arc effect */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translateX(-50%) translateY(-50%)',
+              width: '100%',
+              textAlign: 'center',
+              pointerEvents: 'none'
             }}>
-              The best software knows when to get out of your way.
-            </span>
+              <svg 
+                viewBox="0 0 600 40" 
+                style={{ 
+                  width: '600px', 
+                  height: '40px',
+                  margin: '0 auto'
+                }}
+              >
+                <defs>
+                  <path id="arc" d="M 50 25 Q 300 15 550 25" />
+                </defs>
+                <text 
+                  style={{
+                    fontSize: '14px',
+                    fill: colors.textSubtle,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  <textPath href="#arc" startOffset="50%" textAnchor="middle">
+                    The best software knows when to get out of your way.
+                  </textPath>
+                </text>
+              </svg>
+            </div>
+            
             <Link 
               href="/" 
               style={{
