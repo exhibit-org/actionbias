@@ -148,7 +148,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Try ActionBias Free
+              Begin
               <ArrowRight size={16} />
             </Link>
           </div>
@@ -208,7 +208,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Try ActionBias Free
+              Begin
               <ArrowRight size={16} />
             </Link>
           </div>
