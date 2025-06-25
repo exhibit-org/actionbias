@@ -5,6 +5,17 @@ import { ActionsService } from '../../../lib/services/actions';
 jest.mock('../../../lib/services/actions');
 const mockActionsService = ActionsService as jest.Mocked<typeof ActionsService>;
 
+// Mock getDb
+jest.mock('../../../lib/db/adapter', () => ({
+  getDb: jest.fn(),
+}));
+
+// Mock db schema
+jest.mock('../../../db/schema', () => ({
+  actions: {},
+  edges: {},
+}));
+
 // Mock console methods
 const mockConsoleLog = jest.spyOn(console, 'log').mockImplementation(() => {});
 const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -30,14 +41,17 @@ describe('MCP Tools', () => {
     it('should register all tools with the server', () => {
       registerTools(mockServer);
 
-      expect(mockServer.tool).toHaveBeenCalledTimes(7);
+      expect(mockServer.tool).toHaveBeenCalledTimes(10);
       expect(mockServer.tool).toHaveBeenCalledWith('create_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('add_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('delete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('remove_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('update_action', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('complete_action', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('uncomplete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('join_family', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('suggest_family', expect.any(String), expect.any(Object), expect.any(Function));
+      expect(mockServer.tool).toHaveBeenCalledWith('search_actions', expect.any(String), expect.any(Object), expect.any(Function));
     });
   });
 
@@ -48,12 +62,15 @@ describe('MCP Tools', () => {
       expect(toolCapabilities).toHaveProperty('delete_action');
       expect(toolCapabilities).toHaveProperty('remove_dependency');
       expect(toolCapabilities).toHaveProperty('update_action');
+      expect(toolCapabilities).toHaveProperty('complete_action');
+      expect(toolCapabilities).toHaveProperty('uncomplete_action');
       expect(toolCapabilities).toHaveProperty('join_family');
       expect(toolCapabilities).toHaveProperty('suggest_family');
+      expect(toolCapabilities).toHaveProperty('search_actions');
 
-      expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with optional parent and dependencies');
-      expect(toolCapabilities.join_family.description).toBe('Update an action\'s parent relationship by moving it under a new parent or making it a root action');
-      expect(toolCapabilities.suggest_family.description).toBe('Get an intelligent placement suggestion for a new action using stored summaries and semantic analysis');
+      expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with a required family (use suggest_family to find appropriate placement)');
+      expect(toolCapabilities.join_family.description).toBe('Update an action\'s family relationship by having it join a new family or making it independent');
+      expect(toolCapabilities.suggest_family.description).toBe('Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.');
     });
   });
 
@@ -77,23 +94,36 @@ describe('MCP Tools', () => {
         dependencies_count: 0,
       };
 
+      // Mock getDb to return a family action
+      const mockGetDb = require('../../../lib/db/adapter').getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: 'family-id' }])
+            })
+          })
+        })
+      });
+
       mockActionsService.createAction.mockResolvedValue(mockResult);
 
-      const result = await createActionHandler({ title: 'Test Action' }, {});
+      const result = await createActionHandler({ title: 'Test Action', family_id: 'family-id' }, {});
 
       expect(mockActionsService.createAction).toHaveBeenCalledWith({
         title: 'Test Action',
         description: undefined,
         vision: undefined,
-        parent_id: undefined,
+        parent_id: 'family-id',
         depends_on_ids: undefined,
+        override_duplicate_check: undefined,
       });
 
       expect(result.content[0].text).toContain('Created action: Test Action');
       expect(result.content[0].text).toContain('ID: test-id');
     });
 
-    it('should create action with parent and dependencies', async () => {
+    it('should create action with family and dependencies', async () => {
       const mockResult = {
         action: {
           id: 'test-id',
@@ -103,13 +133,25 @@ describe('MCP Tools', () => {
         dependencies_count: 2,
       };
 
+      // Mock getDb to return a family action
+      const mockGetDb = require('../../../lib/db/adapter').getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: 'family-id' }])
+            })
+          })
+        })
+      });
+
       mockActionsService.createAction.mockResolvedValue(mockResult);
 
       const result = await createActionHandler({
         title: 'Test Action',
         description: 'Test description',
         vision: 'Test vision',
-        parent_id: 'parent-id',
+        family_id: 'family-id',
         depends_on_ids: ['dep1', 'dep2'],
       }, {});
 
@@ -117,29 +159,72 @@ describe('MCP Tools', () => {
         title: 'Test Action',
         description: 'Test description',
         vision: 'Test vision',
-        parent_id: 'parent-id',
+        parent_id: 'family-id',
         depends_on_ids: ['dep1', 'dep2'],
+        override_duplicate_check: undefined,
       });
 
-      expect(result.content[0].text).toContain('Parent: parent-id');
+      expect(result.content[0].text).toContain('Parent: family-id');
       expect(result.content[0].text).toContain('Dependencies: 2 actions');
     });
 
     it('should handle errors gracefully', async () => {
+      // Mock getDb to return a family action
+      const mockGetDb = require('../../../lib/db/adapter').getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: 'family-id' }])
+            })
+          })
+        })
+      });
+
       mockActionsService.createAction.mockRejectedValue(new Error('Database error'));
 
-      const result = await createActionHandler({ title: 'Test Action' }, {});
+      const result = await createActionHandler({ title: 'Test Action', family_id: 'family-id' }, {});
 
       expect(result.content[0].text).toBe('Error creating action: Database error');
       expect(mockConsoleError).toHaveBeenCalledWith('Error creating action:', expect.any(Error));
     });
 
     it('should handle non-Error exceptions', async () => {
+      // Mock getDb to return a family action
+      const mockGetDb = require('../../../lib/db/adapter').getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: 'family-id' }])
+            })
+          })
+        })
+      });
+
       mockActionsService.createAction.mockRejectedValue('String error');
 
-      const result = await createActionHandler({ title: 'Test Action' }, {});
+      const result = await createActionHandler({ title: 'Test Action', family_id: 'family-id' }, {});
 
       expect(result.content[0].text).toBe('Error creating action: Unknown error');
+    });
+
+    it('should error when family_id does not exist', async () => {
+      // Mock getDb to return no family action
+      const mockGetDb = require('../../../lib/db/adapter').getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([])
+            })
+          })
+        })
+      });
+
+      const result = await createActionHandler({ title: 'Test Action', family_id: 'non-existent' }, {});
+
+      expect(result.content[0].text).toContain('Family action with ID non-existent not found');
     });
   });
 
@@ -206,7 +291,7 @@ describe('MCP Tools', () => {
         },
         children_count: 0,
         child_handling: 'reparent',
-        new_parent_id: undefined,
+        new_family_id: undefined,
       };
 
       mockActionsService.deleteAction.mockResolvedValue(mockResult);
@@ -216,7 +301,7 @@ describe('MCP Tools', () => {
       expect(mockActionsService.deleteAction).toHaveBeenCalledWith({
         action_id: 'action-id',
         child_handling: undefined,
-        new_parent_id: undefined,
+        new_family_id: undefined,
       });
 
       expect(result.content[0].text).toContain('Deleted action: Deleted Action');
@@ -254,7 +339,7 @@ describe('MCP Tools', () => {
         },
         children_count: 2,
         child_handling: 'delete_recursive',
-        new_parent_id: undefined,
+        new_family_id: undefined,
       };
 
       mockActionsService.deleteAction.mockResolvedValue(mockResult);
@@ -364,10 +449,10 @@ describe('MCP Tools', () => {
       expect(result.content[0].text).toContain('ID: action-id');
     });
 
-    it('should update action as completed', async () => {
+    it('should update action description', async () => {
       const mockAction = {
         id: 'action-id',
-        data: { title: 'Action Title' },
+        data: { title: 'Action Title', description: 'New description' },
         updatedAt: '2023-01-01T00:00:00.000Z',
       };
 
@@ -375,16 +460,20 @@ describe('MCP Tools', () => {
 
       const result = await updateActionHandler({
         action_id: 'action-id',
-        done: true,
+        description: 'New description',
       }, {});
 
-      expect(result.content[0].text).toContain('Status: Completed');
+      expect(mockActionsService.updateAction).toHaveBeenCalledWith({
+        action_id: 'action-id',
+        description: 'New description',
+      });
+      expect(result.content[0].text).toContain('Updated action: Action Title');
     });
 
-    it('should update action as not completed', async () => {
+    it('should update action vision', async () => {
       const mockAction = {
         id: 'action-id',
-        data: { title: 'Action Title' },
+        data: { title: 'Action Title', vision: 'New vision' },
         updatedAt: '2023-01-01T00:00:00.000Z',
       };
 
@@ -392,10 +481,14 @@ describe('MCP Tools', () => {
 
       const result = await updateActionHandler({
         action_id: 'action-id',
-        done: false,
+        vision: 'New vision',
       }, {});
 
-      expect(result.content[0].text).toContain('Status: Not completed');
+      expect(mockActionsService.updateAction).toHaveBeenCalledWith({
+        action_id: 'action-id',
+        vision: 'New vision',
+      });
+      expect(result.content[0].text).toContain('Updated action: Action Title');
     });
 
     it('should update multiple fields', async () => {
@@ -412,7 +505,6 @@ describe('MCP Tools', () => {
         title: 'New Title',
         description: 'New description',
         vision: 'New vision',
-        done: true,
       }, {});
 
       expect(mockActionsService.updateAction).toHaveBeenCalledWith({
@@ -420,7 +512,6 @@ describe('MCP Tools', () => {
         title: 'New Title',
         description: 'New description',
         vision: 'New vision',
-        done: true,
       });
     });
 
@@ -429,7 +520,7 @@ describe('MCP Tools', () => {
         action_id: 'action-id',
       }, {});
 
-      expect(result.content[0].text).toBe('Error: At least one field (title, description, vision, done, or completion context) must be provided');
+      expect(result.content[0].text).toBe('Error: At least one field (title, description, or vision) must be provided');
       expect(mockActionsService.updateAction).not.toHaveBeenCalled();
     });
 
@@ -446,67 +537,67 @@ describe('MCP Tools', () => {
   });
 
   describe('join_family tool', () => {
-    let updateParentHandler: Function;
+    let joinFamilyHandler: Function;
 
     beforeEach(() => {
       registerTools(mockServer);
       const updateParentCall = mockServer.tool.mock.calls.find(call => call[0] === 'join_family');
-      updateParentHandler = updateParentCall![3];
+      joinFamilyHandler = updateParentCall![3];
     });
 
     it('should successfully update parent to a new parent', async () => {
       const mockResult = {
         action_id: 'action-id',
         old_parent_id: 'old-parent',
-        new_parent_id: 'new-parent',
+        new_family_id: 'new-parent',
       };
 
       mockActionsService.updateFamily.mockResolvedValue(mockResult);
 
-      const result = await updateParentHandler({
+      const result = await joinFamilyHandler({
         action_id: 'action-id',
-        new_parent_id: 'new-parent',
+        new_family_id: 'new-parent',
       }, {});
 
       expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
         action_id: 'action-id',
-        new_parent_id: 'new-parent',
+        new_family_id: 'new-parent',
       });
 
-      expect(result.content[0].text).toContain('Updated parent relationship for action: action-id');
-      expect(result.content[0].text).toContain('New parent: new-parent');
+      expect(result.content[0].text).toContain('Updated family relationship for action: action-id');
+      expect(result.content[0].text).toContain('Joined family: new-parent');
     });
 
     it('should successfully make action a root action', async () => {
       const mockResult = {
         action_id: 'action-id',
         old_parent_id: 'old-parent',
-        new_parent_id: undefined,
+        new_family_id: undefined,
       };
 
       mockActionsService.updateFamily.mockResolvedValue(mockResult);
 
-      const result = await updateParentHandler({
+      const result = await joinFamilyHandler({
         action_id: 'action-id',
       }, {});
 
       expect(mockActionsService.updateFamily).toHaveBeenCalledWith({
         action_id: 'action-id',
-        new_parent_id: undefined,
+        new_family_id: undefined,
       });
 
-      expect(result.content[0].text).toContain('Action is now a root action (no parent)');
+      expect(result.content[0].text).toContain('Action is now independent (no family)');
     });
 
     it('should handle errors gracefully', async () => {
       mockActionsService.updateFamily.mockRejectedValue(new Error('Circular reference'));
 
-      const result = await updateParentHandler({
+      const result = await joinFamilyHandler({
         action_id: 'action-id',
-        new_parent_id: 'new-parent',
+        new_family_id: 'new-parent',
       }, {});
 
-      expect(result.content[0].text).toBe('Error updating parent: Circular reference');
+      expect(result.content[0].text).toBe('Error updating family: Circular reference');
     });
   });
 });

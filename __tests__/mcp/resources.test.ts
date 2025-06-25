@@ -6,9 +6,11 @@ jest.mock("../../lib/services/actions", () => ({
   ActionsService: {
     getActionListResource: jest.fn(),
     getActionTreeResource: jest.fn(),
+    getActionTreeResourceScoped: jest.fn(),
     getActionDependenciesResource: jest.fn(),
     getActionDetailResource: jest.fn(),
     getNextAction: jest.fn(),
+    getNextActionScoped: jest.fn(),
     getParentContextSummary: jest.fn(),
     getParentVisionSummary: jest.fn(),
   },
@@ -21,11 +23,14 @@ jest.mock("../../lib/db/adapter", () => ({
 jest.mock("../../db/schema", () => ({
   actions: {},
   edges: {},
+  completionContexts: {},
 }));
 
 jest.mock("drizzle-orm", () => ({
   eq: jest.fn(),
   and: jest.fn(),
+  desc: jest.fn(),
+  sql: jest.fn((template: TemplateStringsArray) => template[0]),
 }));
 
 const mockedService = ActionsService as jest.Mocked<typeof ActionsService>;
@@ -56,14 +61,17 @@ describe("MCP Resources", () => {
 
   it("registers all resources", () => {
     registerResources(server);
-    expect(server.resource).toHaveBeenCalledTimes(6);
+    expect(server.resource).toHaveBeenCalledTimes(9);
     expect(Object.keys(resourceCapabilities)).toEqual([
       "action://list",
       "action://tree",
+      "action://tree/{id}",
       "action://dependencies",
       "action://next",
       "action://next/{id}",
-      "action://{id}",
+      "action://item/{id}",
+      "log://feed",
+      "log://item/{id}",
     ]);
   });
 
@@ -73,7 +81,7 @@ describe("MCP Resources", () => {
     const expected = { total: 1, limit: 5, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     const result = await handler(new URL("action://list?limit=5"));
-    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 5, offset: 0, done: undefined, includeCompleted: false });
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 5, offset: 0, includeCompleted: false });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
@@ -90,10 +98,10 @@ describe("MCP Resources", () => {
   it("list resource parses URI parameters with query string", async () => {
     registerResources(server);
     const handler = server.resource.mock.calls[0][2];
-    const expected = { total: 5, limit: 10, offset: 20, actions: [], filtered_by_done: true } as any;
+    const expected = { total: 5, limit: 10, offset: 20, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
-    const result = await handler(new URL("action://list?limit=10&offset=20&done=true"));
-    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 10, offset: 20, done: true, includeCompleted: false });
+    const result = await handler(new URL("action://list?limit=10&offset=20&includeCompleted=true"));
+    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 10, offset: 20, includeCompleted: true });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
@@ -223,25 +231,21 @@ describe("MCP Resources", () => {
 
   it("detail resource returns data", async () => {
     registerResources(server);
-    // Find the detail resource by looking for the one that's NOT a string URI
-    const detailCall = server.resource.mock.calls.find(call => 
-      typeof call[1] !== 'string'
-    );
+    // Find the detail resource by index (action://item/{id} is at index 3)
+    const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", family_context_summary: "test context", family_vision_summary: "test vision", dependency_completion_context: []  } as any;
     const expectedWithSummaries = { ...expected };
     mockedService.getActionDetailResource.mockResolvedValue(expected);
     const result = await handler(new URL("action://123"), { id: "123" });
     expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
-    expect(result.contents[0].mimeType).toBe("text/plain");
+    expect(result.contents[0].mimeType).toBe("application/json");
   });
 
   it("detail resource displays completion context prominently", async () => {
     registerResources(server);
-    // Find the detail resource by looking for the one that's NOT a string URI
-    const detailCall = server.resource.mock.calls.find(call => 
-      typeof call[1] !== 'string'
-    );
+    // Find the detail resource by index (action://item/{id} is at index 3)
+    const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const expected = { 
       id: "123", 
@@ -267,23 +271,21 @@ describe("MCP Resources", () => {
     mockedService.getActionDetailResource.mockResolvedValue(expected);
     const result = await handler(new URL("action://123"), { id: "123" });
     
-    expect(result.contents[0].mimeType).toBe("text/plain");
-    const content = result.contents[0].text;
+    expect(result.contents[0].mimeType).toBe("application/json");
+    const data = JSON.parse(result.contents[0].text);
     
-    // Check that completion context appears prominently at the top
-    expect(content).toContain("🎯 COMPLETION CONTEXT FROM DEPENDENCIES");
-    expect(content).toContain("Setup Database");
-    expect(content).toContain("Used PostgreSQL with Drizzle ORM");
-    expect(content).toContain("Improved data consistency and query performance");
-    expect(content).toContain("Learned that migrations should be atomic");
+    // Check that completion context is included in the response
+    expect(data.dependency_completion_context).toHaveLength(1);
+    expect(data.dependency_completion_context[0].action_title).toBe("Setup Database");
+    expect(data.dependency_completion_context[0].implementation_story).toBe("Used PostgreSQL with Drizzle ORM");
+    expect(data.dependency_completion_context[0].impact_story).toBe("Improved data consistency and query performance");
+    expect(data.dependency_completion_context[0].learning_story).toBe("Learned that migrations should be atomic");
   });
 
   it("detail resource rejects missing id", async () => {
     registerResources(server);
-    // Find the detail resource by looking for the one that's NOT a string URI
-    const detailCall = server.resource.mock.calls.find(call => 
-      typeof call[1] !== 'string'
-    );
+    // Find the detail resource by index (action://item/{id} is at index 3)
+    const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     await expect(handler(new URL("action://{id}"), { id: "{id}" })).rejects.toThrow();
   });
@@ -291,10 +293,8 @@ describe("MCP Resources", () => {
   it("detail resource handles missing database url", async () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
-    // Find the detail resource by looking for the one that's NOT a string URI
-    const detailCall = server.resource.mock.calls.find(call => 
-      typeof call[1] !== 'string'
-    );
+    // Find the detail resource by index (action://item/{id} is at index 3)
+    const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const result = await handler(new URL("action://123"), { id: "123" });
     const data = JSON.parse(result.contents[0].text);
@@ -304,10 +304,8 @@ describe("MCP Resources", () => {
 
   it("detail resource handles database errors", async () => {
     registerResources(server);
-    // Find the detail resource by looking for the one that's NOT a string URI
-    const detailCall = server.resource.mock.calls.find(call => 
-      typeof call[1] !== 'string'
-    );
+    // Find the detail resource by index (action://item/{id} is at index 3)
+    const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     mockedService.getActionDetailResource.mockRejectedValue(new Error("Database error"));
     await expect(handler(new URL("action://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Database error");
@@ -505,22 +503,21 @@ describe("MCP Resources", () => {
     await expect(handler(new URL("action://"), { id: "" })).rejects.toThrow("Action ID is required");
   });
 
-  it("list resource parses done=false parameter correctly", async () => {
+  it("list resource parses includeCompleted=false parameter correctly", async () => {
     registerResources(server);
     const handler = server.resource.mock.calls[0][2];
-    const expected = { total: 2, limit: 20, offset: 0, actions: [], filtered_by_done: false } as any;
+    const expected = { total: 2, limit: 20, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     
-    const result = await handler(new URL("action://list?done=false"));
+    const result = await handler(new URL("action://list?includeCompleted=false"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
       limit: 20, 
       offset: 0, 
-      done: false, 
       includeCompleted: false 
     });
   });
 
-  it("list resource handles null done parameter", async () => {
+  it("list resource handles parameters without includeCompleted", async () => {
     registerResources(server);
     const handler = server.resource.mock.calls[0][2];
     const expected = { total: 3, limit: 20, offset: 0, actions: [] } as any;
@@ -530,25 +527,10 @@ describe("MCP Resources", () => {
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
       limit: 20, 
       offset: 0, 
-      done: undefined, 
       includeCompleted: false 
     });
   });
 
-  it("list resource parses includeCompleted=false parameter correctly", async () => {
-    registerResources(server);
-    const handler = server.resource.mock.calls[0][2];
-    const expected = { total: 1, limit: 20, offset: 0, actions: [] } as any;
-    mockedService.getActionListResource.mockResolvedValue(expected);
-    
-    const result = await handler(new URL("action://list?includeCompleted=false"));
-    expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
-      limit: 20, 
-      offset: 0, 
-      done: undefined, 
-      includeCompleted: false 
-    });
-  });
 
   it("tree resource parses includeCompleted=false parameter correctly", async () => {
     registerResources(server);
@@ -576,5 +558,141 @@ describe("MCP Resources", () => {
     mockedService.getActionListResource.mockRejectedValue(new Error("Service error"));
     
     await expect(handler(new URL("action://list"))).rejects.toThrow("Failed to fetch actions: Service error");
+  });
+
+  // Log resource tests
+  it("log feed resource returns recent logs", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[7][2]; // log://feed is at index 7
+    
+    const testLog = {
+      id: "log1",
+      actionId: "action1",
+      actionTitle: "Test Action",
+      actionDescription: "Test Description",
+      implementationStory: "Implemented using TDD",
+      impactStory: "Improved test coverage",
+      learningStory: "TDD is effective",
+      changelogVisibility: "team",
+      completionTimestamp: new Date(),
+      structuredData: null,
+    };
+    
+    // Mock both queries - first for logs, second for count
+    mockGetDb.mockReset();
+    
+    // First call for the main query
+    mockGetDb.mockImplementationOnce(() => ({
+      select: jest.fn().mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          innerJoin: jest.fn().mockReturnValue({
+            limit: jest.fn().mockReturnValue({
+              offset: jest.fn().mockReturnValue({
+                orderBy: jest.fn().mockResolvedValue([testLog])
+              })
+            })
+          })
+        })
+      })
+    } as any));
+    
+    // Second call for the count query
+    mockGetDb.mockImplementationOnce(() => ({
+      select: jest.fn().mockReturnValue({
+        from: jest.fn().mockResolvedValue([{ count: 1 }])
+      })
+    } as any));
+    
+    const result = await handler(new URL("log://feed"));
+    const data = JSON.parse(result.contents[0].text);
+    
+    expect(data.logs).toHaveLength(1);
+    expect(data.logs[0].actionTitle).toBe("Test Action");
+    expect(data.total).toBe(1);
+  });
+
+  it("log feed resource handles missing database", async () => {
+    process.env.DATABASE_URL = "";
+    registerResources(server);
+    const handler = server.resource.mock.calls[7][2];
+    
+    const result = await handler(new URL("log://feed"));
+    const data = JSON.parse(result.contents[0].text);
+    
+    expect(data.error).toBe("Database not configured");
+    expect(data.logs).toEqual([]);
+  });
+
+  it("log item resource returns specific action log", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[8][2]; // log://item/{id} is at index 8
+    
+    // Mock the database response
+    mockGetDb.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          innerJoin: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{
+                id: "log1",
+                actionId: "action1",
+                actionTitle: "Test Action",
+                actionDescription: "Test Description",
+                actionVision: "Test Vision",
+                implementationStory: "Implemented using TDD",
+                impactStory: "Improved test coverage",
+                learningStory: "TDD is effective",
+                changelogVisibility: "team",
+                completionTimestamp: new Date(),
+                structuredData: null,
+              }])
+            })
+          })
+        })
+      })
+    } as any);
+    
+    const result = await handler(new URL("log://item/action1"), { id: "action1" });
+    const data = JSON.parse(result.contents[0].text);
+    
+    expect(data.log).toBeDefined();
+    expect(data.log.actionTitle).toBe("Test Action");
+    expect(data.log.implementationStory).toBe("Implemented using TDD");
+  });
+
+  it("log item resource returns null for missing log", async () => {
+    registerResources(server);
+    const handler = server.resource.mock.calls[8][2];
+    
+    // Mock empty response
+    mockGetDb.mockReturnValue({
+      select: jest.fn().mockReturnValue({
+        from: jest.fn().mockReturnValue({
+          innerJoin: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([])
+            })
+          })
+        })
+      })
+    } as any);
+    
+    const result = await handler(new URL("log://item/nonexistent"), { id: "nonexistent" });
+    const data = JSON.parse(result.contents[0].text);
+    
+    expect(data.log).toBeNull();
+    expect(data.message).toContain("No completion log found");
+  });
+
+  it("log item resource handles missing database", async () => {
+    process.env.DATABASE_URL = "";
+    registerResources(server);
+    const handler = server.resource.mock.calls[8][2];
+    
+    const result = await handler(new URL("log://item/action1"), { id: "action1" });
+    const data = JSON.parse(result.contents[0].text);
+    
+    expect(data.error).toBe("Database not configured");
+    expect(data.log).toBeNull();
   });
 });

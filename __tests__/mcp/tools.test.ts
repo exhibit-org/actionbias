@@ -12,9 +12,9 @@ jest.mock("../../lib/services/actions", () => ({
   },
 }));
 
-jest.mock("../../lib/services/placement", () => ({
-  PlacementService: {
-    findBestParent: jest.fn(),
+jest.mock("../../lib/services/vector-placement", () => ({
+  VectorPlacementService: {
+    findBestFamily: jest.fn(),
   },
 }));
 
@@ -54,15 +54,18 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(7);
+    expect(server.tool).toHaveBeenCalledTimes(10);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
       "delete_action",
       "remove_dependency",
       "update_action",
+      "complete_action",
+      "uncomplete_action",
       "join_family",
       "suggest_family",
+      "search_actions",
     ]);
   });
 
@@ -70,28 +73,78 @@ describe("MCP Tools", () => {
     it("returns success message", async () => {
       registerTools(server);
       const handler = tools["create_action"];
+      // Mock the database call to check family exists
+      const mockGetDb = require("../../lib/db/adapter").getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: "family-1" }])
+            })
+          })
+        })
+      });
+      
       const expected = { action: { id: "1", createdAt: "now", data: { title: "A" } }, dependencies_count: 0 } as any;
       mockedService.createAction.mockResolvedValue(expected);
-      const res = await handler({ title: "A" }, {});
-      expect(mockedService.createAction).toHaveBeenCalledWith({ title: "A", parent_id: undefined, depends_on_ids: undefined });
+      const res = await handler({ title: "A", family_id: "family-1" }, {});
+      expect(mockedService.createAction).toHaveBeenCalledWith({ 
+        title: "A", 
+        description: undefined,
+        vision: undefined,
+        parent_id: "family-1", 
+        depends_on_ids: undefined,
+        override_duplicate_check: undefined
+      });
       expect(res.content[0].text).toContain("Created action: A");
     });
 
     it("returns error message on failure", async () => {
       registerTools(server);
       const handler = tools["create_action"];
+      // Mock the database call to check family exists
+      const mockGetDb = require("../../lib/db/adapter").getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: "family-1" }])
+            })
+          })
+        })
+      });
+      
       mockedService.createAction.mockRejectedValue(new Error("fail"));
-      const res = await handler({ title: "A" }, {});
+      const res = await handler({ title: "A", family_id: "family-1" }, {});
       expect(res.content[0].text).toContain("Error creating action: fail");
     });
 
     it("creates action with vision", async () => {
       registerTools(server);
       const handler = tools["create_action"];
+      // Mock the database call
+      const mockGetDb = require("../../lib/db/adapter").getDb;
+      mockGetDb.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          from: jest.fn().mockReturnValue({
+            where: jest.fn().mockReturnValue({
+              limit: jest.fn().mockResolvedValue([{ id: "family-1" }])
+            })
+          })
+        })
+      });
+      
       const expected = { action: { id: "1", createdAt: "now", data: { title: "A", vision: "World peace achieved" } }, dependencies_count: 0 } as any;
       mockedService.createAction.mockResolvedValue(expected);
-      const res = await handler({ title: "A", vision: "World peace achieved" }, {});
-      expect(mockedService.createAction).toHaveBeenCalledWith({ title: "A", description: undefined, vision: "World peace achieved", parent_id: undefined, depends_on_ids: undefined });
+      const res = await handler({ title: "A", vision: "World peace achieved", family_id: "family-1" }, {});
+      expect(mockedService.createAction).toHaveBeenCalledWith({ 
+        title: "A", 
+        description: undefined, 
+        vision: "World peace achieved", 
+        parent_id: "family-1", 
+        depends_on_ids: undefined,
+        override_duplicate_check: undefined
+      });
       expect(res.content[0].text).toContain("Created action: A");
     });
 
@@ -194,15 +247,15 @@ describe("MCP Tools", () => {
       expect(res.content[0].text).toContain("Updated action");
     });
 
-    it("returns success message with done status", async () => {
+    it("returns success message with title update", async () => {
       registerTools(server);
       const handler = tools["update_action"];
-      const expected = { id: "a1", data: { title: "A" }, updatedAt: "2024-01-01", done: true } as any;
+      const expected = { id: "a1", data: { title: "Updated Title" }, updatedAt: "2024-01-01" } as any;
       mockedService.updateAction.mockResolvedValue(expected);
-      const res = await handler({ action_id: "a1", done: true }, {});
-      expect(mockedService.updateAction).toHaveBeenCalledWith({ action_id: "a1", done: true });
+      const res = await handler({ action_id: "a1", title: "Updated Title" }, {});
+      expect(mockedService.updateAction).toHaveBeenCalledWith({ action_id: "a1", title: "Updated Title" });
       expect(res.content[0].text).toContain("Updated action");
-      expect(res.content[0].text).toContain("Status: Completed");
+      expect(res.content[0].text).toContain("Updated Title");
     });
 
     it("returns error message on failure", async () => {
@@ -237,7 +290,7 @@ describe("MCP Tools", () => {
       registerTools(server);
       const handler = tools["update_action"];
       const res = await handler({ action_id: "a1" }, {});
-      expect(res.content[0].text).toContain("At least one field (title, description, vision, done, or completion context) must be provided");
+      expect(res.content[0].text).toContain("At least one field (title, description, or vision) must be provided");
     });
   });
 
