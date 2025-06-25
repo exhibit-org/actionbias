@@ -5,7 +5,7 @@ import { ActionsService } from '../../lib/services/actions';
 // Mock the ActionsService
 jest.mock('../../lib/services/actions', () => ({
   ActionsService: {
-    addChildAction: jest.fn(),
+    addFamilyAction: jest.fn(),
   },
 }));
 
