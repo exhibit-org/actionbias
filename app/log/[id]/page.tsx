@@ -1,103 +1,93 @@
-'use client';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import ChangelogPageClient from './client';
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import ChangelogItem from '@/components/ChangelogItem';
-import ViralFooter from '../../components/ViralFooter';
-import Link from 'next/link';
-
-interface ChangelogData {
-  id: string;
-  actionId: string;
-  implementationStory?: string;
-  impactStory?: string;
-  learningStory?: string;
-  changelogVisibility: string;
-  completionTimestamp: string;
-  actionTitle: string;
-  actionDescription?: string;
-  actionVision?: string;
-  actionDone: boolean;
-  actionCreatedAt: string;
+interface PageProps {
+  params: Promise<{ id: string }>;
 }
 
-interface ChangelogResponse {
-  success: boolean;
-  data: ChangelogData;
-}
-
-export default function ChangelogItemPage() {
-  const params = useParams();
-  const actionId = params.id as string;
+async function getChangelogItem(id: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   
-  const [changelogItem, setChangelogItem] = useState<ChangelogData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Color scheme to match the rest of the app
-  const colors = {
-    border: '#e5e7eb',
-    text: '#111827',
-    textMuted: '#4b5563',
-    textSubtle: '#6b7280',
-    textFaint: '#9ca3af'
-  };
-
-  useEffect(() => {
-    fetchChangelogItem();
-  }, [actionId]);
-
-  const fetchChangelogItem = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/changelog/${actionId}`);
-      const data: ChangelogResponse = await response.json();
-
-      if (data.success) {
-        setChangelogItem(data.data);
-      } else {
-        setError('Changelog item not found');
-      }
-    } catch (err) {
-      setError('Error fetching changelog item');
-    } finally {
-      setLoading(false);
+  try {
+    const response = await fetch(`${baseUrl}/api/changelog/${id}`, {
+      cache: 'no-store',
+    });
+    
+    if (!response.ok) {
+      return null;
     }
+    
+    const data = await response.json();
+    return data.success ? data.data : null;
+  } catch (error) {
+    console.error('Error fetching changelog item:', error);
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const changelogItem = await getChangelogItem(id);
+  
+  if (!changelogItem) {
+    return {
+      title: 'Changelog Item Not Found - ActionBias',
+      description: 'The requested changelog item could not be found.',
+    };
+  }
+  
+  // Create a compelling description from the impact story or action description
+  let description = changelogItem.impactStory || changelogItem.actionDescription || 'A completed action in ActionBias';
+  // Truncate to ~160 characters for optimal display
+  if (description.length > 160) {
+    description = description.substring(0, 157) + '...';
+  }
+  
+  // Clean up markdown for plain text display
+  description = description
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/`(.*?)`/g, '$1')
+    .replace(/\n/g, ' ');
+  
+  const title = `${changelogItem.actionTitle} - ActionBias Changelog`;
+  
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      publishedTime: changelogItem.completionTimestamp,
+      authors: ['ActionBias'],
+      siteName: 'ActionBias',
+      images: [
+        {
+          url: 'https://actionbias.com/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: `${changelogItem.actionTitle} - ActionBias`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['https://actionbias.com/og-image.png'],
+    },
   };
+}
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+export default async function ChangelogItemPage({ params }: PageProps) {
+  const { id } = await params;
+  const changelogItem = await getChangelogItem(id);
+  
+  if (!changelogItem) {
+    notFound();
   }
-
-  if (error || !changelogItem) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">{error || 'Changelog item not found'}</div>
-          <Link 
-            href="/log" 
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
-            View all log items
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="min-h-screen bg-gray-50 pb-80">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Changelog Item with share button */}
-          <ChangelogItem item={changelogItem} showShare={true} />
-        </div>
-      </div>
-      <ViralFooter colors={colors} />
-    </>
-  );
+  
+  return <ChangelogPageClient initialData={changelogItem} actionId={id} />;
 }
