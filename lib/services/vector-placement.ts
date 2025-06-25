@@ -250,14 +250,14 @@ export class VectorPlacementService {
     const familyEdges = await getDb()
       .select()
       .from(edges)
-      .where(eq(edges.kind, "child"));
+      .where(eq(edges.kind, "family"));
     
     const familyMap = new Map<string, string>();
     
-    // Build family map from edges (edges are src=family, dst=member for "child" kind)
+    // Build family map from edges (edges with kind="family" have src=parent, dst=child)
     for (const edge of familyEdges) {
       if (edge.src && edge.dst) {
-        familyMap.set(edge.dst, edge.src); // member -> family
+        familyMap.set(edge.dst, edge.src); // child -> parent mapping
       }
     }
     
