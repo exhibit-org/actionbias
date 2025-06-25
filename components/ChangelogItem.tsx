@@ -10,6 +10,9 @@ interface ChangelogItemProps {
   implementationStory?: string;
   impactStory?: string;
   learningStory?: string;
+  headline?: string;
+  deck?: string;
+  pullQuotes?: string[] | null;
   changelogVisibility: string;
   completionTimestamp: string;
   actionTitle: string;
