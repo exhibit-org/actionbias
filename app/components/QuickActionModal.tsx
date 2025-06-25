@@ -66,20 +66,36 @@ export default function QuickActionModal() {
 
       // Get family suggestion based on the generated title
       if (parseData.data?.title) {
-        const suggestResponse = await fetch('/api/actions/suggest-family', {
+        // Try the simpler find-similar endpoint first
+        const suggestResponse = await fetch('/api/actions/find-similar', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: parseData.data.title,
             description: parseData.data.description,
             vision: parseData.data.vision,
-            limit: 1,
-            threshold: 0.3,
+            limit: 5,
           }),
         });
 
         if (suggestResponse.ok) {
           const suggestData = await suggestResponse.json();
+          console.log('Family suggestions response:', {
+            candidatesCount: suggestData.data?.candidates?.length || 0,
+            metadata: suggestData.data?.metadata,
+            firstCandidate: suggestData.data?.candidates?.[0]
+          }); // Enhanced debug log
+          
+          // Log all candidates for debugging
+          if (suggestData.data?.candidates?.length > 0) {
+            console.log('All family candidates:');
+            suggestData.data.candidates.forEach((candidate: any, index: number) => {
+              console.log(`${index + 1}. ${candidate.title} (${Math.round(candidate.similarity * 100)}%)`);
+            });
+          } else {
+            console.log('No family candidates found at all');
+          }
+          
           const topCandidate = suggestData.data?.candidates?.[0];
           if (topCandidate) {
             setFamilySuggestion({
@@ -87,8 +103,15 @@ export default function QuickActionModal() {
               title: topCandidate.title,
               similarity: topCandidate.similarity,
             });
+          } else {
+            setFamilySuggestion(null); // Explicitly clear if no match
           }
+        } else {
+          console.error('Failed to get family suggestions:', await suggestResponse.text());
+          setFamilySuggestion(null);
         }
+      } else {
+        setFamilySuggestion(null);
       }
     } catch (err) {
       console.error('Error generating fields:', err);
@@ -294,7 +317,7 @@ export default function QuickActionModal() {
                       </span>
                     ) : (
                       <span className="text-gray-400">
-                        {actionFields ? 'No matching family found' : 'Generating...'}
+                        {actionFields ? 'No matching family found (root action)' : 'Generating...'}
                       </span>
                     )}
                   </div>
