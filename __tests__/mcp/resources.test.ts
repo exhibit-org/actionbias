@@ -70,8 +70,8 @@ describe("MCP Resources", () => {
       "action://next",
       "action://next/{id}",
       "action://item/{id}",
-      "log://feed",
-      "log://item/{id}",
+      "action://log",
+      "action://log/{id}",
     ]);
   });
 
@@ -563,7 +563,7 @@ describe("MCP Resources", () => {
   // Log resource tests
   it("log feed resource returns recent logs", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[7][2]; // log://feed is at index 7
+    const handler = server.resource.mock.calls[7][2]; // action://log is at index 7
     
     const testLog = {
       id: "log1",
@@ -603,7 +603,7 @@ describe("MCP Resources", () => {
       })
     } as any));
     
-    const result = await handler(new URL("log://feed"));
+    const result = await handler(new URL("action://log"));
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.logs).toHaveLength(1);
@@ -616,7 +616,7 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[7][2];
     
-    const result = await handler(new URL("log://feed"));
+    const result = await handler(new URL("action://log"));
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.error).toBe("Database not configured");
@@ -625,7 +625,7 @@ describe("MCP Resources", () => {
 
   it("log item resource returns specific action log", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[8][2]; // log://item/{id} is at index 8
+    const handler = server.resource.mock.calls[8][2]; // action://log/{id} is at index 8
     
     // Mock the database response
     mockGetDb.mockReturnValue({
@@ -652,7 +652,7 @@ describe("MCP Resources", () => {
       })
     } as any);
     
-    const result = await handler(new URL("log://item/action1"), { id: "action1" });
+    const result = await handler(new URL("action://log/action1"), { id: "action1" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.log).toBeDefined();
@@ -677,7 +677,7 @@ describe("MCP Resources", () => {
       })
     } as any);
     
-    const result = await handler(new URL("log://item/nonexistent"), { id: "nonexistent" });
+    const result = await handler(new URL("action://log/nonexistent"), { id: "nonexistent" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.log).toBeNull();
@@ -689,7 +689,7 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[8][2];
     
-    const result = await handler(new URL("log://item/action1"), { id: "action1" });
+    const result = await handler(new URL("action://log/action1"), { id: "action1" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.error).toBe("Database not configured");

@@ -501,10 +501,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // log://feed - Recent completion logs with pagination
+  // action://log - Recent completion logs with pagination
   server.resource(
     "Recent completion logs showing how actions were implemented, their impact, and learnings",
-    "log://feed",
+    "action://log",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -601,17 +601,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // log://item/{id} - Individual action's completion log
+  // action://log/{id} - Individual action's completion log
   server.resource(
     "Completion log for a specific action showing implementation details, impact, and learnings",
-    new ResourceTemplate("log://item/{id}", { list: undefined }),
+    new ResourceTemplate("action://log/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Action ID is required - URI should be like 'log://item/123'");
+          throw new Error("Action ID is required - URI should be like 'action://log/123'");
         }
         
         // Check if database is available
@@ -707,10 +707,10 @@ export const resourceCapabilities = {
   "action://item/{id}": {
     description: "Individual action details with relationships",
   },
-  "log://feed": {
+  "action://log": {
     description: "Recent completion logs showing how actions were implemented, their impact, and learnings. Supports pagination (?limit=20&offset=0) and visibility filtering (?visibility=public|team|private)",
   },
-  "log://item/{id}": {
+  "action://log/{id}": {
     description: "Completion log for a specific action showing implementation details, impact, and learnings",
   },
 };
