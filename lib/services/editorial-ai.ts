@@ -55,7 +55,7 @@ Generate the following editorial content:
 
 3. PULL QUOTES: Extract 2-3 powerful quotes from the stories that highlight key achievements, insights, or turning points. These should be impactful statements that work well when highlighted.
 
-Return the content in JSON format:
+Return ONLY valid JSON without any markdown formatting or code blocks. The response should be pure JSON that can be parsed directly:
 {
   "headline": "...",
   "deck": "...",
@@ -71,7 +71,23 @@ Return the content in JSON format:
 
       // Parse the JSON response
       try {
-        const content = JSON.parse(result.text);
+        // Clean up the response - remove markdown code blocks if present
+        let cleanedText = result.text.trim();
+        
+        // Remove markdown code block markers
+        if (cleanedText.startsWith('```json')) {
+          cleanedText = cleanedText.substring(7);
+        } else if (cleanedText.startsWith('```')) {
+          cleanedText = cleanedText.substring(3);
+        }
+        
+        if (cleanedText.endsWith('```')) {
+          cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+        }
+        
+        cleanedText = cleanedText.trim();
+        
+        const content = JSON.parse(cleanedText);
         return {
           headline: content.headline,
           deck: content.deck,
@@ -79,6 +95,7 @@ Return the content in JSON format:
         };
       } catch (parseError) {
         console.error('Failed to parse AI response:', parseError);
+        console.error('Raw response:', result.text);
         // Fallback: Try to extract content from the text
         return this.extractContentFromText(result.text);
       }
