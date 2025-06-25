@@ -141,7 +141,15 @@ export default function QuickActionModal() {
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Set new timer
+    // If text is empty or whitespace only, clear the fields immediately
+    if (!text.trim()) {
+      setActionFields(null);
+      setFamilySuggestion(null);
+      setIsGenerating(false);
+      return;
+    }
+
+    // Set new timer for non-empty text
     debounceTimerRef.current = setTimeout(() => {
       generateActionFields(text);
     }, 500); // 500ms debounce
@@ -285,64 +293,71 @@ export default function QuickActionModal() {
 
             {/* Right side - Generated fields */}
             <div className="flex-1">
-              {(actionText.trim() || actionFields) ? (
-                <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-700">AI Preview</h3>
-                    {isGenerating && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Loader size={14} className="animate-spin" />
-                        <span>Generating...</span>
-                      </div>
-                    )}
+              <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">AI Preview</h3>
+                  {isGenerating && actionText.trim() && (
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <Loader size={14} className="animate-spin" />
+                      <span>Generating...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Title</label>
+                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
+                      {actionFields?.title || (
+                        actionText.trim() && isGenerating ? 
+                        <span className="text-gray-400 italic">Generating...</span> : 
+                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600">Title</label>
-                      <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
-                        {actionFields?.title || <span className="text-gray-400 italic">Generating...</span>}
-                      </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Description</label>
+                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[4rem] max-h-24 overflow-y-auto">
+                      {actionFields?.description || (
+                        actionText.trim() && isGenerating ? 
+                        <span className="text-gray-400 italic">Generating...</span> : 
+                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                      )}
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="text-xs font-medium text-gray-600">Description</label>
-                      <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm max-h-24 overflow-y-auto">
-                        {actionFields?.description || <span className="text-gray-400 italic">Generating...</span>}
-                      </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Vision</label>
+                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[3rem] max-h-20 overflow-y-auto">
+                      {actionFields?.vision || (
+                        actionText.trim() && isGenerating ? 
+                        <span className="text-gray-400 italic">Generating...</span> : 
+                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                      )}
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="text-xs font-medium text-gray-600">Vision</label>
-                      <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm max-h-20 overflow-y-auto">
-                        {actionFields?.vision || <span className="text-gray-400 italic">Generating...</span>}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-gray-600">Family</label>
-                      <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm">
-                        {familySuggestion ? (
-                          <span>
-                            {familySuggestion.title}
-                            <span className="text-xs text-gray-500 ml-2">
-                              ({Math.round(familySuggestion.similarity * 100)}% match)
-                            </span>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600">Family</label>
+                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
+                      {familySuggestion ? (
+                        <span>
+                          {familySuggestion.title}
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({Math.round(familySuggestion.similarity * 100)}% match)
                           </span>
-                        ) : (
-                          <span className="text-gray-400 italic">
-                            {actionFields ? 'No matching family found (root action)' : 'Generating...'}
-                          </span>
-                        )}
-                      </div>
+                        </span>
+                      ) : (
+                        <span className={actionFields ? "text-gray-400 italic" : "text-gray-300 italic"}>
+                          {actionFields ? 'No matching family found (root action)' : 
+                           actionText.trim() && isGenerating ? 'Generating...' : 'Enter action text to generate'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="h-full min-h-[300px] bg-gray-50 rounded-lg border border-gray-200 border-dashed flex items-center justify-center">
-                  <p className="text-gray-400 text-sm">AI preview will appear here</p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
