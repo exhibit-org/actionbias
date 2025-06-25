@@ -74,22 +74,23 @@ export default function HomePage() {
         <div className="text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-6">
             <Zap size={16} />
-            <span>The future of AI-assisted project management</span>
+            <span>Where human creativity meets machine precision</span>
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Not just another task manager
+            Dream like a human.<br />Execute like a machine.
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
-            A platform that understands project relationships deeply enough to{' '}
-            <span className="text-gray-900 font-semibold">calibrate AI agents precisely</span>{' '}
-            before you set them in motion.
+            Let your imagination run wild. Explore possibilities. Change direction. 
+            When you're ready, ActionBias{' '}
+            <span className="text-gray-900 font-semibold">transforms your vision into precisely calibrated instructions</span>{' '}
+            any AI can follow.
           </p>
 
           <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">
-            ActionBias captures vertical (family) and lateral (dependency) context, 
-            turning your project into a living knowledge graph that any AI can understand.
+            Your ideas evolve organically through conversations. We capture every insight, 
+            every connection, every dependency—building a living blueprint for flawless execution.
           </p>
 
           {/* Email Signup Form */}
@@ -135,7 +136,7 @@ export default function HomePage() {
       {/* How It Works */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-          How ActionBias transforms your workflow
+          From dreams to reality in three steps
         </h2>
         
         <div className="grid md:grid-cols-3 gap-8">
@@ -143,10 +144,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">1</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Plan with any AI</h3>
+            <h3 className="text-xl font-semibold mb-3">Dream freely</h3>
             <p className="text-gray-600">
-              Use ChatGPT, Claude, or any LLM to break down projects. 
-              ActionBias captures and organizes everything automatically.
+              Brainstorm with ChatGPT, Claude, or any AI. Change your mind. 
+              Explore tangents. ActionBias remembers everything.
             </p>
           </div>
           
@@ -154,10 +155,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">2</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Context builds over time</h3>
+            <h3 className="text-xl font-semibold mb-3">Shape organically</h3>
             <p className="text-gray-600">
-              Every conversation adds to your project's knowledge graph. 
-              Dependencies and relationships are tracked automatically.
+              Your vision evolves naturally through conversations. 
+              We map every connection, building a complete picture of your project.
             </p>
           </div>
           
@@ -165,10 +166,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">3</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Calibrated agents, perfect execution</h3>
+            <h3 className="text-xl font-semibold mb-3">Execute flawlessly</h3>
             <p className="text-gray-600">
-              When ready to execute, ActionBias calibrates your AI agents with 
-              complete context, ensuring they're precisely tuned before launch.
+              When you're ready, we transform your organic plan into 
+              machine-precise instructions any AI agent can follow perfectly.
             </p>
           </div>
         </div>
@@ -240,11 +241,11 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-6">
-          Ready to supercharge your AI workflow?
+          Ready to bridge the gap between dreams and execution?
         </h2>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Join forward-thinking engineers who are building the future with AI agents 
-          that actually understand their projects.
+          Join visionary builders who refuse to compromise between 
+          creative exploration and flawless implementation.
         </p>
         
         {!isSubmitted ? (
