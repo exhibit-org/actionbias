@@ -120,39 +120,6 @@ export async function GET(
             position: 'relative',
           }}
         >
-          {/* Top branding */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '60px',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: 'white',
-                letterSpacing: '-0.5px',
-              }}
-            >
-              ActionBias
-            </div>
-            <div
-              style={{
-                fontSize: '14px',
-                color: '#94a3b8',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                padding: '6px 16px',
-                borderRadius: '20px',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-              }}
-            >
-              {changelogItem.changelogVisibility === 'public' ? '🌐 Public' :
-               changelogItem.changelogVisibility === 'team' ? '👥 Team' : '🔒 Private'}
-            </div>
-          </div>
           
           {/* Main content */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -209,25 +176,6 @@ export async function GET(
             >
               {description}
             </p>
-          </div>
-          
-          {/* Bottom tagline */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '40px',
-              paddingTop: '40px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <div style={{ fontSize: '16px', color: '#64748b' }}>
-              Dream like a human. Execute like a machine.
-            </div>
-            <div style={{ fontSize: '14px', color: '#475569' }}>
-              actionbias.ai
-            </div>
           </div>
           
           {/* Decorative elements */}

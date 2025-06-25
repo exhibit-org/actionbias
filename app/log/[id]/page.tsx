@@ -51,9 +51,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .replace(/`(.*?)`/g, '$1')
     .replace(/\n/g, ' ');
   
-  const title = `${changelogItem.actionTitle} - ActionBias Changelog`;
+  const title = changelogItem.actionTitle;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.actionbias.ai' : 'http://localhost:3000');
   const ogImageUrl = `${baseUrl}/api/og/log/${id}`;
+  const ogUrl = `${baseUrl}/log/${id}`;
   
   return {
     title,
@@ -62,6 +63,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       type: 'article',
+      url: ogUrl,
       publishedTime: changelogItem.completionTimestamp,
       authors: ['ActionBias'],
       siteName: 'ActionBias',
@@ -70,7 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `${changelogItem.actionTitle} - ActionBias`,
+          alt: changelogItem.actionTitle,
         },
       ],
     },
