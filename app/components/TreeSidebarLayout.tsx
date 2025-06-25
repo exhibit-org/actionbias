@@ -24,6 +24,7 @@ export default function TreeSidebarLayout({ children, colors }: TreeSidebarLayou
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const pathname = usePathname();
   
   // Extract current action ID from pathname
@@ -56,14 +57,16 @@ export default function TreeSidebarLayout({ children, colors }: TreeSidebarLayou
     fetchTreeData();
   }, []);
 
-  // Calculate expanded nodes to show current action's path
-  const calculateExpandedNodes = (actions: any[], targetId: string): string[] => {
-    const expanded: string[] = [];
+  // Calculate path to current action and merge with existing expanded nodes
+  useEffect(() => {
+    if (!treeData || !currentActionId) return;
+    
+    const pathToCurrentAction: string[] = [];
     
     const findPath = (nodes: any[], target: string, path: string[] = []): boolean => {
       for (const node of nodes) {
         if (node.id === target) {
-          expanded.push(...path);
+          pathToCurrentAction.push(...path);
           return true;
         }
         if (node.children && node.children.length > 0) {
@@ -75,11 +78,28 @@ export default function TreeSidebarLayout({ children, colors }: TreeSidebarLayou
       return false;
     };
     
-    if (treeData?.rootActions) {
-      findPath(treeData.rootActions, targetId);
+    if (treeData.rootActions) {
+      findPath(treeData.rootActions, currentActionId);
     }
     
-    return expanded;
+    // Merge path to current action with existing expanded nodes
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      pathToCurrentAction.forEach(id => newSet.add(id));
+      return newSet;
+    });
+  }, [treeData, currentActionId]);
+
+  const handleToggleExpanded = (actionId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(actionId)) {
+        newSet.delete(actionId);
+      } else {
+        newSet.add(actionId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -155,7 +175,8 @@ export default function TreeSidebarLayout({ children, colors }: TreeSidebarLayou
               <ActionTree 
                 actions={treeData.rootActions} 
                 colors={colors} 
-                initiallyExpanded={calculateExpandedNodes(treeData.rootActions, currentActionId)}
+                expandedNodes={expandedNodes}
+                onToggleExpanded={handleToggleExpanded}
               />
             ) : (
               <p style={{ color: colors.textMuted }}>No actions available</p>

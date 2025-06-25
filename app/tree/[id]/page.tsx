@@ -16,6 +16,7 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Full grayscale color scheme with enhanced visual hierarchy
   const colors = {
@@ -70,6 +71,21 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
         }
         
         setTreeData(treeResult.data);
+        
+        // Initially expand all nodes
+        const allNodeIds: string[] = [];
+        const collectAllIds = (actions: any[]) => {
+          actions.forEach(action => {
+            allNodeIds.push(action.id);
+            if (action.children && action.children.length > 0) {
+              collectAllIds(action.children);
+            }
+          });
+        };
+        if (treeResult.data?.rootActions) {
+          collectAllIds(treeResult.data.rootActions);
+        }
+        setExpandedNodes(new Set(allNodeIds));
       } catch (err) {
         console.error('Error fetching scoped tree:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch scoped tree');
@@ -80,6 +96,18 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
 
     fetchScopedTree();
   }, [params]);
+
+  const handleToggleExpanded = (actionId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(actionId)) {
+        newSet.delete(actionId);
+      } else {
+        newSet.add(actionId);
+      }
+      return newSet;
+    });
+  };
 
   if (loading) {
     return (
@@ -132,7 +160,8 @@ export default function ScopedTreePage({ params }: { params: Promise<{ id: strin
           <ActionTree 
             actions={treeData.rootActions} 
             colors={colors} 
-            initiallyExpanded={treeData.rootActions.map(action => action.id)}
+            expandedNodes={expandedNodes}
+            onToggleExpanded={handleToggleExpanded}
           />
         ) : (
           <p style={{ color: colors.textMuted }}>

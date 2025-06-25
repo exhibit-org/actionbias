@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 
 interface ActionTreeProps {
@@ -15,23 +14,11 @@ interface ActionTreeProps {
     textSubtle: string;
     textFaint: string;
   };
-  initiallyExpanded?: string[];
+  expandedNodes: Set<string>;
+  onToggleExpanded: (actionId: string) => void;
 }
 
-export default function ActionTree({ actions, colors, initiallyExpanded = [] }: ActionTreeProps) {
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(initiallyExpanded));
-
-  const toggleExpanded = (actionId: string) => {
-    setExpandedNodes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(actionId)) {
-        newSet.delete(actionId);
-      } else {
-        newSet.add(actionId);
-      }
-      return newSet;
-    });
-  };
+export default function ActionTree({ actions, colors, expandedNodes, onToggleExpanded }: ActionTreeProps) {
 
   // Recursive function to count all descendants
   const countAllDescendants = (action: any): number => {
@@ -93,7 +80,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             )}
             {hasChildren ? (
               <button
-                onClick={() => toggleExpanded(action.id)}
+                onClick={() => onToggleExpanded(action.id)}
                 style={{
                   background: 'none',
                   border: 'none',

@@ -12,6 +12,7 @@ export default function GlobalTreePage() {
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   // Full grayscale color scheme with enhanced visual hierarchy
   const colors = {
@@ -42,6 +43,21 @@ export default function GlobalTreePage() {
         }
         
         setTreeData(treeResult.data);
+        
+        // Initially expand all nodes
+        const allNodeIds: string[] = [];
+        const collectAllIds = (actions: any[]) => {
+          actions.forEach(action => {
+            allNodeIds.push(action.id);
+            if (action.children && action.children.length > 0) {
+              collectAllIds(action.children);
+            }
+          });
+        };
+        if (treeResult.data?.rootActions) {
+          collectAllIds(treeResult.data.rootActions);
+        }
+        setExpandedNodes(new Set(allNodeIds));
       } catch (err) {
         console.error('Error fetching global tree:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch global tree');
@@ -52,6 +68,18 @@ export default function GlobalTreePage() {
 
     fetchGlobalTree();
   }, []);
+
+  const handleToggleExpanded = (actionId: string) => {
+    setExpandedNodes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(actionId)) {
+        newSet.delete(actionId);
+      } else {
+        newSet.add(actionId);
+      }
+      return newSet;
+    });
+  };
 
   if (loading) {
     return (
@@ -101,7 +129,12 @@ export default function GlobalTreePage() {
         minHeight: '100vh'
       }}>
         {treeData && treeData.rootActions.length > 0 ? (
-          <ActionTree actions={treeData.rootActions} colors={colors} />
+          <ActionTree 
+            actions={treeData.rootActions} 
+            colors={colors} 
+            expandedNodes={expandedNodes}
+            onToggleExpanded={handleToggleExpanded}
+          />
         ) : (
           <p style={{ color: colors.textMuted }}>
             No actions are currently available. This might mean all actions are completed or no actions have been created yet.
