@@ -63,6 +63,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
           justifyContent: 'center',
           zIndex: 11,
           transition: 'transform 0.3s ease',
+          outline: 'none',
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
@@ -87,7 +88,36 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               flexDirection: 'column',
               gap: '0.75rem',
             }}>
-              {/* First row: Logo and CTA */}
+              {/* First row: Tagline with arc effect */}
+              <div style={{
+                width: '100%',
+                textAlign: 'center',
+              }}>
+                <svg 
+                  viewBox="0 0 400 40" 
+                  style={{ 
+                    width: '100%', 
+                    height: '40px',
+                    margin: '0 auto'
+                  }}
+                >
+                  <defs>
+                    <path id="mobileArc" d="M 20 20 Q 200 30 380 20" />
+                  </defs>
+                  <text 
+                    style={{
+                      fontSize: '14px',
+                      fill: colors.textSubtle,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    <textPath href="#mobileArc" startOffset="50%" textAnchor="middle">
+                      The best software knows when to get out of your way.
+                    </textPath>
+                  </text>
+                </svg>
+              </div>
+              {/* Second row: Logo and CTA */}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -133,15 +163,6 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                   Begin
                   <ArrowRight size={16} />
                 </Link>
-              </div>
-              {/* Second row: Tagline */}
-              <div style={{
-                textAlign: 'center',
-                fontSize: '0.875rem',
-                color: colors.textSubtle,
-                fontStyle: 'italic',
-              }}>
-                The best software knows when to get out of your way.
               </div>
             </div>
           ) : (
