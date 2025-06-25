@@ -52,6 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .replace(/\n/g, ' ');
   
   const title = `${changelogItem.actionTitle} - ActionBias Changelog`;
+  const ogImageUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://actionbias.com'}/api/og/log/${id}`;
   
   return {
     title,
@@ -65,7 +66,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: 'ActionBias',
       images: [
         {
-          url: 'https://actionbias.com/og-image.png',
+          url: ogImageUrl,
           width: 1200,
           height: 630,
           alt: `${changelogItem.actionTitle} - ActionBias`,
@@ -76,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image',
       title,
       description,
-      images: ['https://actionbias.com/og-image.png'],
+      images: [ogImageUrl],
     },
   };
 }

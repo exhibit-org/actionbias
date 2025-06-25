@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     siteName: "ActionBias",
     images: [
       {
-        url: "https://actionbias.com/og-image.png",
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://actionbias.com'}/api/og`,
         width: 1200,
         height: 630,
         alt: "ActionBias - Where human creativity meets machine precision",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ActionBias - Dream like a human. Execute like a machine.",
     description: "Let your imagination run wild. Explore possibilities. When you're ready, ActionBias transforms your vision into precisely calibrated instructions.",
-    images: ["https://actionbias.com/og-image.png"],
+    images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://actionbias.com'}/api/og`],
     creator: "@actionbias",
   },
   icons: {
