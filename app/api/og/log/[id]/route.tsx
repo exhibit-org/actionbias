@@ -128,7 +128,7 @@ export async function GET(
               style={{
                 fontSize: '32px',
                 fontWeight: 'bold',
-                color: 'white',
+                color: '#94a3b8',
                 lineHeight: 1.3,
                 marginBottom: '24px',
                 display: '-webkit-box',
