@@ -81,11 +81,27 @@ ActionBias exposes these tools via Model Context Protocol:
 
 ## MCP Resources
 
-- **`action://tree`** - Complete action hierarchy visualization
-- **`action://[id]`** - Individual action details
-- **`action://dependencies/[id]`** - Dependency relationships
-- **`action://next`** - Next recommended action
-- **`actions://`** - List all actions with filtering
+ActionBias exposes these resources via Model Context Protocol:
+
+### Action Management
+- **`action://list`** - List all actions
+  - Query params: `?includeCompleted=true` (default: false)
+- **`action://tree`** - Hierarchical view of actions showing family relationships
+  - Query params: `?includeCompleted=true` (default: false)
+- **`action://tree/{id}`** - Hierarchical view scoped to a specific subtree
+  - Query params: `?includeCompleted=true` (default: false)
+- **`action://item/{id}`** - Individual action details with relationships
+
+### Execution & Planning
+- **`action://next`** - Get the next action to work on based on dependencies
+- **`action://next/{id}`** - Get the next action within a specific subtree
+- **`action://dependencies`** - Dependency graph view
+  - Query params: `?includeCompleted=true` (default: false)
+
+### Completion Logs
+- **`action://log`** - Recent completion logs with pagination
+  - Query params: `?limit=20&offset=0&visibility=public|team|private`
+- **`action://log/{id}`** - Completion log for a specific action
 
 ## Architecture
 
