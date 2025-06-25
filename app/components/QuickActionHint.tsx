@@ -36,7 +36,7 @@ export default function QuickActionHint() {
 
   return (
     <div 
-      className="fixed bottom-6 right-6 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-xs z-40"
+      className="fixed bottom-24 right-6 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-xs z-40"
       style={{ 
         animation: 'slideIn 0.3s ease-out',
       }}

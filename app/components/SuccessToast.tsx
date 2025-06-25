@@ -17,7 +17,7 @@ export default function SuccessToast({ message, onClose, duration = 3000 }: Succ
   }, [duration, onClose]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
+    <div className="fixed bottom-20 right-4 z-50 animate-slide-up">
       <div className="bg-white rounded-lg shadow-lg border border-green-200 p-4 flex items-center gap-3 min-w-[300px]">
         <CheckCircle className="text-green-500" size={24} />
         <p className="text-gray-900 flex-1">{message}</p>
