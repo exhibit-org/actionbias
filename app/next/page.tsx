@@ -1,5 +1,5 @@
 import NextActionDisplay from './components/NextActionDisplay';
-import { ActionPageLayout } from '../../components/ActionPageLayout';
+import TreeSidebarLayout from '../components/TreeSidebarLayout';
 
 export const metadata = {
   title: 'Next Action - ActionBias',
@@ -20,8 +20,8 @@ export default function NextPage() {
   };
 
   return (
-    <ActionPageLayout colors={colors}>
+    <TreeSidebarLayout colors={colors}>
       <NextActionDisplay colors={colors} />
-    </ActionPageLayout>
+    </TreeSidebarLayout>
   );
 }

@@ -1,5 +1,5 @@
 import NextActionDisplay from '../next/components/NextActionDisplay';
-import { ActionPageLayout } from '../../components/ActionPageLayout';
+import TreeSidebarLayout from '../components/TreeSidebarLayout';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -30,8 +30,8 @@ export default async function ActionPage({ params }: Props) {
   };
 
   return (
-    <ActionPageLayout colors={colors}>
+    <TreeSidebarLayout colors={colors}>
       <NextActionDisplay colors={colors} actionId={resolvedParams.id} />
-    </ActionPageLayout>
+    </TreeSidebarLayout>
   );
 }
