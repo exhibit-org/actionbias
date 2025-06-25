@@ -1,8 +1,9 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ActionsService } from "../services/actions";
+import { CompletionContextService } from "../services/completion-context";
 import { getDb } from "../db/adapter";
-import { actions, edges } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { actions, edges, completionContexts } from "../../db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -499,6 +500,189 @@ export function registerResources(server: any) {
       }
     }
   );
+
+  // log://feed - Recent completion logs with pagination
+  server.resource(
+    "Recent completion logs showing how actions were implemented, their impact, and learnings",
+    "log://feed",
+    async (uri: any) => {
+      try {
+        // Parse URI parameters
+        let limit = 20;
+        let offset = 0;
+        let visibility: string | undefined;
+        
+        const uriString = uri.toString();
+        if (uriString.includes('?')) {
+          try {
+            const url = new URL(uriString);
+            limit = parseInt(url.searchParams.get('limit') || '20');
+            offset = parseInt(url.searchParams.get('offset') || '0');
+            visibility = url.searchParams.get('visibility') || undefined;
+          } catch (urlError) {
+            console.log('Could not parse URI parameters, using defaults:', urlError);
+          }
+        }
+        
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  logs: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        // Get completion contexts with joined action data
+        const query = getDb()
+          .select({
+            id: completionContexts.id,
+            actionId: completionContexts.actionId,
+            actionTitle: actions.title,
+            actionDescription: actions.description,
+            implementationStory: completionContexts.implementationStory,
+            impactStory: completionContexts.impactStory,
+            learningStory: completionContexts.learningStory,
+            changelogVisibility: completionContexts.changelogVisibility,
+            completionTimestamp: completionContexts.completionTimestamp,
+            structuredData: completionContexts.structuredData,
+          })
+          .from(completionContexts)
+          .innerJoin(actions, eq(completionContexts.actionId, actions.id));
+        
+        if (visibility) {
+          query.where(eq(completionContexts.changelogVisibility, visibility));
+        }
+        
+        const logs = await query
+          .limit(limit)
+          .offset(offset)
+          .orderBy(desc(completionContexts.completionTimestamp));
+        
+        // Get total count
+        const countQuery = getDb()
+          .select({ count: sql<number>`count(*)` })
+          .from(completionContexts);
+        
+        if (visibility) {
+          countQuery.where(eq(completionContexts.changelogVisibility, visibility));
+        }
+        
+        const countResult = await countQuery;
+        const count = countResult?.[0]?.count || 0;
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                logs,
+                total: Number(count),
+                limit,
+                offset
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching log feed:', error);
+        throw new Error(`Failed to fetch log feed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // log://item/{id} - Individual action's completion log
+  server.resource(
+    "Completion log for a specific action showing implementation details, impact, and learnings",
+    new ResourceTemplate("log://item/{id}", { list: undefined }),
+    async (uri: any, { id }: { id: string | string[] }) => {
+      try {
+        // Handle id parameter which can be string or string[]
+        const actionId = Array.isArray(id) ? id[0] : id;
+        
+        if (!actionId || actionId === '{id}') {
+          throw new Error("Action ID is required - URI should be like 'log://item/123'");
+        }
+        
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  log: null
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        // Get completion context with joined action data
+        const result = await getDb()
+          .select({
+            id: completionContexts.id,
+            actionId: completionContexts.actionId,
+            actionTitle: actions.title,
+            actionDescription: actions.description,
+            actionVision: actions.vision,
+            implementationStory: completionContexts.implementationStory,
+            impactStory: completionContexts.impactStory,
+            learningStory: completionContexts.learningStory,
+            changelogVisibility: completionContexts.changelogVisibility,
+            completionTimestamp: completionContexts.completionTimestamp,
+            structuredData: completionContexts.structuredData,
+          })
+          .from(completionContexts)
+          .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+          .where(eq(completionContexts.actionId, actionId))
+          .limit(1);
+        
+        if (result.length === 0) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  log: null,
+                  message: `No completion log found for action ${actionId}`
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                log: result[0]
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching action log:', error);
+        throw new Error(`Failed to fetch action log: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
@@ -522,5 +706,11 @@ export const resourceCapabilities = {
   },
   "action://item/{id}": {
     description: "Individual action details with relationships",
+  },
+  "log://feed": {
+    description: "Recent completion logs showing how actions were implemented, their impact, and learnings. Supports pagination (?limit=20&offset=0) and visibility filtering (?visibility=public|team|private)",
+  },
+  "log://item/{id}": {
+    description: "Completion log for a specific action showing implementation details, impact, and learnings",
   },
 };
