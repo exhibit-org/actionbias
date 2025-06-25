@@ -87,6 +87,15 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 color: colors.text
               }}>ActionBias</span>
             </div>
+            <span style={{
+              fontSize: '0.875rem',
+              color: colors.textMuted,
+              fontStyle: 'italic',
+              flex: 1,
+              textAlign: 'center'
+            }}>
+              The best software knows when to get out of your way.
+            </span>
             <Link 
               href="/" 
               style={{
