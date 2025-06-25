@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface ActionTreeProps {
   actions: any[];
@@ -64,8 +65,9 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             gap: '0.15rem'
           }}>
             {hasChildren && (
-              <a
+              <Link
                 href={`/tree/${action.id}`}
+                prefetch={true}
                 style={{ 
                   fontSize: '0.75rem', 
                   color: colors.textSubtle,
@@ -84,7 +86,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
                 }}
               >
                 {countAllDescendants(action)}
-              </a>
+              </Link>
             )}
             {!hasChildren && (
               <div style={{ minWidth: '2rem', marginRight: '0.25rem' }}></div>
@@ -134,8 +136,9 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
             }}>
               {action.done ? '✓' : ''}
             </span>
-            <a 
+            <Link 
               href={`/${action.id}`}
+              prefetch={true}
               style={{
                 fontSize: '0.875rem',
                 fontWeight: '500',
@@ -146,7 +149,7 @@ export default function ActionTree({ actions, colors, initiallyExpanded = [] }: 
               onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.textDecoration = 'none'}
             >
               {action.title}
-            </a>
+            </Link>
           </div>
         </div>
         {/* Render children recursively - only if expanded */}
