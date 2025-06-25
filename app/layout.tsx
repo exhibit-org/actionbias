@@ -1,5 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { QuickActionProvider } from "./contexts/QuickActionContext";
+import QuickActionModal from "./components/QuickActionModal";
+import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
+import QuickActionHint from "./components/QuickActionHint";
 
 export const metadata: Metadata = {
   title: "ActionBias - Dream like a human. Execute like a machine.",
@@ -40,7 +44,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
-      <body className="h-full antialiased">{children}</body>
+      <body className="h-full antialiased">
+        <QuickActionProvider>
+          <GlobalKeyboardListener />
+          {children}
+          <QuickActionModal />
+          <QuickActionHint />
+        </QuickActionProvider>
+      </body>
     </html>
   );
 }
