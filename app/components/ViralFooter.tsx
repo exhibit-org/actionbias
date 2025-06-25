@@ -108,7 +108,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                 }}
               >
                 <defs>
-                  <path id="arc" d="M 50 25 Q 300 15 550 25" />
+                  <path id="arc" d="M 50 20 Q 300 30 550 20" />
                 </defs>
                 <text 
                   style={{
