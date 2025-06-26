@@ -23,9 +23,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [showUncompletionModal, setShowUncompletionModal] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [completionContext, setCompletionContext] = useState({
-    implementationStory: '',
-    impactStory: '',
-    learningStory: '',
+    rawInput: '',
     changelogVisibility: 'team' as 'private' | 'team' | 'public'
   });
   const [previewData, setPreviewData] = useState<any>(null);
@@ -86,7 +84,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   };
 
   const handleComplete = async () => {
-    if (!actionData || actionData.done) return;
+    if (!actionData || actionData.done || !previewData) return;
     
     try {
       setCompleting(true);
@@ -96,9 +94,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          implementation_story: completionContext.implementationStory,
-          impact_story: completionContext.impactStory,
-          learning_story: completionContext.learningStory,
+          implementation_story: previewData.implementationStory,
+          impact_story: previewData.impactStory,
+          learning_story: previewData.learningStory,
           changelog_visibility: completionContext.changelogVisibility
         })
       });
@@ -113,9 +111,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       
       // Reset form and preview
       setCompletionContext({
-        implementationStory: '',
-        impactStory: '',
-        learningStory: '',
+        rawInput: '',
         changelogVisibility: 'team'
       });
       setPreviewData(null);
@@ -166,16 +162,6 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
 
   const generatePreview = async () => {
     if (!actionData) return;
-    
-    // Check if all required fields have content
-    const hasContent = completionContext.implementationStory.trim() && 
-                      completionContext.impactStory.trim() && 
-                      completionContext.learningStory.trim();
-    
-    if (!hasContent) {
-      setPreviewData(null);
-      return;
-    }
 
     try {
       setIsGeneratingPreview(true);
@@ -185,9 +171,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          implementation_story: completionContext.implementationStory,
-          impact_story: completionContext.impactStory,
-          learning_story: completionContext.learningStory,
+          raw_input: completionContext.rawInput,
           changelog_visibility: completionContext.changelogVisibility
         })
       });
@@ -430,7 +414,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               fontSize: '0.875rem', 
               lineHeight: '1.5' 
             }}>
-              Share your experience to help build institutional knowledge. All fields are required.
+              Describe what you did, or let AI generate a first draft from the action context.
             </p>
             
             <div style={{ 
@@ -443,32 +427,24 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               {/* Left column - Form */}
               <div style={{ overflowY: 'auto', paddingRight: '1rem' }}>
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                color: colors.text, 
-                fontSize: '0.875rem', 
-                fontWeight: '500' 
-              }}>
-                🔧 How did you implement this?
-              </label>
-              <textarea
-                value={completionContext.implementationStory}
-                onChange={(e) => handleCompletionContextChange({ implementationStory: e.target.value })}
-                placeholder="What approach did you take? What tools or technologies did you use? What challenges did you overcome?"
-                style={{ 
-                  width: '100%', 
-                  minHeight: '5rem', 
-                  padding: '0.75rem', 
-                  border: `1px solid ${colors.border}`, 
-                  borderRadius: '0.375rem', 
+            <div style={{ marginBottom: '1rem' }}>
+              <button
+                onClick={() => generatePreview()}
+                disabled={isGeneratingPreview}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: isGeneratingPreview ? colors.textFaint : colors.borderAccent,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
                   fontSize: '0.875rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
+                  fontWeight: '500',
+                  cursor: isGeneratingPreview ? 'not-allowed' : 'pointer',
+                  marginBottom: '1rem'
                 }}
-                required
-              />
+              >
+                {isGeneratingPreview ? 'Generating...' : '✨ Generate AI Draft'}
+              </button>
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
@@ -479,15 +455,15 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 fontSize: '0.875rem', 
                 fontWeight: '500' 
               }}>
-                🎯 What impact did this have?
+                📝 Completion Story
               </label>
               <textarea
-                value={completionContext.impactStory}
-                onChange={(e) => handleCompletionContextChange({ impactStory: e.target.value })}
-                placeholder="What did you accomplish? What value was delivered? Who benefits from this work?"
+                value={completionContext.rawInput}
+                onChange={(e) => handleCompletionContextChange({ rawInput: e.target.value })}
+                placeholder="Describe what you accomplished, how you did it, and what you learned. Or click 'Generate AI Draft' to start with AI suggestions based on the action context."
                 style={{ 
                   width: '100%', 
-                  minHeight: '5rem', 
+                  minHeight: '15rem', 
                   padding: '0.75rem', 
                   border: `1px solid ${colors.border}`, 
                   borderRadius: '0.375rem', 
@@ -495,35 +471,6 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                   resize: 'vertical',
                   fontFamily: 'inherit'
                 }}
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '0.5rem', 
-                color: colors.text, 
-                fontSize: '0.875rem', 
-                fontWeight: '500' 
-              }}>
-                💡 What did you learn?
-              </label>
-              <textarea
-                value={completionContext.learningStory}
-                onChange={(e) => handleCompletionContextChange({ learningStory: e.target.value })}
-                placeholder="What insights did you gain? What would you do differently next time? What advice would you give to others?"
-                style={{ 
-                  width: '100%', 
-                  minHeight: '5rem', 
-                  padding: '0.75rem', 
-                  border: `1px solid ${colors.border}`, 
-                  borderRadius: '0.375rem', 
-                  fontSize: '0.875rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-                required
               />
             </div>
 
@@ -614,8 +561,8 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                   }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ marginBottom: '0.5rem', fontSize: '1.125rem' }}>📰</div>
-                      <div>Fill out all fields to see a preview</div>
-                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>of your engineering journal article</div>
+                      <div>Click "Generate AI Draft" to see a preview</div>
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>or start typing your completion story</div>
                     </div>
                   </div>
                 )}
@@ -645,14 +592,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </button>
               <button 
                 onClick={handleComplete}
-                disabled={completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory}
+                disabled={completing || !previewData}
                 style={{ 
                   padding: '0.625rem 1.25rem', 
-                  backgroundColor: completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory ? colors.textFaint : '#10b981', 
+                  backgroundColor: completing || !previewData ? colors.textFaint : '#10b981', 
                   color: 'white', 
                   border: 'none', 
                   borderRadius: '0.375rem', 
-                  cursor: completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory ? 'not-allowed' : 'pointer',
+                  cursor: completing || !previewData ? 'not-allowed' : 'pointer',
                   fontSize: '0.875rem',
                   fontWeight: '500',
                   display: 'flex',
