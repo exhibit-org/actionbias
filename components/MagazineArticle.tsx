@@ -55,9 +55,9 @@ export default function MagazineArticle({
     // Enhanced markdown rendering with better code formatting
     const processedText = text
       // Code blocks with language hint
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm font-mono">$2</code></pre>')
-      // Inline code
-      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md text-sm font-mono text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700">$1</code>')
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+      // Inline code - just wrap in code tags, let CSS handle styling
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
       // Bold
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       // Italic
