@@ -1393,6 +1393,97 @@ export class ActionsService {
     return { dependencies };
   }
 
+  /**
+   * Get action with automatic generation of missing context
+   * This method loads action data and triggers async generation for any missing context
+   * @param actionId The action ID to load
+   * @returns The action with all existing context
+   */
+  static async getActionWithContext(actionId: string): Promise<any> {
+    // Get the action
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    if (actionResult.length === 0) {
+      throw new Error(`Action with ID ${actionId} not found`);
+    }
+
+    const action = actionResult[0];
+    
+    // Check for missing context and trigger async generation
+    const missingContext: string[] = [];
+    
+    // Check family summaries
+    if (!action.familyContextSummary || !action.familyVisionSummary) {
+      // Check if action has a family relationship
+      const familyEdges = await getDb().select().from(edges).where(
+        and(eq(edges.dst, actionId), eq(edges.kind, "family"))
+      ).limit(1);
+      
+      if (familyEdges.length > 0) {
+        // Has family but missing summaries
+        if (!action.familyContextSummary) missingContext.push('family_context_summary');
+        if (!action.familyVisionSummary) missingContext.push('family_vision_summary');
+        
+        // Trigger async generation
+        generateFamilySummariesAsync(actionId).catch(error => {
+          console.error(`Failed to generate family summaries for action ${actionId}:`, error);
+        });
+      }
+    }
+    
+    // Check node summary
+    if (!action.nodeSummary) {
+      missingContext.push('node_summary');
+      
+      // Trigger async generation
+      const title = action.title || (action.data as any)?.title;
+      const description = action.description || (action.data as any)?.description;
+      const vision = action.vision || (action.data as any)?.vision;
+      
+      if (title) {
+        generateNodeSummaryAsync(actionId, { title, description, vision }).catch(error => {
+          console.error(`Failed to generate node summary for action ${actionId}:`, error);
+        });
+      }
+    }
+    
+    // Check embedding
+    if (!action.embedding) {
+      missingContext.push('embedding');
+      
+      // Trigger async generation
+      const title = action.title || (action.data as any)?.title;
+      const description = action.description || (action.data as any)?.description;
+      const vision = action.vision || (action.data as any)?.vision;
+      
+      if (title) {
+        generateEmbeddingAsync(actionId, { title, description, vision }).catch(error => {
+          console.error(`Failed to generate embedding for action ${actionId}:`, error);
+        });
+      }
+    }
+    
+    // Check subtree summary (only if action has children)
+    const childEdges = await getDb().select().from(edges).where(
+      and(eq(edges.src, actionId), eq(edges.kind, "family"))
+    ).limit(1);
+    
+    if (childEdges.length > 0 && !action.subtreeSummary) {
+      missingContext.push('subtree_summary');
+      
+      // Trigger async generation
+      generateSubtreeSummaryAsync(actionId).catch(error => {
+        console.error(`Failed to generate subtree summary for action ${actionId}:`, error);
+      });
+    }
+    
+    // Log what context is being generated
+    if (missingContext.length > 0) {
+      console.log(`Generating missing context for action ${actionId}:`, missingContext.join(', '));
+    }
+    
+    return action;
+  }
+
   static async getActionDetailResource(actionId: string): Promise<ActionDetailResource> {
     // Helper function to convert action to ActionMetadata
     const toActionMetadata = (action: any): ActionMetadata => ({
@@ -1406,11 +1497,9 @@ export class ActionsService {
       updated_at: action.updatedAt.toISOString(),
     });
 
-    // Get the action
-    const action = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
-    if (action.length === 0) {
-      throw new Error(`Action with ID ${actionId} not found`);
-    }
+    // Get the action with context generation
+    const actionData = await this.getActionWithContext(actionId);
+    const action = [actionData]; // Convert to array for compatibility
 
     // Get parent relationship
     const parentEdgesResult = await getDb().select().from(edges).where(
@@ -1562,14 +1651,12 @@ export class ActionsService {
   }
 
   static async getNextActionScoped(scopeActionId: string): Promise<Action | null> {
-    // Validate that the scope action exists
-    const scopeAction = await getDb()
-      .select()
-      .from(actions)
-      .where(eq(actions.id, scopeActionId))
-      .limit(1);
-
-    if (scopeAction.length === 0) {
+    // Validate that the scope action exists and generate missing context
+    let scopeAction;
+    try {
+      const actionData = await this.getActionWithContext(scopeActionId);
+      scopeAction = [actionData]; // Convert to array for compatibility
+    } catch (error) {
       throw new Error(`Scope action with ID ${scopeActionId} not found`);
     }
 
