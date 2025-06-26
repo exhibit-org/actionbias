@@ -1574,6 +1574,9 @@ export class ActionsService {
           changelogVisibility: completionContexts.changelogVisibility,
           completionTimestamp: completionContexts.completionTimestamp,
           actionTitle: actions.title,
+          headline: completionContexts.headline,
+          deck: completionContexts.deck,
+          pullQuotes: completionContexts.pullQuotes,
         })
         .from(completionContexts)
         .innerJoin(actions, eq(completionContexts.actionId, actions.id))
@@ -1589,6 +1592,9 @@ export class ActionsService {
           impact_story: context.impactStory || undefined,
           learning_story: context.learningStory || undefined,
           changelog_visibility: context.changelogVisibility || 'team',
+          headline: context.headline || undefined,
+          deck: context.deck || undefined,
+          pull_quotes: context.pullQuotes as string[] || undefined,
         });
       }
     }
@@ -1604,6 +1610,9 @@ export class ActionsService {
           learningStory: completionContexts.learningStory,
           changelogVisibility: completionContexts.changelogVisibility,
           completionTimestamp: completionContexts.completionTimestamp,
+          headline: completionContexts.headline,
+          deck: completionContexts.deck,
+          pullQuotes: completionContexts.pullQuotes,
         })
         .from(completionContexts)
         .where(eq(completionContexts.actionId, actionId))
@@ -1619,6 +1628,9 @@ export class ActionsService {
           impact_story: context.impactStory || undefined,
           learning_story: context.learningStory || undefined,
           changelog_visibility: context.changelogVisibility || 'team',
+          headline: context.headline || undefined,
+          deck: context.deck || undefined,
+          pull_quotes: context.pullQuotes as string[] || undefined,
         };
       }
     }

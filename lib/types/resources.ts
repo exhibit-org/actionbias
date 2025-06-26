@@ -95,6 +95,10 @@ export interface DependencyCompletionContext {
   impact_story?: string;
   learning_story?: string;
   changelog_visibility: string;
+  // Magazine-style editorial content
+  headline?: string;
+  deck?: string;
+  pull_quotes?: string[];
 }
 
 export interface ActionMetadata {
