@@ -130,7 +130,7 @@ describe('Path Builder Utility', () => {
     it('should handle cycle detection', async () => {
       setupMockDb([
         [{ id: 'action-1', title: 'Action 1', data: {} }],
-        [{ src: 'action-1', dst: 'action-1', kind: 'child' }]
+        [{ src: 'action-1', dst: 'action-1', kind: 'family' }]
       ]);
 
       const result = await buildActionPath('action-1');
@@ -151,7 +151,7 @@ describe('Path Builder Utility', () => {
     it('should handle missing parent action gracefully', async () => {
       setupMockDb([
         [{ id: 'action-2', title: 'Child', data: {} }],
-        [{ src: 'action-1', dst: 'action-2', kind: 'child' }],
+        [{ src: 'action-1', dst: 'action-2', kind: 'family' }],
         []
       ]);
 

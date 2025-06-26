@@ -85,7 +85,7 @@ describe('PGlite Connection and Operations', () => {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           src UUID NOT NULL,
           dst UUID NOT NULL,
-          kind TEXT NOT NULL CHECK (kind IN ('child', 'depends_on')),
+          kind TEXT NOT NULL CHECK (kind IN ('family', 'depends_on')),
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(src, dst, kind)
         )
@@ -226,7 +226,7 @@ describe('PGlite Connection and Operations', () => {
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           src UUID NOT NULL,
           dst UUID NOT NULL,
-          kind TEXT NOT NULL CHECK (kind IN ('child', 'depends_on')),
+          kind TEXT NOT NULL CHECK (kind IN ('family', 'depends_on')),
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(src, dst, kind)
         )
@@ -249,7 +249,7 @@ describe('PGlite Connection and Operations', () => {
       // Create relationship
       await rawPglite.query(`
         INSERT INTO test_edges (src, dst, kind) VALUES ($1, $2, $3)
-      `, [parentId, childId, 'child']);
+      `, [parentId, childId, 'family']);
 
       // Query relationship
       const edgeResult = await rawPglite.query(`
@@ -257,7 +257,7 @@ describe('PGlite Connection and Operations', () => {
       `, [parentId, childId]);
 
       expect(edgeResult.rows).toHaveLength(1);
-      expect(edgeResult.rows[0].kind).toBe('child');
+      expect(edgeResult.rows[0].kind).toBe('family');
       expect(edgeResult.rows[0].src).toBe(parentId);
       expect(edgeResult.rows[0].dst).toBe(childId);
     });
@@ -277,13 +277,13 @@ describe('PGlite Connection and Operations', () => {
       // First insert should succeed
       await rawPglite.query(`
         INSERT INTO test_edges (src, dst, kind) VALUES ($1, $2, $3)
-      `, [id1, id2, 'child']);
+      `, [id1, id2, 'family']);
 
       // Duplicate insert should fail
       await expect(
         rawPglite.query(`
           INSERT INTO test_edges (src, dst, kind) VALUES ($1, $2, $3)
-        `, [id1, id2, 'child'])
+        `, [id1, id2, 'family'])
       ).rejects.toThrow();
     });
 
@@ -302,7 +302,7 @@ describe('PGlite Connection and Operations', () => {
       // Valid edge kinds should work
       await rawPglite.query(`
         INSERT INTO test_edges (src, dst, kind) VALUES ($1, $2, $3)
-      `, [id1, id2, 'child']);
+      `, [id1, id2, 'family']);
 
       await rawPglite.query(`
         INSERT INTO test_edges (src, dst, kind) VALUES ($1, $2, $3)

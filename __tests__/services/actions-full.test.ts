@@ -260,7 +260,7 @@ describe("ActionsService - Full Coverage", () => {
   describe("addFamilyAction", () => {
     const mockParent = { id: 'parent-id', data: { title: 'Parent' } };
     const mockChild = { id: 'child-id', data: { title: 'Child' } };
-    const mockEdge = { src: 'parent-id', dst: 'child-id', kind: 'child' };
+    const mockEdge = { src: 'parent-id', dst: 'child-id', kind: 'family' };
 
     it("should add child action successfully", async () => {
       // Mock parent exists
@@ -373,7 +373,7 @@ describe("ActionsService - Full Coverage", () => {
     });
 
     it("should delete action with children using reparent", async () => {
-      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
+      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'family' };
       const newParent = { id: 'new-parent-id', data: { title: 'New Parent' } };
 
       mockDb.select
@@ -419,7 +419,7 @@ describe("ActionsService - Full Coverage", () => {
     });
 
     it("should delete action with recursive deletion", async () => {
-      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
+      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'family' };
 
       mockDb.select
         .mockReturnValueOnce({
@@ -471,7 +471,7 @@ describe("ActionsService - Full Coverage", () => {
     });
 
     it("should throw error for reparent without new_parent_id", async () => {
-      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
+      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'family' };
 
       mockDb.select
         .mockReturnValueOnce({
@@ -501,7 +501,7 @@ describe("ActionsService - Full Coverage", () => {
     });
 
     it("should throw error if new parent not found during reparent", async () => {
-      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
+      const childEdge = { src: 'action-id', dst: 'child-id', kind: 'family' };
 
       mockDb.select
         .mockReturnValueOnce({
@@ -542,7 +542,7 @@ describe("ActionsService - Full Coverage", () => {
       // Test scenario: Delete a root-level action with children, but since it's root-level,
       // children should be handled without creating invalid parent connections
       const rootAction = { id: 'root-id', data: { title: 'Root Action' } };
-      const childEdge = { src: 'root-id', dst: 'child-id', kind: 'child' };
+      const childEdge = { src: 'root-id', dst: 'child-id', kind: 'family' };
 
       mockDb.select
         .mockReturnValueOnce({
@@ -575,7 +575,7 @@ describe("ActionsService - Full Coverage", () => {
       // Mock the edge insertion for reparenting
       mockDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
-          returning: jest.fn().mockResolvedValue([{ src: 'new-parent-id', dst: 'child-id', kind: 'child' }]),
+          returning: jest.fn().mockResolvedValue([{ src: 'new-parent-id', dst: 'child-id', kind: 'family' }]),
         }),
       });
 
@@ -602,7 +602,7 @@ describe("ActionsService - Full Coverage", () => {
       expect(mockDb.insert().values).toHaveBeenCalledWith({
         src: 'new-parent-id',
         dst: 'child-id',
-        kind: 'child',
+        kind: 'family',
       });
     });
 
@@ -611,8 +611,8 @@ describe("ActionsService - Full Coverage", () => {
       // ensuring no orphaned edges remain
       const parentAction = { id: 'parent-id', data: { title: 'Parent Action' } };
       const childEdges = [
-        { src: 'parent-id', dst: 'child-1-id', kind: 'child' },
-        { src: 'parent-id', dst: 'child-2-id', kind: 'child' }
+        { src: 'parent-id', dst: 'child-1-id', kind: 'family' },
+        { src: 'parent-id', dst: 'child-2-id', kind: 'family' }
       ];
       
       // Mock finding the parent action
@@ -640,8 +640,8 @@ describe("ActionsService - Full Coverage", () => {
         .mockReturnValue({
           from: jest.fn().mockReturnValue({
             where: jest.fn().mockResolvedValue([
-              { src: 'child-1-id', dst: 'grandchild-1-id', kind: 'child' },
-              { src: 'child-2-id', dst: 'grandchild-2-id', kind: 'child' }
+              { src: 'child-1-id', dst: 'grandchild-1-id', kind: 'family' },
+              { src: 'child-2-id', dst: 'grandchild-2-id', kind: 'family' }
             ]),
           }),
         });
@@ -1038,7 +1038,7 @@ describe("ActionsService - Full Coverage", () => {
       ];
       
       const mockEdges = [
-        { src: '1', dst: '2', kind: 'child' }
+        { src: '1', dst: '2', kind: 'family' }
       ];
 
       const mockDependencyEdges = [
@@ -1123,7 +1123,7 @@ describe("ActionsService - Full Coverage", () => {
       });
 
       it("should include parent_id and parent_chain when parent exists", async () => {
-        const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'child' };
+        const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'family' };
         const parentAction = {
           id: 'parent-id',
           data: { title: 'Parent Action', description: 'Parent desc' },
@@ -1157,8 +1157,8 @@ describe("ActionsService - Full Coverage", () => {
       });
 
       it("should build complete parent chain with multiple levels", async () => {
-        const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'child' };
-        const grandparentEdge = { src: 'grandparent-id', dst: 'parent-id', kind: 'child' };
+        const parentEdge = { src: 'parent-id', dst: 'action-id', kind: 'family' };
+        const grandparentEdge = { src: 'grandparent-id', dst: 'parent-id', kind: 'family' };
         
         const parentAction = {
           id: 'parent-id',
@@ -1213,7 +1213,7 @@ describe("ActionsService - Full Coverage", () => {
       });
 
       it("should include children when they exist", async () => {
-        const childEdge = { src: 'action-id', dst: 'child-id', kind: 'child' };
+        const childEdge = { src: 'action-id', dst: 'child-id', kind: 'family' };
         const childAction = { 
           id: 'child-id', 
           data: { title: 'Child' }, 

@@ -160,7 +160,7 @@ describe('API Response Format Validation', () => {
       const edge = {
         src: '123e4567-e89b-12d3-a456-426614174000',
         dst: '123e4567-e89b-12d3-a456-426614174001',
-        kind: 'child',
+        kind: 'family',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
@@ -168,14 +168,14 @@ describe('API Response Format Validation', () => {
       const result = edgeSchema.parse(edge);
       expect(result.src).toBe('123e4567-e89b-12d3-a456-426614174000');
       expect(result.dst).toBe('123e4567-e89b-12d3-a456-426614174001');
-      expect(result.kind).toBe('child');
+      expect(result.kind).toBe('family');
     });
 
     it('should reject edge with invalid UUIDs', () => {
       const edge = {
         src: 'invalid-uuid',
         dst: '123e4567-e89b-12d3-a456-426614174001',
-        kind: 'child',
+        kind: 'family',
         createdAt: '2024-01-01T00:00:00.000Z',
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
@@ -289,7 +289,7 @@ describe('API Response Format Validation', () => {
           edge: {
             src: '123e4567-e89b-12d3-a456-426614174001',
             dst: '123e4567-e89b-12d3-a456-426614174000',
-            kind: 'child',
+            kind: 'family',
             createdAt: '2024-01-01T00:00:00.000Z',
             updatedAt: '2024-01-01T00:00:00.000Z',
           },
@@ -299,7 +299,7 @@ describe('API Response Format Validation', () => {
       const result = addChildActionResponseSchema.parse(response);
       expect(result.data.action.data.title).toBe('Child Action');
       expect(result.data.parent.data.title).toBe('Parent Action');
-      expect(result.data.edge.kind).toBe('child');
+      expect(result.data.edge.kind).toBe('family');
     });
   });
 

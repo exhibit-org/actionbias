@@ -50,7 +50,7 @@ describe('/api/actions/family', () => {
         edge: {
           src: 'parent-id',
           dst: 'child-action-id',
-          kind: 'child',
+          kind: 'family',
         }
       };
 
@@ -204,7 +204,7 @@ describe('/api/actions/family', () => {
         edge: {
           src: 'parent-id',
           dst: 'child-action-id',
-          kind: 'child',
+          kind: 'family',
         }
       };
 

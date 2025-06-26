@@ -64,7 +64,7 @@ export async function buildActionPath(
   while (depth < maxDepth) {
     // Find the parent of the current action
     const parentEdgesResult = await db.select().from(edges).where(
-      and(eq(edges.dst, currentId), eq(edges.kind, "child"))
+      and(eq(edges.dst, currentId), eq(edges.kind, "family"))
     );
     
     const parentEdges = Array.isArray(parentEdgesResult) ? parentEdgesResult : [];

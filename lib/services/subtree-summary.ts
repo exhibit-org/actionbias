@@ -138,7 +138,7 @@ Focus on the "what" and "scope", not implementation details.`,
         COALESCE(a.description, a.data->>'description') as description,
         a.created_at
       FROM ${actions} a
-      INNER JOIN ${edges} e ON a.id = e.src AND e.kind = 'child'
+      INNER JOIN ${edges} e ON a.id = e.src AND e.kind = 'family'
       WHERE a.subtree_summary IS NULL
         AND (a.title IS NOT NULL OR a.data->>'title' IS NOT NULL)
       ORDER BY a.created_at DESC
@@ -208,7 +208,7 @@ Focus on the "what" and "scope", not implementation details.`,
       FROM ${actions} a
       INNER JOIN ${edges} e ON a.id = e.dst
       WHERE e.src = ${parentId} 
-        AND e.kind = 'child'
+        AND e.kind = 'family'
       ORDER BY a.created_at ASC
     `);
     
@@ -249,7 +249,7 @@ Focus on the "what" and "scope", not implementation details.`,
         COUNT(DISTINCT CASE WHEN a.subtree_summary IS NOT NULL THEN a.id END) as actions_with_subtree_summaries,
         COUNT(DISTINCT CASE WHEN a.subtree_summary IS NULL THEN a.id END) as actions_without_subtree_summaries
       FROM ${actions} a
-      INNER JOIN ${edges} e ON a.id = e.src AND e.kind = 'child'
+      INNER JOIN ${edges} e ON a.id = e.src AND e.kind = 'family'
     `);
     
     // Handle different database result formats
