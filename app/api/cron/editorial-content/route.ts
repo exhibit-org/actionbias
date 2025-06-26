@@ -26,23 +26,16 @@ export async function GET(request: Request) {
       .from(completionContexts)
       .innerJoin(actions, eq(actions.id, completionContexts.actionId))
       .where(
-        and(
-          // Missing editorial content
-          or(
-            isNull(completionContexts.headline),
-            isNull(completionContexts.deck),
-            isNull(completionContexts.pullQuotes)
-          ),
-          // Only public or team visibility
-          or(
-            eq(completionContexts.changelogVisibility, 'public'),
-            eq(completionContexts.changelogVisibility, 'team')
-          )
+        // Missing editorial content (any visibility level)
+        or(
+          isNull(completionContexts.headline),
+          isNull(completionContexts.deck),
+          isNull(completionContexts.pullQuotes)
         )
       )
       .limit(10); // Process 10 at a time to avoid timeout
 
-    console.log(`Found ${contextsToProcess.length} completion contexts to process`);
+    console.log(`Found ${contextsToProcess.length} completion contexts to process (all visibility levels)`);
 
     let processed = 0;
     let errors = 0;
