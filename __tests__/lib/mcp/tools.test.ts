@@ -536,6 +536,115 @@ describe('MCP Tools', () => {
     });
   });
 
+  describe('complete_action tool', () => {
+    let completeActionHandler: Function;
+
+    beforeEach(() => {
+      registerTools(mockServer);
+      const completeActionCall = mockServer.tool.mock.calls.find(call => call[0] === 'complete_action');
+      completeActionHandler = completeActionCall![3];
+    });
+
+    it('should successfully complete action with all required fields', async () => {
+      const mockAction = {
+        id: 'action-id',
+        data: { title: 'Completed Action' },
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      };
+
+      mockActionsService.updateAction.mockResolvedValue(mockAction);
+
+      const result = await completeActionHandler({
+        action_id: 'action-id',
+        implementation_story: 'Implemented using React hooks and TypeScript',
+        impact_story: 'Improved user experience by 50%',
+        learning_story: 'Learned about performance optimization',
+        changelog_visibility: 'team',
+        headline: 'Revolutionary UI Update Boosts Performance',
+        deck: 'A complete overhaul of the component architecture resulted in dramatic performance improvements.',
+        pull_quotes: ['50% faster load times', 'React hooks simplified state management'],
+      }, {});
+
+      expect(mockActionsService.updateAction).toHaveBeenCalledWith({
+        action_id: 'action-id',
+        done: true,
+        completion_context: {
+          implementation_story: 'Implemented using React hooks and TypeScript',
+          impact_story: 'Improved user experience by 50%',
+          learning_story: 'Learned about performance optimization',
+          changelog_visibility: 'team',
+          headline: 'Revolutionary UI Update Boosts Performance',
+          deck: 'A complete overhaul of the component architecture resulted in dramatic performance improvements.',
+          pull_quotes: ['50% faster load times', 'React hooks simplified state management'],
+        }
+      });
+
+      expect(result.content[0].text).toContain('✅ Completed action: Completed Action');
+      expect(result.content[0].text).toContain('ID: action-id');
+      expect(result.content[0].text).toContain('📋 Completion Context Captured:');
+    });
+
+    it('should handle errors gracefully', async () => {
+      mockActionsService.updateAction.mockRejectedValue(new Error('Action not found'));
+
+      const result = await completeActionHandler({
+        action_id: 'action-id',
+        implementation_story: 'Test implementation',
+        impact_story: 'Test impact',
+        learning_story: 'Test learning',
+        changelog_visibility: 'private',
+        headline: 'Test Headline',
+        deck: 'Test deck',
+        pull_quotes: ['Quote 1'],
+      }, {});
+
+      expect(result.content[0].text).toBe('Error completing action: Action not found');
+      expect(mockConsoleError).toHaveBeenCalledWith('Error completing action:', expect.any(Error));
+    });
+  });
+
+  describe('uncomplete_action tool', () => {
+    let uncompleteActionHandler: Function;
+
+    beforeEach(() => {
+      registerTools(mockServer);
+      const uncompleteActionCall = mockServer.tool.mock.calls.find(call => call[0] === 'uncomplete_action');
+      uncompleteActionHandler = uncompleteActionCall![3];
+    });
+
+    it('should successfully uncomplete action', async () => {
+      const mockAction = {
+        id: 'action-id',
+        data: { title: 'Reopened Action' },
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      };
+
+      mockActionsService.updateAction.mockResolvedValue(mockAction);
+
+      const result = await uncompleteActionHandler({
+        action_id: 'action-id',
+      }, {});
+
+      expect(mockActionsService.updateAction).toHaveBeenCalledWith({
+        action_id: 'action-id',
+        done: false,
+      });
+
+      expect(result.content[0].text).toContain('🔄 Reopened action: Reopened Action');
+      expect(result.content[0].text).toContain('Action is now available for further work');
+    });
+
+    it('should handle errors gracefully', async () => {
+      mockActionsService.updateAction.mockRejectedValue(new Error('Action not found'));
+
+      const result = await uncompleteActionHandler({
+        action_id: 'action-id',
+      }, {});
+
+      expect(result.content[0].text).toBe('Error uncompleting action: Action not found');
+    });
+  });
+
   describe('join_family tool', () => {
     let joinFamilyHandler: Function;
 
