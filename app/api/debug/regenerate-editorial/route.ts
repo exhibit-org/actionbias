@@ -126,13 +126,29 @@ export async function GET(request: Request) {
       }
     }
 
+    // Check if there might be more to process
+    const hasMore = contextsToRegenerate.length === limit;
+    
+    // Build the next URL if there are more items
+    let nextUrl = null;
+    if (hasMore && processed > 0) {
+      const nextParams = new URLSearchParams();
+      nextParams.set('before', beforeDate.toISOString());
+      nextParams.set('limit', limit.toString());
+      nextUrl = `/api/debug/regenerate-editorial?${nextParams.toString()}`;
+    }
+
     return NextResponse.json({
       success: true,
       processed,
       errors,
       beforeDate: beforeDate.toISOString(),
       message: `Regenerated ${processed} completion contexts (${errors} errors)`,
-      note: 'Use ?before=YYYY-MM-DD to regenerate content created before a specific date, ?limit=N to process more'
+      hasMore,
+      nextUrl,
+      note: hasMore 
+        ? 'Click nextUrl to continue processing' 
+        : 'All editorial content has been regenerated!'
     });
   } catch (error) {
     console.error('Editorial content regeneration failed:', error);
