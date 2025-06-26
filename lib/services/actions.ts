@@ -1411,8 +1411,13 @@ export class ActionsService {
     // Check for missing context and trigger async generation
     const missingContext: string[] = [];
     
-    // Check family summaries
-    if (!action.familyContextSummary || !action.familyVisionSummary) {
+    // Check family summaries (treat placeholder text as missing)
+    const needsFamilyContext = !action.familyContextSummary || 
+                              action.familyContextSummary === 'This action has no family context.';
+    const needsFamilyVision = !action.familyVisionSummary || 
+                             action.familyVisionSummary === 'This action has no family vision context.';
+    
+    if (needsFamilyContext || needsFamilyVision) {
       // Check if action has a family relationship
       const familyEdges = await getDb().select().from(edges).where(
         and(eq(edges.dst, actionId), eq(edges.kind, "family"))
@@ -1420,8 +1425,8 @@ export class ActionsService {
       
       if (familyEdges.length > 0) {
         // Has family but missing summaries
-        if (!action.familyContextSummary) missingContext.push('family_context_summary');
-        if (!action.familyVisionSummary) missingContext.push('family_vision_summary');
+        if (needsFamilyContext) missingContext.push('family_context_summary');
+        if (needsFamilyVision) missingContext.push('family_vision_summary');
         
         // Trigger async generation
         generateFamilySummariesAsync(actionId).catch(error => {
