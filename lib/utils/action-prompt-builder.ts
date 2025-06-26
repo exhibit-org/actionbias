@@ -8,8 +8,8 @@ export function buildActionPrompt(action: ActionDetailResource): string {
   prompt += `# Context from Family Chain\n${action.family_context_summary || 'No family context.'}\n\n`;
   prompt += `# Broader Vision\n${action.family_vision_summary || 'No family vision context.'}\n\n`;
 
+  prompt += `# Completion Context from Dependencies\n`;
   if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
-    prompt += `# Completion Context from Dependencies\n`;
     prompt += `This action builds on completed dependencies:\n\n`;
     for (const context of action.dependency_completion_context) {
       prompt += `## ${context.action_title}\n`;
@@ -25,6 +25,8 @@ export function buildActionPrompt(action: ActionDetailResource): string {
       prompt += `\n`;
     }
     prompt += `Apply these insights to avoid repeating mistakes and build on successful approaches.\n\n`;
+  } else {
+    prompt += `No dependencies. This is a standalone action.\n\n`;
   }
 
   prompt += `# Resource URLs\n`;
