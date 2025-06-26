@@ -304,8 +304,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         fontSize: '0.875rem',
         lineHeight: '1.6',
         color: colors.text,
+        backgroundColor: 'transparent',
         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
         margin: 0,
+        padding: 0,
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word'
       }}>
