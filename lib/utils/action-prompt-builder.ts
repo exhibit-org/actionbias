@@ -2,7 +2,8 @@ import { ActionDetailResource } from '../types/resources';
 
 export function buildActionPrompt(action: ActionDetailResource): string {
   let prompt = `# Current Task\n**${action.title}**\n`;
-  if (action.description) prompt += `${action.description}\n\n`;
+  prompt += `https://www.actionbias.ai/${action.id}\n`;
+  if (action.description) prompt += `\n${action.description}\n\n`;
   else prompt += `\n`;
   prompt += `# Vision\n${action.vision || 'No vision defined for this action.'}\n\n`;
   prompt += `# Context from Family Chain\n${action.family_context_summary || 'No family context.'}\n\n`;
@@ -38,16 +39,8 @@ export function buildActionPrompt(action: ActionDetailResource): string {
     prompt += `Apply these insights to avoid repeating mistakes and build on successful approaches.\n\n`;
   } else if (!action.dependencies || action.dependencies.length === 0) {
     prompt += `# Dependencies\n`;
-    prompt += `No dependencies. This is a standalone action.\n\n`;
+    prompt += `No dependencies. This is a standalone action.\n`;
   }
-
-  prompt += `# Resource URLs\n`;
-  prompt += `- action://tree (full action hierarchy)\n`;
-  prompt += `- action://next (current priority action)\n`;
-  prompt += `- action://item/${action.id} (this action's details)\n\n`;
-  prompt += `# Repository Quick Setup\n`;
-  prompt += `pnpm install\npnpm db:setup\npnpm dev\n\n`;
-  prompt += `Refer to README.md for full details.`;
 
   return prompt;
 }
