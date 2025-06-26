@@ -45,7 +45,7 @@ export class EditorialAIService {
     } = params;
 
     try {
-      const prompt = `You are an expert tech journalist creating compelling magazine-style content from engineering completion stories.
+      const prompt = `You are a technical writer for a publication similar to The Economist or Nature, creating measured, analytical content from engineering completion stories.
 
 FORMATTING RULES:
 - Use backticks (\`) around ALL technical terms, including:
@@ -79,14 +79,14 @@ Learning Story: ${learningStory}
 
 Generate the following editorial content:
 
-1. HEADLINE: A compelling, specific headline that captures the achievement (10-15 words max). Focus on the impact and make it newsworthy. Examples:
-- "Revolutionary Search Architecture Cuts Query Time by 70%"
-- "AI-Powered Code Analysis Eliminates 90% of Manual Reviews"
-- "New Caching Strategy Saves $50K Monthly in Infrastructure Costs"
+1. HEADLINE: A measured, factual headline that captures the technical achievement (10-15 words max). Focus on specific metrics and outcomes without hyperbole. Examples:
+- "Search latency reduced by 70% through architectural improvements"
+- "Automated code analysis reduces manual review time by 90%"
+- "Caching implementation reduces infrastructure costs by $50K monthly"
 
-2. DECK: A 2-3 sentence standfirst that expands on the headline and hooks the reader. This should provide context and make them want to read more. Remember to use backticks around technical terms.
+2. DECK: A 2-3 sentence standfirst in the style of The Economist that provides context and key findings. Write with analytical precision, avoiding superlatives and focusing on factual outcomes. Remember to use backticks around technical terms.
 
-3. PULL QUOTES: Extract 2-3 powerful quotes from the stories that highlight key achievements, insights, or turning points. These should be impactful statements that work well when highlighted. Use backticks around technical terms within quotes.
+3. PULL QUOTES: Extract 2-3 notable quotes from the stories that highlight key technical findings, measurable outcomes, or lessons learned. Select quotes that demonstrate analytical thinking rather than excitement. Use backticks around technical terms within quotes.
 
 Return ONLY valid JSON without any markdown formatting or code blocks. The response should be pure JSON that can be parsed directly:
 {
@@ -199,7 +199,7 @@ Return ONLY valid JSON without any markdown formatting or code blocks. The respo
     try {
       const result = await generateText({
         model: openai('gpt-4o-mini'),
-        prompt: `Create a compelling magazine-style headline (10-15 words) for this engineering achievement:
+        prompt: `Create a measured, analytical headline in the style of The Economist or Nature (10-15 words) for this engineering achievement:
 Action: ${actionTitle}
 Impact: ${impactStory}
 
@@ -207,7 +207,7 @@ FORMATTING RULES:
 - Use backticks (\`) around technical terms (file paths, function names, APIs, etc.)
 - Do NOT use backticks around regular English words or numbers
 
-Focus on specific outcomes and make it newsworthy. Return only the headline, no quotes or explanation.`,
+Focus on specific metrics and factual outcomes without hyperbole or sensationalism. Return only the headline, no quotes or explanation.`,
         temperature: 0.7,
         maxTokens: 50,
       });
