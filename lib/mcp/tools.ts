@@ -354,7 +354,7 @@ export function registerTools(server: any) {
   // complete_action - Mark an action as completed with required completion context
   server.tool(
     "complete_action",
-    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering in the magazine-style changelog.",
+    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering. Adopt a measured, analytical tone similar to The Economist or scientific journals.",
     {
       action_id: z.string().uuid().describe("The ID of the action to complete"),
       implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting. IMPORTANT: Use backticks (`) around ALL technical terms including file paths (e.g., `/api/actions`), function names (e.g., `generateText()`), APIs, libraries, commands, and code-related terms."),
@@ -362,9 +362,9 @@ export function registerTools(server: any) {
       learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical concepts, tools, and code-related terms."),
       changelog_visibility: z.enum(["private", "team", "public"]).describe("REQUIRED: Who should see this completion context in changelog generation (default: 'team')"),
       // Required editorial content for magazine-style display
-      headline: z.string().describe("REQUIRED: AI-generated compelling headline for the completion story (e.g., 'Revolutionary Search Architecture Cuts Query Time by 70%')"),
-      deck: z.string().describe("REQUIRED: AI-generated standfirst/subtitle that expands on the headline (2-3 sentences that hook the reader)"),
-      pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted powerful quotes from the completion stories to highlight key achievements or insights"),
+      headline: z.string().describe("REQUIRED: AI-generated headline in the style of The Economist or Nature (e.g., 'Search latency reduced by 70% through architectural improvements', 'New caching strategy improves database performance')"),
+      deck: z.string().describe("REQUIRED: AI-generated standfirst in the style of The Economist - a measured 2-3 sentence summary that provides context and key findings without hyperbole"),
+      pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted notable quotes from the completion stories that highlight key findings, technical insights, or lessons learned - avoid superlatives"),
     },
     async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes }: { 
       action_id: string; 
@@ -827,7 +827,7 @@ export const toolCapabilities = {
     description: "Update an existing action's properties including title and description (use complete_action to mark actions as done)",
   },
   complete_action: {
-    description: "Mark an action as completed with required completion context for dynamic changelog generation. ALL parameters are required including editorial content (headline, deck, pull_quotes).",
+    description: "Mark an action as completed with required completion context for dynamic changelog generation. ALL parameters are required including editorial content (headline, deck, pull_quotes). Use measured, analytical language similar to The Economist or scientific journals.",
   },
   uncomplete_action: {
     description: "Mark a completed action as incomplete again (reopens action for further work)",
