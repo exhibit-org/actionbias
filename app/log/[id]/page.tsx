@@ -21,7 +21,16 @@ async function getActionDetails(id: string) {
 async function getScopedCompletedActions(rootId: string) {
   try {
     // Get the action tree with completed actions included
-    const tree = await ActionsService.getActionTreeResourceScoped(rootId, true);
+    const treeResource = await ActionsService.getActionTreeResourceScoped(rootId, true);
+    const rootNode = treeResource.rootActions[0]; // Get the first (and only) root node for scoped tree
+    
+    if (!rootNode) {
+      console.log('No root node found for action:', rootId);
+      return [];
+    }
+    
+    console.log('Tree root:', rootNode.id, rootNode.title, 'done:', rootNode.done);
+    console.log('Tree has', rootNode.children?.length || 0, 'children');
     
     // Extract all completed action IDs from the tree
     const completedActionIds: string[] = [];
@@ -29,13 +38,14 @@ async function getScopedCompletedActions(rootId: string) {
     function extractCompletedActions(node: any) {
       if (node.done) {
         completedActionIds.push(node.id);
+        console.log('Found completed action:', node.id, node.title);
       }
       if (node.children) {
         node.children.forEach(extractCompletedActions);
       }
     }
     
-    extractCompletedActions(tree);
+    extractCompletedActions(rootNode);
     
     // Fetch detailed action data for all completed actions
     console.log('Fetching completion contexts for', completedActionIds.length, 'completed actions');
