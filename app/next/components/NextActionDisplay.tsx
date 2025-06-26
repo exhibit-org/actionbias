@@ -5,7 +5,7 @@ import { ActionDetailResource } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
 import ActionPageSkeleton from './ActionPageSkeleton';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
-import { Copy, Link, Check } from 'react-feather';
+import { Copy, Link, Check, CheckCircle } from 'react-feather';
 
 interface Props {
   colors: ColorScheme;
@@ -18,6 +18,14 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
   const [copyingCodex, setCopyingCodex] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completionContext, setCompletionContext] = useState({
+    implementationStory: '',
+    impactStory: '',
+    learningStory: '',
+    changelogVisibility: 'team' as 'private' | 'team' | 'public'
+  });
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -68,6 +76,55 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     } catch (err) {
       console.error('Failed to copy URL:', err);
       setCopyingCodex(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!actionData || actionData.done) return;
+    
+    try {
+      setCompleting(true);
+      setError(null);
+      
+      const response = await fetch(`/api/actions/${actionData.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          implementation_story: completionContext.implementationStory,
+          impact_story: completionContext.impactStory,
+          learning_story: completionContext.learningStory,
+          changelog_visibility: completionContext.changelogVisibility
+        })
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to complete action');
+      
+      // Update local state
+      setActionData(prev => prev ? { ...prev, done: true } : null);
+      setShowCompletionModal(false);
+      
+      // Reset form
+      setCompletionContext({
+        implementationStory: '',
+        impactStory: '',
+        learningStory: '',
+        changelogVisibility: 'team'
+      });
+      
+      // Reload after short delay to get next action
+      setTimeout(() => {
+        if (!actionId) {
+          window.location.reload();
+        }
+      }, 1500);
+      
+    } catch (err) {
+      console.error('Error completing action:', err);
+      setError(err instanceof Error ? err.message : 'Failed to complete action');
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -143,6 +200,30 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         >
           {copyingCodex ? <Check size={16} /> : <Link size={16} />}
         </button>
+        {actionData && !actionData.done && (
+          <button 
+            onClick={() => setShowCompletionModal(true)} 
+            disabled={completing} 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              backgroundColor: '#10b981', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '0.375rem', 
+              cursor: completing ? 'not-allowed' : 'pointer', 
+              transition: 'all 0.2s ease' 
+            }} 
+            onMouseEnter={e => { if (!completing) { e.currentTarget.style.backgroundColor = '#059669'; } }} 
+            onMouseLeave={e => { if (!completing) { e.currentTarget.style.backgroundColor = '#10b981'; } }}
+            title="Complete action"
+          >
+            <CheckCircle size={16} />
+          </button>
+        )}
       </div>
       
       <pre style={{ 
@@ -156,6 +237,209 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }}>
         {actionData ? generateActionPrompt(actionData) : ''}
       </pre>
+
+      {/* Completion Modal */}
+      {showCompletionModal && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000 
+        }}>
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '2rem', 
+            borderRadius: '0.5rem', 
+            maxWidth: '90%', 
+            width: '32rem', 
+            maxHeight: '90vh', 
+            overflowY: 'auto', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)' 
+          }}>
+            <h3 style={{ 
+              marginTop: 0, 
+              marginBottom: '1.5rem', 
+              color: colors.text, 
+              fontSize: '1.25rem', 
+              fontWeight: '600' 
+            }}>
+              Complete Action: {actionData?.title}
+            </h3>
+            
+            <p style={{ 
+              marginBottom: '1.5rem', 
+              color: colors.textMuted, 
+              fontSize: '0.875rem', 
+              lineHeight: '1.5' 
+            }}>
+              Share your experience to help build institutional knowledge. All fields are required.
+            </p>
+            
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                color: colors.text, 
+                fontSize: '0.875rem', 
+                fontWeight: '500' 
+              }}>
+                🔧 How did you implement this?
+              </label>
+              <textarea
+                value={completionContext.implementationStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, implementationStory: e.target.value }))}
+                placeholder="What approach did you take? What tools or technologies did you use? What challenges did you overcome?"
+                style={{ 
+                  width: '100%', 
+                  minHeight: '5rem', 
+                  padding: '0.75rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                color: colors.text, 
+                fontSize: '0.875rem', 
+                fontWeight: '500' 
+              }}>
+                🎯 What impact did this have?
+              </label>
+              <textarea
+                value={completionContext.impactStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, impactStory: e.target.value }))}
+                placeholder="What did you accomplish? What value was delivered? Who benefits from this work?"
+                style={{ 
+                  width: '100%', 
+                  minHeight: '5rem', 
+                  padding: '0.75rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                color: colors.text, 
+                fontSize: '0.875rem', 
+                fontWeight: '500' 
+              }}>
+                💡 What did you learn?
+              </label>
+              <textarea
+                value={completionContext.learningStory}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, learningStory: e.target.value }))}
+                placeholder="What insights did you gain? What would you do differently next time? What advice would you give to others?"
+                style={{ 
+                  width: '100%', 
+                  minHeight: '5rem', 
+                  padding: '0.75rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem',
+                  resize: 'vertical',
+                  fontFamily: 'inherit'
+                }}
+                required
+              />
+            </div>
+
+            <div style={{ marginBottom: '2rem' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '0.5rem', 
+                color: colors.text, 
+                fontSize: '0.875rem', 
+                fontWeight: '500' 
+              }}>
+                👥 Who should see this?
+              </label>
+              <select
+                value={completionContext.changelogVisibility}
+                onChange={(e) => setCompletionContext(prev => ({ ...prev, changelogVisibility: e.target.value as 'private' | 'team' | 'public' }))}
+                style={{ 
+                  width: '100%', 
+                  padding: '0.75rem', 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  fontSize: '0.875rem',
+                  backgroundColor: 'white'
+                }}
+              >
+                <option value="private">Private - Personal notes only</option>
+                <option value="team">Team - Internal team visibility</option>
+                <option value="public">Public - External stakeholder visibility</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowCompletionModal(false)}
+                disabled={completing}
+                style={{ 
+                  padding: '0.625rem 1.25rem', 
+                  backgroundColor: 'transparent', 
+                  color: colors.textMuted, 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  cursor: completing ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleComplete}
+                disabled={completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory}
+                style={{ 
+                  padding: '0.625rem 1.25rem', 
+                  backgroundColor: completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory ? colors.textFaint : '#10b981', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.375rem', 
+                  cursor: completing || !completionContext.implementationStory || !completionContext.impactStory || !completionContext.learningStory ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {completing ? (
+                  <>Completing...</>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    Complete Action
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
