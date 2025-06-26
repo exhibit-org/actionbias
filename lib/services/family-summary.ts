@@ -186,7 +186,7 @@ export class FamilySummaryService {
       const familyEdgeResult = await db.execute(sql`
         SELECT e.src as family_id
         FROM ${edges} e
-        WHERE e.dst = ${currentActionId} AND e.kind = 'child'
+        WHERE e.dst = ${currentActionId} AND e.kind = 'family'
         LIMIT 1
       `);
 
