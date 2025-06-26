@@ -5,7 +5,7 @@ import { ActionDetailResource } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
 import ActionPageSkeleton from './ActionPageSkeleton';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
-import { Copy, Link, Check, CheckCircle } from 'react-feather';
+import { Copy, Link, Check, CheckCircle, Square, CheckSquare } from 'react-feather';
 
 interface Props {
   colors: ColorScheme;
@@ -19,6 +19,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   const [copying, setCopying] = useState(false);
   const [copyingCodex, setCopyingCodex] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showUncompletionModal, setShowUncompletionModal] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [completionContext, setCompletionContext] = useState({
     implementationStory: '',
@@ -128,6 +129,34 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
+  const handleUncomplete = async () => {
+    if (!actionData || !actionData.done) return;
+    
+    try {
+      setCompleting(true);
+      setError(null);
+      
+      const response = await fetch(`/api/actions/${actionData.id}/uncomplete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || 'Failed to uncomplete action');
+      
+      // Update local state
+      setActionData(prev => prev ? { ...prev, done: false } : null);
+      setShowUncompletionModal(false);
+      
+    } catch (err) {
+      console.error('Error uncompleting action:', err);
+      setError(err instanceof Error ? err.message : 'Failed to uncomplete action');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   if (loading) {
     return <ActionPageSkeleton colors={colors} isMobile={false} />;
   }
@@ -200,9 +229,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         >
           {copyingCodex ? <Check size={16} /> : <Link size={16} />}
         </button>
-        {actionData && !actionData.done && (
+        {actionData && (
           <button 
-            onClick={() => setShowCompletionModal(true)} 
+            onClick={() => actionData.done ? setShowUncompletionModal(true) : setShowCompletionModal(true)} 
             disabled={completing} 
             style={{ 
               display: 'flex', 
@@ -210,18 +239,18 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               justifyContent: 'center',
               width: '36px',
               height: '36px',
-              backgroundColor: '#10b981', 
-              color: 'white', 
-              border: 'none', 
+              backgroundColor: colors.surface, 
+              color: actionData.done ? colors.text : colors.textMuted, 
+              border: `1px solid ${colors.border}`, 
               borderRadius: '0.375rem', 
               cursor: completing ? 'not-allowed' : 'pointer', 
               transition: 'all 0.2s ease' 
             }} 
-            onMouseEnter={e => { if (!completing) { e.currentTarget.style.backgroundColor = '#059669'; } }} 
-            onMouseLeave={e => { if (!completing) { e.currentTarget.style.backgroundColor = '#10b981'; } }}
-            title="Complete action"
+            onMouseEnter={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; e.currentTarget.style.borderColor = colors.borderAccent; } }} 
+            onMouseLeave={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = actionData.done ? colors.text : colors.textMuted; e.currentTarget.style.borderColor = colors.border; } }}
+            title={actionData.done ? "Mark as incomplete" : "Mark as complete"}
           >
-            <CheckCircle size={16} />
+            {actionData.done ? <CheckSquare size={16} /> : <Square size={16} />}
           </button>
         )}
       </div>
@@ -435,6 +464,85 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                     Complete Action
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Uncompletion Modal */}
+      {showUncompletionModal && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          zIndex: 1000 
+        }}>
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '2rem', 
+            borderRadius: '0.5rem', 
+            maxWidth: '90%', 
+            width: '28rem', 
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)' 
+          }}>
+            <h3 style={{ 
+              marginTop: 0, 
+              marginBottom: '1rem', 
+              color: colors.text, 
+              fontSize: '1.125rem', 
+              fontWeight: '600' 
+            }}>
+              Reopen Action?
+            </h3>
+            
+            <p style={{ 
+              marginBottom: '1.5rem', 
+              color: colors.textMuted, 
+              fontSize: '0.875rem', 
+              lineHeight: '1.5' 
+            }}>
+              Are you sure you want to mark "{actionData?.title}" as incomplete? This will remove the completion context and allow you to work on it again.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowUncompletionModal(false)}
+                disabled={completing}
+                style={{ 
+                  padding: '0.625rem 1.25rem', 
+                  backgroundColor: 'transparent', 
+                  color: colors.textMuted, 
+                  border: `1px solid ${colors.border}`, 
+                  borderRadius: '0.375rem', 
+                  cursor: completing ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUncomplete}
+                disabled={completing}
+                style={{ 
+                  padding: '0.625rem 1.25rem', 
+                  backgroundColor: completing ? colors.textFaint : colors.borderAccent, 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '0.375rem', 
+                  cursor: completing ? 'not-allowed' : 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}
+              >
+                {completing ? 'Reopening...' : 'Reopen Action'}
               </button>
             </div>
           </div>
