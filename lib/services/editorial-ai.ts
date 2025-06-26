@@ -112,25 +112,45 @@ Return ONLY valid JSON without any markdown formatting or code blocks. The respo
   private static extractContentFromText(text: string): EditorialContent {
     const content: EditorialContent = {};
 
-    // Try to extract headline
-    const headlineMatch = text.match(/headline[:\s]*["']?([^"'\n]+)["']?/i);
+    // Try to extract headline - improved regex to avoid capturing just ":"
+    const headlineMatch = text.match(/headline[:\s]*["']?([^"'\n]{5,})["']?/i);
     if (headlineMatch) {
-      content.headline = headlineMatch[1].trim();
+      const headline = headlineMatch[1].trim();
+      // Only set if it's meaningful content (not just punctuation)
+      if (headline.length > 5 && !/^[:\s]+$/.test(headline)) {
+        content.headline = headline;
+      }
     }
 
-    // Try to extract deck
-    const deckMatch = text.match(/deck[:\s]*["']?([^"'\n]+(?:\n[^"'\n]+)?)["']?/i);
+    // Try to extract deck - improved regex
+    const deckMatch = text.match(/deck[:\s]*["']?([^"'\n]{10,}(?:\n[^"'\n]+)?)["']?/i);
     if (deckMatch) {
-      content.deck = deckMatch[1].trim();
+      const deck = deckMatch[1].trim();
+      // Only set if it's meaningful content
+      if (deck.length > 10 && !/^[:\s]+$/.test(deck)) {
+        content.deck = deck;
+      }
     }
 
-    // Try to extract pull quotes
+    // Try to extract pull quotes with better validation
     const quotesMatch = text.match(/pull quotes?[:\s]*\[([^\]]+)\]/i);
     if (quotesMatch) {
-      content.pullQuotes = quotesMatch[1]
+      const quotes = quotesMatch[1]
         .split(',')
         .map(q => q.trim().replace(/["']/g, ''))
-        .filter(q => q.length > 0);
+        .filter(q => q.length > 10); // Only keep meaningful quotes
+      
+      if (quotes.length > 0) {
+        content.pullQuotes = quotes;
+      }
+    }
+
+    // If extraction failed, return empty object instead of malformed data
+    if (Object.keys(content).length === 0 || 
+        content.headline === ':' || 
+        content.deck === ':') {
+      console.warn('Failed to extract meaningful content from text:', text.substring(0, 200));
+      return {};
     }
 
     return content;
