@@ -184,54 +184,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const generateClaudeCodePrompt = (action: ActionDetailResource): string => {
-    let prompt = `I'm working on: ${action.title}\nMCP URI: action://${action.id}\n\n`;
-    prompt += `## Current Task\n`;
-    prompt += `**${action.title}**\n`;
-    if (action.description) prompt += `${action.description}\n`;
-    prompt += `\n## Vision\n`;
-    prompt += `${action.vision || 'No vision defined for this action.'}\n\n`;
-    prompt += `## Broader Context\n`;
-    prompt += `${action.family_context_summary || 'This action has no family context.'}\n\n`;
-    prompt += `## Broader Vision\n`;
-    prompt += `${action.family_vision_summary || 'This action has no family vision context.'}\n\n`;
-    
-    // Add completion context from dependencies
-    if (action.dependency_completion_context && action.dependency_completion_context.length > 0) {
-      prompt += `## Completion Context from Dependencies\n`;
-      prompt += `This action builds on work completed in its dependencies. Here's what was learned and accomplished:\n\n`;
-      
-      action.dependency_completion_context.forEach((context, index) => {
-        prompt += `### Dependency ${index + 1}: ${context.action_title}\n`;
-        prompt += `Completed: ${new Date(context.completion_timestamp).toLocaleDateString()}\n\n`;
-        
-        if (context.implementation_story) {
-          prompt += `**Implementation Approach:**\n${context.implementation_story}\n\n`;
-        }
-        
-        if (context.impact_story) {
-          prompt += `**Impact Achieved:**\n${context.impact_story}\n\n`;
-        }
-        
-        if (context.learning_story) {
-          prompt += `**Key Learnings:**\n${context.learning_story}\n\n`;
-        }
-        
-        prompt += `---\n\n`;
-      });
-      
-      prompt += `**💡 Use This Context:** Apply insights from dependency work to avoid repeated mistakes and build on successful approaches.\n\n`;
-    }
-    
-    prompt += `## MCP Resources Available\n`;
-    prompt += `- action://tree (full action hierarchy)\n`;
-    prompt += `- action://next (current priority action)\n`;
-    prompt += `- action://${action.id} (this action's details)\n\n`;
-    prompt += `Please help me complete this task. You can use the MCP URIs above to access the ActionBias system for context and updates.`;
-    return prompt;
-  };
-
-  const generateCodexPrompt = (action: ActionDetailResource): string => {
+  const generateActionPrompt = (action: ActionDetailResource): string => {
     return buildActionPrompt(action);
   };
 
@@ -239,7 +192,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     if (!actionData) return;
     try {
       setCopying(true);
-      const prompt = generateClaudeCodePrompt(actionData);
+      const prompt = generateActionPrompt(actionData);
       await navigator.clipboard.writeText(prompt);
       setTimeout(() => setCopying(false), 1000);
     } catch (err) {
@@ -248,15 +201,15 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     }
   };
 
-  const copyCodexPromptToClipboard = async () => {
+  const copyActionUrl = async () => {
     if (!actionData) return;
     try {
       setCopyingCodex(true);
-      const prompt = generateCodexPrompt(actionData);
-      await navigator.clipboard.writeText(prompt);
+      const url = `https://www.actionbias.ai/${actionData.id}`;
+      await navigator.clipboard.writeText(url);
       setTimeout(() => setCopyingCodex(false), 1000);
     } catch (err) {
-      console.error('Failed to copy prompt:', err);
+      console.error('Failed to copy URL:', err);
       setCopyingCodex(false);
     }
   };
@@ -543,7 +496,30 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           <p style={{ color: colors.textSubtle, fontSize: '0.8rem', margin: 0, lineHeight: '1.5' }}>{actionData.family_vision_summary || 'This action has no family vision context.'}</p>
         </div>
       </div>
-      <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      
+      {/* Markdown Prompt Display */}
+      <div style={{ marginTop: '1.5rem', marginBottom: '1rem', padding: '1.5rem', backgroundColor: colors.bg, border: `1px solid ${colors.border}`, borderRadius: '0.5rem' }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: '500', color: colors.textMuted, margin: '0 0 1rem 0' }}>Action Prompt (Markdown)</h3>
+        <pre style={{ 
+          backgroundColor: colors.surface, 
+          padding: '1rem', 
+          borderRadius: '0.375rem', 
+          border: `1px solid ${colors.border}`,
+          overflow: 'auto',
+          maxHeight: '400px',
+          fontSize: '0.75rem',
+          lineHeight: '1.5',
+          color: colors.text,
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+          margin: 0,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word'
+        }}>
+          {actionData ? generateActionPrompt(actionData) : ''}
+        </pre>
+      </div>
+      
+      <div style={{ marginBottom: '1.5rem', paddingTop: '1rem', borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <button onClick={copyPromptToClipboard} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: copying ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.5rem', cursor: copying ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
           {copying ? (
             <>
@@ -557,11 +533,11 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
-              Copy Full Context for Claude Code
+              Copy Prompt Text
             </>
           )}
         </button>
-        <button onClick={copyCodexPromptToClipboard} disabled={copyingCodex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: copyingCodex ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.5rem', cursor: copyingCodex ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
+        <button onClick={copyActionUrl} disabled={copyingCodex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: copyingCodex ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.5rem', cursor: copyingCodex ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
           {copyingCodex ? (
             <>
               <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,9 +548,9 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
           ) : (
             <>
               <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
-              Copy Action Instructions for Claude Code
+              Copy Prompt URL
             </>
           )}
         </button>
