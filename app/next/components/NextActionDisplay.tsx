@@ -300,7 +300,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         `}</style>
       </div>
       
-      <pre style={{ 
+      <div style={{ 
         fontSize: '0.875rem',
         lineHeight: '1.6',
         color: colors.text,
@@ -312,7 +312,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
         wordBreak: 'break-word'
       }}>
         {actionData ? generateActionPrompt(actionData) : ''}
-      </pre>
+      </div>
 
       {/* Completion Modal */}
       {showCompletionModal && (
