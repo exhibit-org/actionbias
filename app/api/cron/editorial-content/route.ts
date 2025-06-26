@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db/adapter';
-import { actions, completionContexts } from '@/db/schema';
-import { eq, and, isNull, or } from 'drizzle-orm';
+import { actions, completionContexts, edges } from '@/db/schema';
+import { eq, and, isNull, or, inArray } from 'drizzle-orm';
 import { EditorialAIService } from '@/lib/services/editorial-ai';
 
 export const maxDuration = 300; // 5 minutes max
@@ -47,7 +47,37 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // Generate editorial content
+        // Fetch dependency completions for richer context
+        const dependencyEdges = await db
+          .select()
+          .from(edges)
+          .where(and(
+            eq(edges.dst, action.id),
+            eq(edges.kind, 'depends_on')
+          ));
+        
+        let dependencyCompletions = [];
+        if (dependencyEdges.length > 0) {
+          const depIds = dependencyEdges.map((e: any) => e.src).filter(Boolean);
+          const deps = await db
+            .select({
+              action: actions,
+              context: completionContexts
+            })
+            .from(actions)
+            .leftJoin(completionContexts, eq(completionContexts.actionId, actions.id))
+            .where(and(
+              inArray(actions.id, depIds),
+              eq(actions.done, true)
+            ));
+          
+          dependencyCompletions = deps.map((d: any) => ({
+            title: d.action.title || '',
+            impactStory: d.context?.impactStory || undefined
+          }));
+        }
+
+        // Generate editorial content with rich context
         const editorial = await EditorialAIService.generateEditorialContent({
           actionTitle: action.title || 'Untitled Action',
           actionDescription: action.description || undefined,
@@ -55,6 +85,13 @@ export async function GET(request: Request) {
           implementationStory: context.implementationStory || '',
           impactStory: context.impactStory || '',
           learningStory: context.learningStory || '',
+          // Add summaries
+          nodeSummary: action.nodeSummary || undefined,
+          subtreeSummary: action.subtreeSummary || undefined,
+          familyContextSummary: action.familyContextSummary || undefined,
+          familyVisionSummary: action.familyVisionSummary || undefined,
+          // Add dependency completions
+          dependencyCompletions: dependencyCompletions.length > 0 ? dependencyCompletions : undefined
         });
 
         // Update only missing fields

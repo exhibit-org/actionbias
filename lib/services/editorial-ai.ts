@@ -14,6 +14,15 @@ export interface GenerateEditorialParams {
   implementationStory: string;
   impactStory: string;
   learningStory: string;
+  // Additional context
+  nodeSummary?: string;
+  subtreeSummary?: string;
+  familyContextSummary?: string;
+  familyVisionSummary?: string;
+  dependencyCompletions?: Array<{
+    title: string;
+    impactStory?: string;
+  }>;
 }
 
 export class EditorialAIService {
@@ -27,7 +36,12 @@ export class EditorialAIService {
       actionVision,
       implementationStory, 
       impactStory, 
-      learningStory 
+      learningStory,
+      nodeSummary,
+      subtreeSummary,
+      familyContextSummary,
+      familyVisionSummary,
+      dependencyCompletions
     } = params;
 
     try {
@@ -37,6 +51,16 @@ Given this completed action:
 Title: ${actionTitle}
 ${actionDescription ? `Description: ${actionDescription}` : ''}
 ${actionVision ? `Vision: ${actionVision}` : ''}
+
+${nodeSummary ? `Action Summary: ${nodeSummary}\n` : ''}
+${subtreeSummary ? `Subtree Context: ${subtreeSummary}\n` : ''}
+${familyContextSummary ? `Family Context: ${familyContextSummary}\n` : ''}
+${familyVisionSummary ? `Family Vision: ${familyVisionSummary}\n` : ''}
+
+${dependencyCompletions && dependencyCompletions.length > 0 ? `
+Building on these completed dependencies:
+${dependencyCompletions.map(dep => `- ${dep.title}: ${dep.impactStory || 'Completed'}`).join('\n')}
+` : ''}
 
 Implementation Story: ${implementationStory}
 

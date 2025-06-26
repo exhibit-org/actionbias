@@ -817,25 +817,67 @@ export class ActionsService {
             !completion_context.deck && 
             !completion_context.pull_quotes) {
           
-          // Generate editorial content asynchronously (don't wait)
-          EditorialAIService.generateEditorialContent({
-            actionTitle: updatedAction[0].title || existingAction[0].title || 'Untitled Action',
-            actionDescription: updatedAction[0].description || existingAction[0].description,
-            actionVision: updatedAction[0].vision || existingAction[0].vision,
-            implementationStory: completion_context.implementation_story,
-            impactStory: completion_context.impact_story,
-            learningStory: completion_context.learning_story,
-          }).then(generatedContent => {
-            // Update with generated content if available
-            if (generatedContent.headline || generatedContent.deck || generatedContent.pullQuotes) {
-              CompletionContextService.upsertCompletionContext({
-                actionId: action_id,
-                headline: generatedContent.headline,
-                deck: generatedContent.deck,
-                pullQuotes: generatedContent.pullQuotes,
-              }).catch(console.error);
+          // Fetch dependency completions and generate editorial content asynchronously (don't wait)
+          (async () => {
+            try {
+              // Get dependency completions for context
+              const dependencyEdges = await getDb()
+                .select()
+                .from(edges)
+                .where(and(
+                  eq(edges.dst, action_id),
+                  eq(edges.kind, 'depends_on')
+                ));
+              
+              let dependencyCompletions = [];
+              if (dependencyEdges.length > 0) {
+                const depIds = dependencyEdges.map((e: any) => e.src).filter(Boolean);
+                const deps = await getDb()
+                  .select({
+                    action: actions,
+                    context: completionContexts
+                  })
+                  .from(actions)
+                  .leftJoin(completionContexts, eq(completionContexts.actionId, actions.id))
+                  .where(and(
+                    inArray(actions.id, depIds),
+                    eq(actions.done, true)
+                  ));
+                
+                dependencyCompletions = deps.map((d: any) => ({
+                  title: d.action.title || '',
+                  impactStory: d.context?.impactStory || undefined
+                }));
+              }
+
+              const generatedContent = await EditorialAIService.generateEditorialContent({
+                actionTitle: updatedAction[0].title || existingAction[0].title || 'Untitled Action',
+                actionDescription: updatedAction[0].description || existingAction[0].description,
+                actionVision: updatedAction[0].vision || existingAction[0].vision,
+                implementationStory: completion_context.implementation_story || '',
+                impactStory: completion_context.impact_story || '',
+                learningStory: completion_context.learning_story || '',
+                // Include summaries
+                nodeSummary: updatedAction[0].nodeSummary || existingAction[0].nodeSummary,
+                subtreeSummary: updatedAction[0].subtreeSummary || existingAction[0].subtreeSummary,
+                familyContextSummary: updatedAction[0].familyContextSummary || existingAction[0].familyContextSummary,
+                familyVisionSummary: updatedAction[0].familyVisionSummary || existingAction[0].familyVisionSummary,
+                // Include dependency completions
+                dependencyCompletions: dependencyCompletions.length > 0 ? dependencyCompletions : undefined
+              });
+              // Update with generated content if available
+              if (generatedContent.headline || generatedContent.deck || generatedContent.pullQuotes) {
+                await CompletionContextService.upsertCompletionContext({
+                  actionId: action_id,
+                  headline: generatedContent.headline,
+                  deck: generatedContent.deck,
+                  pullQuotes: generatedContent.pullQuotes,
+                });
+              }
+            } catch (error) {
+              console.error('Failed to generate editorial content:', error);
             }
-          }).catch(console.error);
+          })();
         }
 
         await CompletionContextService.upsertCompletionContext({
