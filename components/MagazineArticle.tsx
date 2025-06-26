@@ -133,9 +133,9 @@ export default function MagazineArticle({
 
         {/* Deck/Standfirst */}
         {displayDeck && (
-          <p className="text-xl sm:text-2xl text-gray-600 leading-relaxed mb-8 font-light">
-            {displayDeck}
-          </p>
+          <div className="text-xl sm:text-2xl text-gray-600 leading-relaxed mb-8 font-light">
+            {renderMarkdown(displayDeck, "deck-content")}
+          </div>
         )}
 
         {/* Byline and metadata */}
