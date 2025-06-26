@@ -96,16 +96,47 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
   }
 
   return (
-    <div style={{ backgroundColor: 'white', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', borderRadius: '0.5rem', padding: '1.5rem' }}>
-      {/* Markdown Prompt Display */}
+    <>
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.75rem' }}>
+        <button onClick={copyPromptToClipboard} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: copying ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.375rem', cursor: copying ? 'not-allowed' : 'pointer', fontSize: '0.813rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
+          {copying ? (
+            <>
+              <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Prompt Text
+            </>
+          )}
+        </button>
+        <button onClick={copyActionUrl} disabled={copyingCodex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', backgroundColor: copyingCodex ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.375rem', cursor: copyingCodex ? 'not-allowed' : 'pointer', fontSize: '0.813rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
+          {copyingCodex ? (
+            <>
+              <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg style={{ width: '14px', height: '14px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              Copy Prompt URL
+            </>
+          )}
+        </button>
+      </div>
+      
       <pre style={{ 
-        backgroundColor: colors.surface, 
-        padding: '1.5rem', 
-        borderRadius: '0.375rem', 
-        border: `1px solid ${colors.border}`,
-        overflow: 'auto',
         fontSize: '0.875rem',
-        lineHeight: '1.5',
+        lineHeight: '1.6',
         color: colors.text,
         fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
         margin: 0,
@@ -114,43 +145,6 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       }}>
         {actionData ? generateActionPrompt(actionData) : ''}
       </pre>
-      
-      <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        <button onClick={copyPromptToClipboard} disabled={copying} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: copying ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.5rem', cursor: copying ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copying) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
-          {copying ? (
-            <>
-              <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Copied!
-            </>
-          ) : (
-            <>
-              <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy Prompt Text
-            </>
-          )}
-        </button>
-        <button onClick={copyActionUrl} disabled={copyingCodex} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', backgroundColor: copyingCodex ? colors.surface : colors.borderAccent, color: 'white', border: 'none', borderRadius: '0.5rem', cursor: copyingCodex ? 'not-allowed' : 'pointer', fontSize: '0.875rem', fontWeight: '500', transition: 'all 0.2s ease' }} onMouseEnter={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '0.9'; } }} onMouseLeave={e => { if (!copyingCodex) { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; } }}>
-          {copyingCodex ? (
-            <>
-              <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Copied!
-            </>
-          ) : (
-            <>
-              <svg style={{ width: '16px', height: '16px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              Copy Prompt URL
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
