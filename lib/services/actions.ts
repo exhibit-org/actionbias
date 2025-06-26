@@ -1593,6 +1593,36 @@ export class ActionsService {
       }
     }
 
+    // Get action's own completion context if it's completed
+    let ownCompletionContext: DependencyCompletionContext | undefined;
+    if (action[0].done) {
+      const ownContextResult = await getDb()
+        .select({
+          actionId: completionContexts.actionId,
+          implementationStory: completionContexts.implementationStory,
+          impactStory: completionContexts.impactStory,
+          learningStory: completionContexts.learningStory,
+          changelogVisibility: completionContexts.changelogVisibility,
+          completionTimestamp: completionContexts.completionTimestamp,
+        })
+        .from(completionContexts)
+        .where(eq(completionContexts.actionId, actionId))
+        .limit(1);
+
+      if (ownContextResult.length > 0) {
+        const context = ownContextResult[0];
+        ownCompletionContext = {
+          action_id: context.actionId,
+          action_title: action[0].title || action[0].data?.title || 'untitled',
+          completion_timestamp: context.completionTimestamp.toISOString(),
+          implementation_story: context.implementationStory || undefined,
+          impact_story: context.impactStory || undefined,
+          learning_story: context.learningStory || undefined,
+          changelog_visibility: context.changelogVisibility || 'team',
+        };
+      }
+    }
+
     return {
       id: action[0].id,
       title: action[0].title || action[0].data?.title || 'untitled',
@@ -1611,6 +1641,8 @@ export class ActionsService {
       // Family summaries from database columns
       family_context_summary: action[0].familyContextSummary,
       family_vision_summary: action[0].familyVisionSummary,
+      // Action's own completion context
+      completion_context: ownCompletionContext,
     };
   }
 

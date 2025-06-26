@@ -42,5 +42,21 @@ export function buildActionPrompt(action: ActionDetailResource): string {
     prompt += `No dependencies. This is a standalone action.\n`;
   }
 
+  // Show action's own completion context if it's completed
+  if (action.done && action.completion_context) {
+    prompt += `\n# Completion Context\n`;
+    prompt += `This action has been completed:\n\n`;
+    if (action.completion_context.implementation_story) {
+      prompt += `**How it was built:** ${action.completion_context.implementation_story}\n`;
+    }
+    if (action.completion_context.impact_story) {
+      prompt += `**Impact:** ${action.completion_context.impact_story}\n`;
+    }
+    if (action.completion_context.learning_story) {
+      prompt += `**Learnings:** ${action.completion_context.learning_story}\n`;
+    }
+    prompt += `\n`;
+  }
+
   return prompt;
 }

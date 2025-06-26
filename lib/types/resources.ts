@@ -83,6 +83,7 @@ export interface ActionDetailResource {
   dependencies: ActionMetadata[]; // actions this depends on
   dependents: ActionMetadata[]; // actions that depend on this one
   dependency_completion_context: DependencyCompletionContext[]; // completion context from dependencies
+  completion_context?: DependencyCompletionContext; // action's own completion context if completed
 }
 
 // Completion context from dependencies for enhanced knowledge transfer
