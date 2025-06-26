@@ -47,6 +47,15 @@ export class EditorialAIService {
     try {
       const prompt = `You are an expert tech journalist creating compelling magazine-style content from engineering completion stories.
 
+FORMATTING RULES:
+- Use backticks (\`) around ALL technical terms, including:
+  - File paths and URLs (e.g., \`/api/actions\`, \`package.json\`)
+  - Function/method names (e.g., \`generateText()\`, \`useState\`)
+  - Technical concepts (e.g., \`API endpoint\`, \`React component\`)
+  - Code-related terms (e.g., \`TypeScript\`, \`npm\`, \`git\`)
+  - Variable names, database fields, etc.
+- Do NOT use backticks around regular English words or numbers
+
 Given this completed action:
 Title: ${actionTitle}
 ${actionDescription ? `Description: ${actionDescription}` : ''}
@@ -75,9 +84,9 @@ Generate the following editorial content:
 - "AI-Powered Code Analysis Eliminates 90% of Manual Reviews"
 - "New Caching Strategy Saves $50K Monthly in Infrastructure Costs"
 
-2. DECK: A 2-3 sentence standfirst that expands on the headline and hooks the reader. This should provide context and make them want to read more.
+2. DECK: A 2-3 sentence standfirst that expands on the headline and hooks the reader. This should provide context and make them want to read more. Remember to use backticks around technical terms.
 
-3. PULL QUOTES: Extract 2-3 powerful quotes from the stories that highlight key achievements, insights, or turning points. These should be impactful statements that work well when highlighted.
+3. PULL QUOTES: Extract 2-3 powerful quotes from the stories that highlight key achievements, insights, or turning points. These should be impactful statements that work well when highlighted. Use backticks around technical terms within quotes.
 
 Return ONLY valid JSON without any markdown formatting or code blocks. The response should be pure JSON that can be parsed directly:
 {
@@ -193,6 +202,10 @@ Return ONLY valid JSON without any markdown formatting or code blocks. The respo
         prompt: `Create a compelling magazine-style headline (10-15 words) for this engineering achievement:
 Action: ${actionTitle}
 Impact: ${impactStory}
+
+FORMATTING RULES:
+- Use backticks (\`) around technical terms (file paths, function names, APIs, etc.)
+- Do NOT use backticks around regular English words or numbers
 
 Focus on specific outcomes and make it newsworthy. Return only the headline, no quotes or explanation.`,
         temperature: 0.7,
