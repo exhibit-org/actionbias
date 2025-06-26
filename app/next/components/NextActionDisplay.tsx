@@ -184,55 +184,11 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
 
   return (
     <>
-      <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-        <button 
-          onClick={copyPromptToClipboard} 
-          disabled={copying} 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            backgroundColor: colors.surface, 
-            color: copying ? colors.borderAccent : colors.textMuted, 
-            border: `1px solid ${colors.border}`, 
-            borderRadius: '0.375rem', 
-            cursor: copying ? 'not-allowed' : 'pointer', 
-            transition: 'all 0.2s ease' 
-          }} 
-          onMouseEnter={e => { if (!copying) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; } }} 
-          onMouseLeave={e => { if (!copying) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = colors.textMuted; } }}
-          title="Copy prompt text"
-        >
-          {copying ? <Check size={16} /> : <Copy size={16} />}
-        </button>
-        <button 
-          onClick={copyActionUrl} 
-          disabled={copyingCodex} 
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            width: '36px',
-            height: '36px',
-            backgroundColor: colors.surface, 
-            color: copyingCodex ? colors.borderAccent : colors.textMuted, 
-            border: `1px solid ${colors.border}`, 
-            borderRadius: '0.375rem', 
-            cursor: copyingCodex ? 'not-allowed' : 'pointer', 
-            transition: 'all 0.2s ease' 
-          }} 
-          onMouseEnter={e => { if (!copyingCodex) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; } }} 
-          onMouseLeave={e => { if (!copyingCodex) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = colors.textMuted; } }}
-          title="Copy action URL"
-        >
-          {copyingCodex ? <Check size={16} /> : <Link size={16} />}
-        </button>
-        {actionData && (
+      <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
           <button 
-            onClick={() => actionData.done ? setShowUncompletionModal(true) : setShowCompletionModal(true)} 
-            disabled={completing} 
+            onClick={copyPromptToClipboard} 
+            disabled={copying} 
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -240,19 +196,108 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               width: '36px',
               height: '36px',
               backgroundColor: colors.surface, 
-              color: actionData.done ? colors.text : colors.textMuted, 
+              color: copying ? colors.borderAccent : colors.textMuted, 
               border: `1px solid ${colors.border}`, 
               borderRadius: '0.375rem', 
-              cursor: completing ? 'not-allowed' : 'pointer', 
+              cursor: copying ? 'not-allowed' : 'pointer', 
               transition: 'all 0.2s ease' 
             }} 
-            onMouseEnter={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; e.currentTarget.style.borderColor = colors.borderAccent; } }} 
-            onMouseLeave={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = actionData.done ? colors.text : colors.textMuted; e.currentTarget.style.borderColor = colors.border; } }}
-            title={actionData.done ? "Mark as incomplete" : "Mark as complete"}
+            onMouseEnter={e => { if (!copying) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; } }} 
+            onMouseLeave={e => { if (!copying) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = colors.textMuted; } }}
+            aria-label="Copy prompt to clipboard"
           >
-            {actionData.done ? <CheckSquare size={16} /> : <Square size={16} />}
+            {copying ? <Check size={16} /> : <Copy size={16} />}
           </button>
+          <span className="tooltip">Copy prompt to clipboard</span>
+        </div>
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={copyActionUrl} 
+            disabled={copyingCodex} 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              backgroundColor: colors.surface, 
+              color: copyingCodex ? colors.borderAccent : colors.textMuted, 
+              border: `1px solid ${colors.border}`, 
+              borderRadius: '0.375rem', 
+              cursor: copyingCodex ? 'not-allowed' : 'pointer', 
+              transition: 'all 0.2s ease' 
+            }} 
+            onMouseEnter={e => { if (!copyingCodex) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; } }} 
+            onMouseLeave={e => { if (!copyingCodex) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = colors.textMuted; } }}
+            aria-label="Copy action URL"
+          >
+            {copyingCodex ? <Check size={16} /> : <Link size={16} />}
+          </button>
+          <span className="tooltip">Copy action URL</span>
+        </div>
+        {actionData && (
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => actionData.done ? setShowUncompletionModal(true) : setShowCompletionModal(true)} 
+              disabled={completing} 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px',
+                backgroundColor: colors.surface, 
+                color: actionData.done ? colors.text : colors.textMuted, 
+                border: `1px solid ${colors.border}`, 
+                borderRadius: '0.375rem', 
+                cursor: completing ? 'not-allowed' : 'pointer', 
+                transition: 'all 0.2s ease' 
+              }} 
+              onMouseEnter={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.bg; e.currentTarget.style.color = colors.text; e.currentTarget.style.borderColor = colors.borderAccent; } }} 
+              onMouseLeave={e => { if (!completing) { e.currentTarget.style.backgroundColor = colors.surface; e.currentTarget.style.color = actionData.done ? colors.text : colors.textMuted; e.currentTarget.style.borderColor = colors.border; } }}
+              aria-label={actionData.done ? "Reopen action" : "Complete action"}
+            >
+              {actionData.done ? <CheckSquare size={16} /> : <Square size={16} />}
+            </button>
+            <span className="tooltip">{actionData.done ? "Reopen action" : "Complete action"}</span>
+          </div>
         )}
+        <style jsx>{`
+          .tooltip {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            padding: 6px 12px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            font-size: 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1000;
+          }
+          
+          .tooltip::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 4px 4px 4px;
+            border-color: transparent transparent rgba(0, 0, 0, 0.9) transparent;
+          }
+          
+          div:hover > .tooltip {
+            opacity: 1;
+          }
+        `}</style>
       </div>
       
       <pre style={{ 
