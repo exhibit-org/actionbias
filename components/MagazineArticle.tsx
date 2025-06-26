@@ -52,19 +52,28 @@ export default function MagazineArticle({
   };
 
   const renderMarkdown = (text: string, className: string = '') => {
+    // Enhanced markdown rendering with better code formatting
+    const processedText = text
+      // Code blocks with language hint
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm font-mono">$2</code></pre>')
+      // Inline code
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>')
+      // Bold
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+      // Paragraphs
+      .replace(/\n\n/g, '</p><p class="mb-4">')
+      .replace(/\n/g, '<br>')
+      .replace(/^/, '<p class="mb-4">')
+      .replace(/$/, '</p>');
+
     return (
       <div 
         className={className}
-        dangerouslySetInnerHTML={{ 
-          __html: text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/`(.*?)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">$1</code>')
-            .replace(/\n\n/g, '</p><p class="mb-4">')
-            .replace(/\n/g, '<br>')
-            .replace(/^/, '<p class="mb-4">')
-            .replace(/$/, '</p>')
-        }}
+        dangerouslySetInnerHTML={{ __html: processedText }}
       />
     );
   };
