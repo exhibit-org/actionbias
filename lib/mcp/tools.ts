@@ -354,12 +354,12 @@ export function registerTools(server: any) {
   // complete_action - Mark an action as completed with required completion context
   server.tool(
     "complete_action",
-    "Mark an action as completed with required completion context for dynamic changelog generation",
+    "Mark an action as completed with required completion context for dynamic changelog generation. Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering in the magazine-style changelog.",
     {
       action_id: z.string().uuid().describe("The ID of the action to complete"),
-      implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting."),
-      impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting."),
-      learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting."),
+      implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting. IMPORTANT: Use backticks (`) around ALL technical terms including file paths (e.g., `/api/actions`), function names (e.g., `generateText()`), APIs, libraries, commands, and code-related terms."),
+      impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical terms like metrics, API endpoints, database fields, etc."),
+      learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical concepts, tools, and code-related terms."),
       changelog_visibility: z.enum(["private", "team", "public"]).default("team").describe("Who should see this completion context in changelog generation (default: 'team')"),
       // Optional editorial content for magazine-style display
       headline: z.string().optional().describe("AI-generated compelling headline for the completion story (e.g., 'Revolutionary Search Architecture Cuts Query Time by 70%')"),
