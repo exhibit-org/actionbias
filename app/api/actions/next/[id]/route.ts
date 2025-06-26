@@ -32,11 +32,8 @@ export async function GET(
 
     const actionDetails = await ActionsService.getActionDetailResource(nextAction.id);
 
-    const enhancedActionDetails = {
-      ...actionDetails,
-      family_context_summary: actionDetails.family_context_summary || 'This action has no family context.',
-      family_vision_summary: actionDetails.family_vision_summary || 'This action has no family vision context.'
-    };
+    // Return action details directly - let the UI handle placeholder text
+    const enhancedActionDetails = actionDetails;
 
     return NextResponse.json({
       success: true,
