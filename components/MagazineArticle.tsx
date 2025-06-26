@@ -54,10 +54,10 @@ export default function MagazineArticle({
   const renderMarkdown = (text: string, className: string = '') => {
     // Enhanced markdown rendering with better code formatting
     const processedText = text
-      // Code blocks with language hint
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm font-mono">$2</code></pre>')
-      // Inline code
-      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800 dark:text-gray-200">$1</code>')
+      // Code blocks with language hint - Analytical style
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-50 border border-gray-300 text-gray-800 p-4 overflow-x-auto my-4 font-mono text-sm"><code>$2</code></pre>')
+      // Inline code - Clean analytical style
+      .replace(/`([^`]+)`/g, '<code class="bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-sm font-mono text-blue-900">$1</code>')
       // Bold
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       // Italic
@@ -92,58 +92,62 @@ export default function MagazineArticle({
 
   return (
     <article className="bg-white min-h-screen">
-      {/* Magazine Header */}
-      <header className="border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      {/* Analytical Magazine Header - Economist Style */}
+      <header className="border-b-2 border-red-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold tracking-tight">ActionBias</div>
-            <div className="text-sm text-gray-500 uppercase tracking-widest">Engineering Journal</div>
+            <div className="flex items-center space-x-3">
+              <div className="text-2xl font-serif tracking-tight text-gray-900">ActionBias</div>
+              <div className="w-px h-6 bg-gray-400"></div>
+              <div className="text-sm font-medium text-red-600 uppercase tracking-wider">Engineering Intelligence</div>
+            </div>
+            <div className="text-xs text-gray-600 uppercase tracking-widest font-medium">Analysis & Insights</div>
           </div>
         </div>
       </header>
 
-      {/* Article Header */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Category/Section */}
-        <div className="mb-6">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium uppercase tracking-wider ${
+      {/* Article Header - Analytical Style */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Category/Section - Red accent like The Economist */}
+        <div className="mb-4">
+          <span className={`inline-flex items-center text-xs font-bold uppercase tracking-wider ${
             item.changelogVisibility === 'public' 
-              ? 'bg-green-100 text-green-800'
+              ? 'text-red-700'
               : item.changelogVisibility === 'team'
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
+              ? 'text-blue-700'
+              : 'text-gray-700'
           }`}>
-            {item.changelogVisibility} · Engineering Update
+            {item.changelogVisibility === 'public' ? 'Public Analysis' : 
+             item.changelogVisibility === 'team' ? 'Team Intelligence' : 
+             'Private Research'} • Technical Implementation
           </span>
         </div>
 
-        {/* Headline */}
-        <h1 className="text-5xl sm:text-6xl font-bold leading-tight mb-6 tracking-tight">
+        {/* Headline - Economist Style */}
+        <h1 className="text-4xl sm:text-5xl font-serif font-normal leading-tight mb-4 text-gray-900">
           {displayHeadline}
         </h1>
 
-        {/* Deck/Standfirst */}
+        {/* Deck/Standfirst - Analytical Summary */}
         {displayDeck && (
-          <p className="text-xl sm:text-2xl text-gray-600 leading-relaxed mb-8 font-light">
+          <p className="text-lg sm:text-xl text-gray-700 leading-relaxed mb-6 font-light border-l-3 border-red-600 pl-5">
             {displayDeck}
           </p>
         )}
 
-        {/* Byline and metadata */}
-        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 pb-8 border-b border-gray-200">
+        {/* Byline and metadata - Clean analytical style */}
+        <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 py-4 border-t border-b border-gray-300">
           <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            <time dateTime={item.completionTimestamp}>
+            <time dateTime={item.completionTimestamp} className="font-medium">
               {formatDate(item.completionTimestamp)}
             </time>
           </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>{readTime} min read</span>
+          <div className="flex items-center gap-2 text-gray-500">
+            <span>{readTime} minute analysis</span>
           </div>
           <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4" />
-            <span className="capitalize">{item.changelogVisibility} visibility</span>
+            <span className="font-medium text-gray-700">Visibility:</span>
+            <span className="capitalize font-medium">{item.changelogVisibility}</span>
           </div>
           {showShare && (
             <button
@@ -167,103 +171,113 @@ export default function MagazineArticle({
         </div>
       </div>
 
-      {/* Article Body */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Article Body - Analytical Layout */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-8">
-            {/* Lead/Introduction */}
+            {/* Executive Summary / Impact Analysis */}
             {item.impactStory && (
-              <div className="mb-12">
-                <div className="text-lg leading-relaxed first-letter:text-7xl first-letter:font-bold first-letter:mr-3 first-letter:float-left">
+              <div className="mb-10">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-red-700 mb-3">Executive Summary</h3>
+                <div className="text-base leading-relaxed text-gray-800 font-serif first-letter:text-6xl first-letter:font-bold first-letter:mr-2 first-letter:float-left first-letter:leading-none">
                   {renderMarkdown(item.impactStory, "prose prose-lg max-w-none")}
                 </div>
               </div>
             )}
 
-            {/* Pull Quote 1 */}
+            {/* Key Finding 1 - Analytical Pull Quote */}
             {item.pullQuotes && item.pullQuotes.length > 0 && (
-              <blockquote className="my-12 pl-6 border-l-4 border-gray-900">
-                <p className="text-2xl font-light italic text-gray-700 leading-relaxed">
-                  "{item.pullQuotes[0]}"
+              <div className="my-10 bg-gray-50 border-l-4 border-red-600 pl-6 pr-6 py-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Key Finding</p>
+                <p className="text-xl font-serif italic text-gray-800 leading-relaxed">
+                  {item.pullQuotes[0]}
                 </p>
-              </blockquote>
+              </div>
             )}
 
-            {/* Implementation Story */}
+            {/* Technical Analysis */}
             {item.implementationStory && (
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6 tracking-tight">The Implementation</h2>
-                {renderMarkdown(item.implementationStory, "prose prose-lg max-w-none text-gray-700")}
+              <section className="mb-10">
+                <h2 className="text-2xl font-serif font-normal mb-4 text-gray-900">Technical Analysis</h2>
+                <div className="border-t-2 border-gray-200 pt-4">
+                  {renderMarkdown(item.implementationStory, "prose prose-base max-w-none text-gray-700 font-serif")}
+                </div>
               </section>
             )}
 
-            {/* Pull Quote 2 */}
+            {/* Data Point / Insight 2 */}
             {item.pullQuotes && item.pullQuotes.length > 1 && (
-              <blockquote className="my-12 text-center">
-                <p className="text-3xl font-light italic text-gray-700 leading-relaxed">
-                  "{item.pullQuotes[1]}"
+              <div className="my-10 bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <p className="text-xs font-bold uppercase tracking-wider text-blue-700 mb-3">Critical Insight</p>
+                <p className="text-2xl font-serif text-gray-800 leading-relaxed">
+                  {item.pullQuotes[1]}
                 </p>
-              </blockquote>
+              </div>
             )}
 
-            {/* Learning Story */}
+            {/* Strategic Implications */}
             {item.learningStory && (
-              <section className="mb-12">
-                <h2 className="text-3xl font-bold mb-6 tracking-tight">Key Learnings</h2>
-                {renderMarkdown(item.learningStory, "prose prose-lg max-w-none text-gray-700")}
+              <section className="mb-10">
+                <h2 className="text-2xl font-serif font-normal mb-4 text-gray-900">Strategic Implications</h2>
+                <div className="border-t-2 border-gray-200 pt-4">
+                  {renderMarkdown(item.learningStory, "prose prose-base max-w-none text-gray-700 font-serif")}
+                </div>
               </section>
             )}
 
-            {/* Pull Quote 3 */}
+            {/* Forward Outlook */}
             {item.pullQuotes && item.pullQuotes.length > 2 && (
-              <blockquote className="my-12 pl-6 border-l-4 border-gray-900">
-                <p className="text-2xl font-light italic text-gray-700 leading-relaxed">
-                  "{item.pullQuotes[2]}"
+              <div className="my-10 bg-gray-100 rounded-lg p-6">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-2">Forward Outlook</p>
+                <p className="text-lg font-serif text-gray-800 leading-relaxed">
+                  {item.pullQuotes[2]}
                 </p>
-              </blockquote>
+              </div>
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Analytical Sidebar */}
           <aside className="lg:col-span-4">
-            <div className="sticky top-8 space-y-8">
-              {/* Action Details Box */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-bold mb-4 uppercase tracking-wider text-gray-900">Action Details</h3>
+            <div className="sticky top-8 space-y-6">
+              {/* Data Box - Project Metrics */}
+              <div className="bg-gray-50 border border-gray-200 p-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-red-700 mb-4">Project Metrics</h3>
                 <dl className="space-y-3 text-sm">
-                  <div>
-                    <dt className="font-medium text-gray-500 uppercase text-xs tracking-wider">Original Goal</dt>
-                    <dd className="mt-1 text-gray-900">{item.actionTitle}</dd>
+                  <div className="border-b border-gray-200 pb-3">
+                    <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-1">Objective</dt>
+                    <dd className="text-gray-900 font-serif">{item.actionTitle}</dd>
                   </div>
                   {item.actionVision && (
-                    <div>
-                      <dt className="font-medium text-gray-500 uppercase text-xs tracking-wider">Vision</dt>
-                      <dd className="mt-1 text-gray-900 italic">"{item.actionVision}"</dd>
+                    <div className="border-b border-gray-200 pb-3">
+                      <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-1">Strategic Vision</dt>
+                      <dd className="text-gray-900 font-serif italic">{item.actionVision}</dd>
                     </div>
                   )}
-                  <div>
-                    <dt className="font-medium text-gray-500 uppercase text-xs tracking-wider">Created</dt>
-                    <dd className="mt-1 text-gray-900">{formatDate(item.actionCreatedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-gray-500 uppercase text-xs tracking-wider">Completed</dt>
-                    <dd className="mt-1 text-gray-900">
-                      {formatDate(item.completionTimestamp)} at {formatTime(item.completionTimestamp)}
-                    </dd>
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-1">Initiated</dt>
+                      <dd className="text-gray-900 font-medium">{formatDate(item.actionCreatedAt)}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-1">Delivered</dt>
+                      <dd className="text-gray-900 font-medium">{formatDate(item.completionTimestamp)}</dd>
+                    </div>
                   </div>
                 </dl>
               </div>
 
-              {/* Additional Pull Quotes */}
+              {/* Research Notes */}
               {item.pullQuotes && item.pullQuotes.length > 3 && (
-                <div className="bg-gray-900 text-white rounded-lg p-6">
-                  <h3 className="text-lg font-bold mb-4 uppercase tracking-wider">Notable Quotes</h3>
-                  <div className="space-y-4">
+                <div className="bg-blue-900 text-white p-5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-4">Research Notes</h3>
+                  <div className="space-y-3">
                     {item.pullQuotes.slice(3).map((quote, index) => (
-                      <p key={index} className="text-sm italic leading-relaxed">
-                        "{quote}"
-                      </p>
+                      <div key={index} className="border-l-2 border-blue-600 pl-3">
+                        <p className="text-sm font-serif leading-relaxed">
+                          {quote}
+                        </p>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -273,11 +287,17 @@ export default function MagazineArticle({
         </div>
       </div>
 
-      {/* Article Footer */}
-      <footer className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-gray-200">
-        <div className="text-center text-sm text-gray-500">
-          <p>Action ID: {item.actionId}</p>
-          <p className="mt-2">© {new Date().getFullYear()} ActionBias Engineering Journal</p>
+      {/* Analytical Footer */}
+      <footer className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-12 border-t-2 border-gray-300">
+        <div className="flex justify-between items-center text-xs text-gray-600">
+          <div>
+            <p className="font-medium">Reference: {item.actionId}</p>
+            <p className="mt-1">© {new Date().getFullYear()} ActionBias Intelligence Unit</p>
+          </div>
+          <div className="text-right">
+            <p className="font-medium uppercase tracking-wider">Engineering Analysis</p>
+            <p className="mt-1">Technical Implementation Report</p>
+          </div>
         </div>
       </footer>
     </article>

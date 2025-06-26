@@ -1,16 +1,16 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import ChangelogPageClient from './client';
+import ScopedLogPageClient from './client';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-async function getChangelogItem(id: string) {
+async function getActionDetails(id: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   
   try {
-    const response = await fetch(`${baseUrl}/api/changelog/${id}`, {
+    const response = await fetch(`${baseUrl}/api/actions/${id}`, {
       cache: 'no-store',
     });
     
@@ -21,40 +21,80 @@ async function getChangelogItem(id: string) {
     const data = await response.json();
     return data.success ? data.data : null;
   } catch (error) {
-    console.error('Error fetching changelog item:', error);
+    console.error('Error fetching action:', error);
     return null;
+  }
+}
+
+async function getScopedCompletedActions(rootId: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  
+  try {
+    // First get the action tree with completed actions included
+    const treeResponse = await fetch(`${baseUrl}/api/actions/tree/${rootId}?includeCompleted=true`, {
+      cache: 'no-store',
+    });
+    
+    if (!treeResponse.ok) {
+      return [];
+    }
+    
+    const treeData = await treeResponse.json();
+    if (!treeData.success) {
+      return [];
+    }
+    
+    // Extract all completed action IDs from the tree
+    const completedActionIds: string[] = [];
+    
+    function extractCompletedActions(node: any) {
+      if (node.done) {
+        completedActionIds.push(node.id);
+      }
+      if (node.children) {
+        node.children.forEach(extractCompletedActions);
+      }
+    }
+    
+    extractCompletedActions(treeData.data);
+    
+    // Fetch completion contexts for all completed actions
+    const completedActions = await Promise.all(
+      completedActionIds.map(async (actionId) => {
+        const response = await fetch(`${baseUrl}/api/changelog/${actionId}`, {
+          cache: 'no-store',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          return data.success ? data.data : null;
+        }
+        return null;
+      })
+    );
+    
+    // Filter out nulls and sort by completion timestamp
+    return completedActions
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.completionTimestamp).getTime() - new Date(a.completionTimestamp).getTime());
+  } catch (error) {
+    console.error('Error fetching scoped completed actions:', error);
+    return [];
   }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const changelogItem = await getChangelogItem(id);
+  const action = await getActionDetails(id);
   
-  if (!changelogItem) {
+  if (!action) {
     return {
-      title: 'Changelog Item Not Found - ActionBias',
-      description: 'The requested changelog item could not be found.',
+      title: 'Action Not Found - ActionBias',
+      description: 'The requested action could not be found.',
     };
   }
   
-  // Create a compelling description from the impact story or action description
-  let description = changelogItem.impactStory || changelogItem.actionDescription || 'A completed action in ActionBias';
-  // Truncate to ~160 characters for optimal display
-  if (description.length > 160) {
-    description = description.substring(0, 157) + '...';
-  }
-  
-  // Clean up markdown for plain text display
-  description = description
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/\n/g, ' ');
-  
-  const title = changelogItem.actionTitle;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.NODE_ENV === 'production' ? 'https://www.actionbias.ai' : 'http://localhost:3000');
-  const ogImageUrl = `${baseUrl}/api/og/log/${id}`;
-  const ogUrl = `${baseUrl}/log/${id}`;
+  const title = `${action.title} - Completion Log`;
+  const description = action.vision || action.description || 'View completed actions in this subtree';
   
   return {
     title,
@@ -62,36 +102,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title,
       description,
-      type: 'article',
-      url: ogUrl,
-      publishedTime: changelogItem.completionTimestamp,
-      authors: ['ActionBias'],
+      type: 'website',
       siteName: 'ActionBias',
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: changelogItem.actionTitle,
-        },
-      ],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: 'summary',
       title,
       description,
-      images: [ogImageUrl],
     },
   };
 }
 
-export default async function ChangelogItemPage({ params }: PageProps) {
+export default async function ScopedLogPage({ params }: PageProps) {
   const { id } = await params;
-  const changelogItem = await getChangelogItem(id);
   
-  if (!changelogItem) {
+  const [action, completedActions] = await Promise.all([
+    getActionDetails(id),
+    getScopedCompletedActions(id)
+  ]);
+  
+  if (!action) {
     notFound();
   }
   
-  return <ChangelogPageClient initialData={changelogItem} actionId={id} />;
+  return (
+    <ScopedLogPageClient 
+      rootAction={action}
+      completedActions={completedActions}
+    />
+  );
 }

@@ -33,7 +33,6 @@ export default function FeedPage() {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [visibilityFilter, setVisibilityFilter] = useState<string>('');
 
   // Color scheme to match the rest of the app
   const colors = {
@@ -46,16 +45,13 @@ export default function FeedPage() {
 
   useEffect(() => {
     fetchFeed();
-  }, [visibilityFilter]);
+  }, []);
 
   const fetchFeed = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
       params.set('limit', '20');
-      if (visibilityFilter) {
-        params.set('visibility', visibilityFilter);
-      }
 
       const response = await fetch(`/api/feed?${params}`);
       const data: FeedResponse = await response.json();
@@ -98,51 +94,6 @@ export default function FeedPage() {
           <p className="text-gray-600">Recent completed actions with their completion stories</p>
         </div>
 
-        {/* Filter Controls */}
-        <div className="mb-6">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setVisibilityFilter('')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                visibilityFilter === '' 
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setVisibilityFilter('public')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                visibilityFilter === 'public' 
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Public
-            </button>
-            <button
-              onClick={() => setVisibilityFilter('team')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                visibilityFilter === 'team' 
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Team
-            </button>
-            <button
-              onClick={() => setVisibilityFilter('private')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                visibilityFilter === 'private' 
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              Private
-            </button>
-          </div>
-        </div>
 
         {/* Feed Items */}
         <div className="space-y-6">
