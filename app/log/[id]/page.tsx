@@ -7,7 +7,10 @@ interface PageProps {
 }
 
 async function getActionDetails(id: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  // For server components, we need to use the deployment URL or construct it properly
+  const baseUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   
   try {
     const url = `${baseUrl}/api/actions/${id}`;
@@ -31,7 +34,10 @@ async function getActionDetails(id: string) {
 }
 
 async function getScopedCompletedActions(rootId: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  // For server components, we need to use the deployment URL or construct it properly
+  const baseUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   
   try {
     // First get the action tree with completed actions included
@@ -63,6 +69,7 @@ async function getScopedCompletedActions(rootId: string) {
     extractCompletedActions(treeData.data);
     
     // Fetch completion contexts for all completed actions
+    console.log('Fetching completion contexts for', completedActionIds.length, 'completed actions');
     const completedActions = await Promise.all(
       completedActionIds.map(async (actionId) => {
         const response = await fetch(`${baseUrl}/api/changelog/${actionId}`, {
@@ -72,6 +79,7 @@ async function getScopedCompletedActions(rootId: string) {
           const data = await response.json();
           return data.success ? data.data : null;
         }
+        console.log(`Failed to fetch changelog for action ${actionId}:`, response.status);
         return null;
       })
     );
@@ -120,10 +128,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ScopedLogPage({ params }: PageProps) {
   const { id } = await params;
   
+  console.log('ScopedLogPage - Action ID:', id);
+  
   const [action, completedActions] = await Promise.all([
     getActionDetails(id),
     getScopedCompletedActions(id)
   ]);
+  
+  console.log('ScopedLogPage - Action found:', !!action);
+  console.log('ScopedLogPage - Completed actions count:', completedActions.length);
   
   if (!action) {
     notFound();
