@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
 import ActionPageSkeleton from './ActionPageSkeleton';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
 import { Copy, Link, Check, CheckCircle, Square, CheckSquare } from 'react-feather';
+import MagazineArticle from '../../../components/MagazineArticle';
 
 interface Props {
   colors: ColorScheme;
@@ -27,6 +28,10 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
     learningStory: '',
     changelogVisibility: 'team' as 'private' | 'team' | 'public'
   });
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewDebounceTimer, setPreviewDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchAction = async () => {
@@ -106,13 +111,15 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       setActionData(prev => prev ? { ...prev, done: true } : null);
       setShowCompletionModal(false);
       
-      // Reset form
+      // Reset form and preview
       setCompletionContext({
         implementationStory: '',
         impactStory: '',
         learningStory: '',
         changelogVisibility: 'team'
       });
+      setPreviewData(null);
+      setPreviewError(null);
       
       // Reload after short delay to get next action
       setTimeout(() => {
@@ -156,6 +163,75 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
       setCompleting(false);
     }
   };
+
+  const generatePreview = async () => {
+    if (!actionData) return;
+    
+    // Check if all required fields have content
+    const hasContent = completionContext.implementationStory.trim() && 
+                      completionContext.impactStory.trim() && 
+                      completionContext.learningStory.trim();
+    
+    if (!hasContent) {
+      setPreviewData(null);
+      return;
+    }
+
+    try {
+      setIsGeneratingPreview(true);
+      setPreviewError(null);
+      
+      const response = await fetch(`/api/actions/${actionData.id}/preview-completion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          implementation_story: completionContext.implementationStory,
+          impact_story: completionContext.impactStory,
+          learning_story: completionContext.learningStory,
+          changelog_visibility: completionContext.changelogVisibility
+        })
+      });
+      
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      
+      if (!data.success) throw new Error(data.error || 'Failed to generate preview');
+      
+      setPreviewData(data.data);
+    } catch (err) {
+      console.error('Error generating preview:', err);
+      setPreviewError(err instanceof Error ? err.message : 'Failed to generate preview');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
+  // Handle completion context changes with debouncing
+  const handleCompletionContextChange = (updates: Partial<typeof completionContext>) => {
+    const newContext = { ...completionContext, ...updates };
+    setCompletionContext(newContext);
+    
+    // Clear existing timer
+    if (previewDebounceTimer) {
+      clearTimeout(previewDebounceTimer);
+    }
+    
+    // Set new timer
+    const timer = setTimeout(() => {
+      generatePreview();
+    }, 500); // 500ms debounce
+    
+    setPreviewDebounceTimer(timer);
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (previewDebounceTimer) {
+        clearTimeout(previewDebounceTimer);
+      }
+    };
+  }, [previewDebounceTimer]);
 
   if (loading) {
     return <ActionPageSkeleton colors={colors} isMobile={false} />;
@@ -333,7 +409,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
             padding: '2rem', 
             borderRadius: '0.5rem', 
             maxWidth: '90%', 
-            width: '32rem', 
+            width: '80rem', 
             maxHeight: '90vh', 
             overflowY: 'auto', 
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)' 
@@ -357,6 +433,16 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               Share your experience to help build institutional knowledge. All fields are required.
             </p>
             
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '2rem',
+              height: 'calc(90vh - 12rem)',
+              maxHeight: '800px'
+            }}>
+              {/* Left column - Form */}
+              <div style={{ overflowY: 'auto', paddingRight: '1rem' }}>
+            
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{ 
                 display: 'block', 
@@ -369,7 +455,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </label>
               <textarea
                 value={completionContext.implementationStory}
-                onChange={(e) => setCompletionContext(prev => ({ ...prev, implementationStory: e.target.value }))}
+                onChange={(e) => handleCompletionContextChange({ implementationStory: e.target.value })}
                 placeholder="What approach did you take? What tools or technologies did you use? What challenges did you overcome?"
                 style={{ 
                   width: '100%', 
@@ -397,7 +483,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </label>
               <textarea
                 value={completionContext.impactStory}
-                onChange={(e) => setCompletionContext(prev => ({ ...prev, impactStory: e.target.value }))}
+                onChange={(e) => handleCompletionContextChange({ impactStory: e.target.value })}
                 placeholder="What did you accomplish? What value was delivered? Who benefits from this work?"
                 style={{ 
                   width: '100%', 
@@ -425,7 +511,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </label>
               <textarea
                 value={completionContext.learningStory}
-                onChange={(e) => setCompletionContext(prev => ({ ...prev, learningStory: e.target.value }))}
+                onChange={(e) => handleCompletionContextChange({ learningStory: e.target.value })}
                 placeholder="What insights did you gain? What would you do differently next time? What advice would you give to others?"
                 style={{ 
                   width: '100%', 
@@ -453,7 +539,7 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
               </label>
               <select
                 value={completionContext.changelogVisibility}
-                onChange={(e) => setCompletionContext(prev => ({ ...prev, changelogVisibility: e.target.value as 'private' | 'team' | 'public' }))}
+                onChange={(e) => handleCompletionContextChange({ changelogVisibility: e.target.value as 'private' | 'team' | 'public' })}
                 style={{ 
                   width: '100%', 
                   padding: '0.75rem', 
@@ -468,10 +554,81 @@ export default function NextActionDisplay({ colors, actionId }: Props) {
                 <option value="public">Public - External stakeholder visibility</option>
               </select>
             </div>
+              </div>
+              
+              {/* Right column - Preview */}
+              <div style={{ 
+                overflowY: 'auto', 
+                backgroundColor: '#f9fafb', 
+                borderRadius: '0.5rem', 
+                padding: '1rem',
+                border: `1px solid ${colors.border}`
+              }}>
+                {isGeneratingPreview ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    color: colors.textMuted
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ marginBottom: '0.5rem' }}>Generating preview...</div>
+                      <div style={{ fontSize: '0.75rem' }}>This may take a moment</div>
+                    </div>
+                  </div>
+                ) : previewError ? (
+                  <div style={{ 
+                    padding: '1rem', 
+                    backgroundColor: '#fee', 
+                    border: '1px solid #fcc', 
+                    borderRadius: '0.375rem',
+                    color: '#c00'
+                  }}>
+                    Error: {previewError}
+                  </div>
+                ) : previewData ? (
+                  <div style={{ 
+                    transform: 'scale(0.6)', 
+                    transformOrigin: 'top left',
+                    width: '166.67%',
+                    height: '166.67%'
+                  }}>
+                    <MagazineArticle 
+                      item={{
+                        id: actionData?.id || '',
+                        actionId: actionData?.id || '',
+                        ...previewData,
+                        actionDone: true
+                      }} 
+                      showShare={false}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    height: '100%',
+                    color: colors.textMuted
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ marginBottom: '0.5rem', fontSize: '1.125rem' }}>📰</div>
+                      <div>Fill out all fields to see a preview</div>
+                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>of your engineering journal article</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '2rem' }}>
               <button 
-                onClick={() => setShowCompletionModal(false)}
+                onClick={() => {
+                  setShowCompletionModal(false);
+                  setPreviewData(null);
+                  setPreviewError(null);
+                }}
                 disabled={completing}
                 style={{ 
                   padding: '0.625rem 1.25rem', 
