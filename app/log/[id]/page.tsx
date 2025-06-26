@@ -10,11 +10,15 @@ async function getActionDetails(id: string) {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   
   try {
-    const response = await fetch(`${baseUrl}/api/actions/${id}`, {
+    const url = `${baseUrl}/api/actions/${id}`;
+    console.log('Fetching action from:', url);
+    
+    const response = await fetch(url, {
       cache: 'no-store',
     });
     
     if (!response.ok) {
+      console.error('Failed to fetch action:', response.status, response.statusText);
       return null;
     }
     
