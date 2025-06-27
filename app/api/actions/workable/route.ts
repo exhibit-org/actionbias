@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       let dependenciesMet = true;
       
       for (const depId of dependencies) {
-        const dep = actionMap.get(depId);
+        const dep = actionMap.get(depId) as any;
         if (dep && !dep.done) {
           dependenciesMet = false;
           break;
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       if (children.length > 0) {
         // Has children - check if all are done
         for (const childId of children) {
-          const child = actionMap.get(childId);
+          const child = actionMap.get(childId) as any;
           if (child && !child.done) {
             isWorkable = false;
             break;
