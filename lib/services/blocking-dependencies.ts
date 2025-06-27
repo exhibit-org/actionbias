@@ -53,9 +53,10 @@ export async function getBlockingDependencies(): Promise<BlockingDependency[]> {
     ORDER BY block_count DESC
   `;
 
-  const result = await getDb().execute(query) as any[];
+  const result = await getDb().execute(query) as any;
+  const rows = result.rows || result;
   
-  const blockingDeps = result.map((row: any) => ({
+  const blockingDeps = rows.map((row: any) => ({
     blockingActionId: row.blocking_id,
     blockingActionTitle: row.blocking_title,
     blockingActionDone: row.blocking_done,
@@ -98,9 +99,10 @@ export async function getActionsWithNoDependencies(): Promise<any[]> {
     LIMIT 100
   `;
 
-  const result = await getDb().execute(query) as any[];
+  const result = await getDb().execute(query) as any;
+  const rows = result.rows || result;
   
-  console.log(`[NO-DEPS] Found ${result.length} actions with no dependencies in ${Date.now() - startTime}ms`);
+  console.log(`[NO-DEPS] Found ${rows.length} actions with no dependencies in ${Date.now() - startTime}ms`);
   
-  return result;
+  return rows;
 }
