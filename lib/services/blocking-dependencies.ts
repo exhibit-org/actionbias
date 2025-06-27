@@ -96,7 +96,6 @@ export async function getActionsWithNoDependencies(): Promise<any[]> {
     WHERE a.done = false
       AND a.id NOT IN (SELECT action_id FROM has_incomplete_deps)
     ORDER BY a.updated_at DESC
-    LIMIT 100
   `;
 
   const result = await getDb().execute(query) as any;
