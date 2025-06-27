@@ -25,6 +25,35 @@ import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
 
+// Helper function to check if an action has incomplete dependencies
+async function hasIncompleteDependencies(actionId: string): Promise<{ hasIncomplete: boolean; incompleteDeps: string[] }> {
+  // Get all dependencies for this action
+  const dependencyEdges = await getDb()
+    .select()
+    .from(edges)
+    .where(and(eq(edges.dst, actionId), eq(edges.kind, "depends_on")));
+  
+  if (dependencyEdges.length === 0) {
+    return { hasIncomplete: false, incompleteDeps: [] };
+  }
+  
+  // Get the completion status of all dependencies
+  const dependencyIds = dependencyEdges.map((edge: any) => edge.src).filter(Boolean);
+  const dependencyActions = await getDb()
+    .select({ id: actions.id, done: actions.done, title: actions.title })
+    .from(actions)
+    .where(inArray(actions.id, dependencyIds));
+  
+  const incompleteDeps = dependencyActions
+    .filter((action: any) => !action.done)
+    .map((action: any) => action.title || action.id);
+  
+  return {
+    hasIncomplete: incompleteDeps.length > 0,
+    incompleteDeps
+  };
+}
+
 // Helper function to get all descendants of given action IDs
 async function getAllDescendants(actionIds: string[]): Promise<string[]> {
   if (actionIds.length === 0) return [];
@@ -796,6 +825,13 @@ export class ActionsService {
     
     // Update done if provided
     if (done !== undefined) {
+      // If marking as complete, check for incomplete dependencies
+      if (done === true) {
+        const { hasIncomplete, incompleteDeps } = await hasIncompleteDependencies(action_id);
+        if (hasIncomplete) {
+          throw new Error(`Cannot complete action "${existingAction[0].data?.title || action_id}". The following dependencies must be completed first: ${incompleteDeps.join(', ')}`);
+        }
+      }
       updateData.done = done;
     }
     
