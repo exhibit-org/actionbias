@@ -4,6 +4,9 @@ import { CompletionContextService } from "../services/completion-context";
 import { getDb } from "../db/adapter";
 import { actions, edges, completionContexts } from "../../db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
+import { execSync } from "child_process";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -678,6 +681,323 @@ export function registerResources(server: any) {
       }
     }
   );
+
+  // context://vision - Project vision and strategic documents
+  server.resource(
+    "Project vision and strategic documents (VISION.md, CLAUDE.md) that guide development priorities",
+    "context://vision",
+    async (uri: any) => {
+      try {
+        const documents: any = {};
+        
+        // Read VISION.md if it exists
+        const visionPath = join(process.cwd(), 'VISION.md');
+        if (existsSync(visionPath)) {
+          documents.vision = readFileSync(visionPath, 'utf-8');
+        }
+        
+        // Read CLAUDE.md if it exists
+        const claudePath = join(process.cwd(), 'CLAUDE.md');
+        if (existsSync(claudePath)) {
+          documents.claude = readFileSync(claudePath, 'utf-8');
+        }
+        
+        // Read README.md for additional context
+        const readmePath = join(process.cwd(), 'README.md');
+        if (existsSync(readmePath)) {
+          documents.readme = readFileSync(readmePath, 'utf-8');
+        }
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                documents,
+                paths: {
+                  vision: existsSync(visionPath) ? visionPath : null,
+                  claude: existsSync(claudePath) ? claudePath : null,
+                  readme: existsSync(readmePath) ? readmePath : null,
+                }
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error reading vision documents:', error);
+        throw new Error(`Failed to read vision documents: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // context://momentum - Recent development activity
+  server.resource(
+    "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
+    "context://momentum",
+    async (uri: any) => {
+      try {
+        const momentum: any = {};
+        
+        // Get recent git commits
+        try {
+          const gitLog = execSync('git log --pretty=format:"%h|%an|%ae|%ad|%s" --date=iso -20', {
+            encoding: 'utf-8',
+            cwd: process.cwd()
+          });
+          
+          momentum.recentCommits = gitLog.split('\n').map(line => {
+            const [hash, author, email, date, message] = line.split('|');
+            return { hash, author, email, date, message };
+          });
+        } catch (gitError) {
+          console.log('Could not get git history:', gitError);
+          momentum.recentCommits = [];
+        }
+        
+        // Get changed files in last commit
+        try {
+          const changedFiles = execSync('git diff --name-only HEAD~1 HEAD', {
+            encoding: 'utf-8',
+            cwd: process.cwd()
+          }).trim().split('\n').filter(f => f);
+          
+          momentum.recentlyChangedFiles = changedFiles;
+        } catch (gitError) {
+          momentum.recentlyChangedFiles = [];
+        }
+        
+        // Get current branch
+        try {
+          momentum.currentBranch = execSync('git rev-parse --abbrev-ref HEAD', {
+            encoding: 'utf-8',
+            cwd: process.cwd()
+          }).trim();
+        } catch (gitError) {
+          momentum.currentBranch = 'unknown';
+        }
+        
+        // Get recently completed actions from database
+        if (process.env.DATABASE_URL) {
+          try {
+            const recentCompletions = await getDb()
+              .select({
+                actionId: completionContexts.actionId,
+                actionTitle: actions.title,
+                completionTimestamp: completionContexts.completionTimestamp,
+                impactStory: completionContexts.impactStory,
+              })
+              .from(completionContexts)
+              .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+              .orderBy(desc(completionContexts.completionTimestamp))
+              .limit(10);
+            
+            momentum.recentCompletions = recentCompletions;
+          } catch (dbError) {
+            console.log('Could not get recent completions:', dbError);
+            momentum.recentCompletions = [];
+          }
+        } else {
+          momentum.recentCompletions = [];
+        }
+        
+        // Analysis timestamp
+        momentum.analyzedAt = new Date().toISOString();
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(momentum, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error analyzing momentum:', error);
+        throw new Error(`Failed to analyze momentum: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://recommendations - Intelligent work prioritization
+  server.resource(
+    "Intelligent work prioritization recommendations based on vision alignment, momentum, dependencies, and strategic importance",
+    "action://recommendations",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  recommendations: []
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        // Get context data directly (can't call other resources from within a resource)
+        const visionData: any = { documents: {} };
+        const momentumData: any = {};
+        
+        // Read vision documents
+        const visionPath = join(process.cwd(), 'VISION.md');
+        if (existsSync(visionPath)) {
+          visionData.documents.vision = readFileSync(visionPath, 'utf-8');
+        }
+        
+        // Get recent git commits for momentum
+        try {
+          const gitLog = execSync('git log --pretty=format:"%h|%an|%ae|%ad|%s" --date=iso -10', {
+            encoding: 'utf-8',
+            cwd: process.cwd()
+          });
+          
+          momentumData.recentCommits = gitLog.split('\n').map(line => {
+            const [hash, author, email, date, message] = line.split('|');
+            return { hash, author, email, date, message };
+          });
+        } catch (gitError) {
+          momentumData.recentCommits = [];
+        }
+        
+        // Get recently completed actions
+        try {
+          const recentCompletions = await getDb()
+            .select({
+              actionId: completionContexts.actionId,
+              actionTitle: actions.title,
+              completionTimestamp: completionContexts.completionTimestamp,
+              impactStory: completionContexts.impactStory,
+            })
+            .from(completionContexts)
+            .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+            .orderBy(desc(completionContexts.completionTimestamp))
+            .limit(10);
+          
+          momentumData.recentCompletions = recentCompletions;
+        } catch (dbError) {
+          momentumData.recentCompletions = [];
+        }
+        
+        // Get incomplete actions
+        const allActions = await ActionsService.getActionListResource({ 
+          limit: 100, 
+          offset: 0,
+          includeCompleted: false 
+        });
+        
+        // Simple scoring based on available data
+        const scoredActions = [];
+        
+        for (const action of allActions.actions.slice(0, 20)) {
+          const details = await ActionsService.getActionDetailResource(action.id);
+          
+          let score = 50; // Base score
+          let reasoning = [];
+          
+          // Check if dependencies are complete
+          if (details.dependencies && details.dependencies.length > 0) {
+            const completeDeps = details.dependencies.filter(d => d.done).length;
+            const depReadiness = (completeDeps / details.dependencies.length) * 100;
+            score += depReadiness * 0.3;
+            
+            if (depReadiness === 100) {
+              reasoning.push("All dependencies are complete");
+            } else if (depReadiness > 0) {
+              reasoning.push(`${completeDeps}/${details.dependencies.length} dependencies complete`);
+            }
+          }
+          
+          // Check if recently worked on (momentum)
+          const recentlyWorkedOn = momentumData.recentCompletions?.some((log: any) => 
+            details.parent_chain?.some(p => p.id === log.actionId)
+          );
+          
+          if (recentlyWorkedOn) {
+            score += 30;
+            reasoning.push("Builds on recent work");
+          }
+          
+          // Check title/description for vision keywords
+          const visionText = visionData.documents?.vision || '';
+          const actionText = `${details.title} ${details.description || ''}`.toLowerCase();
+          
+          if (visionText && actionText.includes('done') || actionText.includes('magazine')) {
+            score += 20;
+            reasoning.push("Aligns with DONE magazine vision");
+          }
+          
+          if (actionText.includes('recommendation') || actionText.includes('prioritiz')) {
+            score += 15;
+            reasoning.push("Meta-improvement to the system");
+          }
+          
+          // Estimate effort based on children count
+          let effort = 'medium';
+          if (details.children.length === 0) {
+            effort = 'low';
+            score += 10;
+            reasoning.push("Leaf action - ready to implement");
+          } else if (details.children.length > 5) {
+            effort = 'high';
+            score -= 10;
+          }
+          
+          // Categorize
+          let category = 'strategic';
+          if (actionText.includes('fix') || actionText.includes('bug')) {
+            category = 'technical-debt';
+          } else if (recentlyWorkedOn) {
+            category = 'momentum';
+          } else if (effort === 'low' && score > 70) {
+            category = 'quick-win';
+          }
+          
+          scoredActions.push({
+            action: details,
+            score,
+            reasoning: reasoning.join('. ') || 'Standard priority action',
+            category,
+            estimatedEffort: effort
+          });
+        }
+        
+        // Sort by score and return top 5
+        scoredActions.sort((a, b) => b.score - a.score);
+        const recommendations = scoredActions.slice(0, 5);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                recommendations,
+                context: {
+                  totalIncompleteActions: allActions.total,
+                  currentBranch: momentumData.currentBranch,
+                  recentCommitCount: momentumData.recentCommits?.length || 0,
+                  hasVisionDoc: !!visionData.documents?.vision
+                },
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error generating recommendations:', error);
+        throw new Error(`Failed to generate recommendations: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
@@ -707,5 +1027,14 @@ export const resourceCapabilities = {
   },
   "action://log/{id}": {
     description: "Completion log for a specific action showing implementation details, impact, and learnings",
+  },
+  "context://vision": {
+    description: "Project vision and strategic documents (VISION.md, CLAUDE.md) that guide development priorities",
+  },
+  "context://momentum": {
+    description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
+  },
+  "action://recommendations": {
+    description: "Intelligent work prioritization recommendations based on vision alignment, momentum, dependencies, and strategic importance",
   },
 };
