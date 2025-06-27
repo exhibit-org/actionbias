@@ -1,6 +1,69 @@
 # ActionBias MCP Prompts
 
-This file contains example prompts for using ActionBias MCP resources effectively with Claude Code.
+ActionBias provides built-in MCP prompts that you can execute directly in Claude Code. These prompts automatically pull in the right resources and perform intelligent analysis.
+
+## Available MCP Prompts
+
+### prioritize-work
+Get intelligent work recommendations based on vision, momentum, and dependencies.
+```
+Use MCP prompt: prioritize-work
+```
+
+### next-action
+Quickly find the most important next action to work on.
+```
+Use MCP prompt: next-action
+```
+
+### work-overview
+Get a comprehensive overview of the current work state.
+```
+Use MCP prompt: work-overview
+```
+
+### analyze-blockers
+Understand what dependencies are blocking progress.
+```
+Use MCP prompt: analyze-blockers
+```
+
+### action-context
+Get full context on a specific action including dependencies and readiness.
+```
+Use MCP prompt: action-context
+Parameters: action_id (UUID of the action)
+```
+
+### analyze-patterns
+Analyze completed work patterns to identify process improvements.
+```
+Use MCP prompt: analyze-patterns
+```
+
+### start-session
+Quick 3-line summary to start your work session.
+```
+Use MCP prompt: start-session
+```
+
+### find-related
+Find actions related to a specific topic.
+```
+Use MCP prompt: find-related
+Parameters: topic (e.g., "UI", "frontend", "API")
+```
+
+### claude-code-next-action
+Structured prompt for detailed action summary (legacy).
+```
+Use MCP prompt: claude-code-next-action
+Parameters: action_id (UUID of the action)
+```
+
+## Manual Prompts
+
+You can also manually construct prompts using the MCP resources directly. Here are some examples:
 
 ## Intelligent Work Prioritization
 
@@ -121,3 +184,4 @@ I want to find all actions related to "UI" or "frontend". Please:
 - Client-side analysis in Claude Code is more flexible than server-side LLM calls
 - Resources can be fetched in parallel for better performance
 - Combine multiple resources for comprehensive analysis
+- MCP prompts provide consistent, optimized queries for common tasks
