@@ -53,22 +53,31 @@ export default function MagazineArticle({
 
   const renderMarkdown = (text: string, className: string = '') => {
     // Enhanced markdown rendering with better code formatting
-    const processedText = text
-      // Code blocks with language hint - Analytical style
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="bg-gray-50 border border-gray-300 text-gray-800 p-4 overflow-x-auto my-4 font-mono text-sm"><code>$2</code></pre>')
-      // Inline code - Clean analytical style
-      .replace(/`([^`]+)`/g, '<code class="bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-sm font-mono text-blue-900">$1</code>')
-      // Bold
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Italic
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Links
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
-      // Paragraphs
-      .replace(/\n\n/g, '</p><p class="mb-4">')
-      .replace(/\n/g, '<br>')
-      .replace(/^/, '<p class="mb-4">')
-      .replace(/$/, '</p>');
+    // First, handle paragraphs
+    const paragraphs = text.split(/\n\n+/);
+    
+    const processedText = paragraphs.map(paragraph => {
+      // Process each paragraph
+      const processed = paragraph
+        // Code blocks with language hint - Analytical style
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-50 border border-gray-300 text-gray-800 p-4 overflow-x-auto my-4 font-mono text-sm"><code>$2</code></pre><p class="mb-4">')
+        // Inline code - Clean analytical style
+        .replace(/`([^`]+)`/g, '<code class="bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-sm font-mono text-blue-900">$1</code>')
+        // Bold
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Italic  
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Links
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>')
+        // Line breaks within paragraphs
+        .replace(/\n/g, '<br>');
+      
+      return `<p class="mb-4">${processed}</p>`;
+    }).join('')
+    // Clean up empty paragraphs and fix pre blocks
+    .replace(/<p class="mb-4"><\/p>/g, '')
+    .replace(/<p class="mb-4">(<\/p>)?<pre>/g, '<pre>')
+    .replace(/<\/pre>(<p class="mb-4">)?<\/p>/g, '</pre>');
 
     return (
       <div 

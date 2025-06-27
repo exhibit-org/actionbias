@@ -1,4 +1,4 @@
-import { eq, and, count, inArray, sql } from "drizzle-orm";
+import { eq, and, count, inArray, sql, desc } from "drizzle-orm";
 import { actions, actionDataSchema, edges, completionContexts } from "../../db/schema";
 import { 
   ActionListResource, 
@@ -1697,6 +1697,76 @@ export class ActionsService {
     }
 
     return null;
+  }
+
+  static async getWorkableActions(limit: number = 50): Promise<Action[]> {
+    // Get all incomplete actions
+    const openActions = await getDb()
+      .select()
+      .from(actions)
+      .where(eq(actions.done, false))
+      .orderBy(desc(actions.updatedAt))
+      .limit(limit * 3); // Get more than needed to account for filtering
+
+    const workableActions: Action[] = [];
+
+    for (const action of openActions) {
+      // Check if all dependencies are met
+      if (!(await dependenciesMet(action.id))) {
+        continue;
+      }
+
+      // Check if this is a leaf node (no incomplete children)
+      const childEdgesResult = await getDb()
+        .select()
+        .from(edges)
+        .where(and(eq(edges.src, action.id), eq(edges.kind, "family")));
+      const childEdges = Array.isArray(childEdgesResult) ? childEdgesResult : [];
+      
+      if (childEdges.length === 0) {
+        // No children, this is a leaf node
+        workableActions.push({
+          id: action.id,
+          data: action.data as { title: string },
+          done: action.done,
+          version: action.version,
+          createdAt: action.createdAt.toISOString(),
+          updatedAt: action.updatedAt.toISOString(),
+        });
+        
+        if (workableActions.length >= limit) {
+          break;
+        }
+      } else {
+        // Has children - check if all are done
+        const childIds = childEdges.map(e => e.dst).filter((id): id is string => id !== null);
+        if (childIds.length > 0) {
+          const children = await getDb()
+            .select()
+            .from(actions)
+            .where(inArray(actions.id, childIds));
+          
+          const allChildrenDone = children.every((child: any) => child.done);
+          if (allChildrenDone) {
+            // All children are done, so this parent is workable
+            workableActions.push({
+              id: action.id,
+              data: action.data as { title: string },
+              done: action.done,
+              version: action.version,
+              createdAt: action.createdAt.toISOString(),
+              updatedAt: action.updatedAt.toISOString(),
+            });
+            
+            if (workableActions.length >= limit) {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return workableActions;
   }
 
   static async getNextActionScoped(scopeActionId: string): Promise<Action | null> {

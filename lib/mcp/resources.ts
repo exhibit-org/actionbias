@@ -4,6 +4,13 @@ import { CompletionContextService } from "../services/completion-context";
 import { getDb } from "../db/adapter";
 import { actions, edges, completionContexts } from "../../db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
+import { execSync } from "child_process";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
+import { getWorkableActionsOptimized } from "../services/actions-optimized";
+import { getBlockingDependencies, getActionsWithNoDependencies } from "../services/blocking-dependencies";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -678,11 +685,290 @@ export function registerResources(server: any) {
       }
     }
   );
+
+  // context://vision - Project vision and strategic documents
+  server.resource(
+    "Project vision and strategic documents (VISION.md, CLAUDE.md) that guide development priorities",
+    "context://vision",
+    async (uri: any) => {
+      try {
+        const documents: any = {};
+        
+        // Read VISION.md if it exists
+        const visionPath = join(process.cwd(), 'VISION.md');
+        if (existsSync(visionPath)) {
+          documents.vision = readFileSync(visionPath, 'utf-8');
+        }
+        
+        // Read CLAUDE.md if it exists
+        const claudePath = join(process.cwd(), 'CLAUDE.md');
+        if (existsSync(claudePath)) {
+          documents.claude = readFileSync(claudePath, 'utf-8');
+        }
+        
+        // Read README.md for additional context
+        const readmePath = join(process.cwd(), 'README.md');
+        if (existsSync(readmePath)) {
+          documents.readme = readFileSync(readmePath, 'utf-8');
+        }
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                documents,
+                paths: {
+                  vision: existsSync(visionPath) ? visionPath : null,
+                  claude: existsSync(claudePath) ? claudePath : null,
+                  readme: existsSync(readmePath) ? readmePath : null,
+                }
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error reading vision documents:', error);
+        throw new Error(`Failed to read vision documents: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // context://momentum - Recent development activity
+  server.resource(
+    "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
+    "context://momentum",
+    async (uri: any) => {
+      try {
+        const momentum: any = {};
+        
+        // Git integration not available in production yet
+        // TODO: This will be populated via GitHub/GitLab integration
+        momentum.recentCommits = [];
+        momentum.recentlyChangedFiles = [];
+        momentum.currentBranch = 'main'; // Default assumption
+        momentum.gitIntegrationPending = true;
+        momentum.note = 'Git history will be available after GitHub/GitLab integration is implemented';
+        
+        // Get recently completed actions from database
+        if (process.env.DATABASE_URL) {
+          try {
+            const recentCompletions = await getDb()
+              .select({
+                actionId: completionContexts.actionId,
+                actionTitle: actions.title,
+                completionTimestamp: completionContexts.completionTimestamp,
+                impactStory: completionContexts.impactStory,
+              })
+              .from(completionContexts)
+              .innerJoin(actions, eq(completionContexts.actionId, actions.id))
+              .orderBy(desc(completionContexts.completionTimestamp))
+              .limit(10);
+            
+            momentum.recentCompletions = recentCompletions;
+          } catch (dbError) {
+            console.log('Could not get recent completions:', dbError);
+            momentum.recentCompletions = [];
+          }
+        } else {
+          momentum.recentCompletions = [];
+        }
+        
+        // Analysis timestamp
+        momentum.analyzedAt = new Date().toISOString();
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(momentum, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error analyzing momentum:', error);
+        throw new Error(`Failed to analyze momentum: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://workable - Get all workable actions (leaf nodes with dependencies met)
+  server.resource(
+    "Get all workable actions (leaf nodes with all dependencies completed)",
+    "action://workable",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  workable: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        console.log('[WORKABLE] Starting to get workable actions');
+        
+        // Get all workable actions using optimized query
+        const workableActions = await getWorkableActionsOptimized(1000);
+        
+        const duration = Date.now() - startTime;
+        console.log(`[WORKABLE] Found ${workableActions.length} workable actions in ${duration}ms`);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                workable: workableActions,
+                total: workableActions.length,
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching workable actions:', error);
+        throw new Error(`Failed to fetch workable actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://blockers - Get blocking dependencies
+  server.resource(
+    "Get incomplete dependencies that are blocking other work",
+    "action://blockers",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  blockers: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        const blockers = await getBlockingDependencies();
+        const duration = Date.now() - startTime;
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                blockers,
+                total: blockers.length,
+                totalBlocked: blockers.reduce((sum, b) => sum + b.blockCount, 0),
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching blocking dependencies:', error);
+        throw new Error(`Failed to fetch blockers: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://no-dependencies - Get actions with no dependencies
+  server.resource(
+    "Get incomplete actions that have no dependencies blocking them",
+    "action://no-dependencies",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  actions: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        const actionsNoDeps = await getActionsWithNoDependencies();
+        const duration = Date.now() - startTime;
+        
+        const formattedActions = actionsNoDeps.map((a: any) => ({
+          id: a.id,
+          data: a.data,
+          done: a.done,
+          version: a.version,
+          createdAt: new Date(a.created_at).toISOString(),
+          updatedAt: new Date(a.updated_at).toISOString()
+        }));
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                actions: formattedActions,
+                total: formattedActions.length,
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching no-dependency actions:', error);
+        throw new Error(`Failed to fetch actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
   "action://list": {
     description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  },
+  "action://workable": {
+    description: "Get all workable actions (leaf nodes with all dependencies completed)",
+  },
+  "action://blockers": {
+    description: "Get incomplete dependencies that are blocking other work",
+  },
+  "action://no-dependencies": {
+    description: "Get incomplete actions that have no dependencies blocking them",
   },
   "action://tree": {
     description: "Hierarchical view of actions showing family relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
@@ -707,5 +993,11 @@ export const resourceCapabilities = {
   },
   "action://log/{id}": {
     description: "Completion log for a specific action showing implementation details, impact, and learnings",
+  },
+  "context://vision": {
+    description: "Project vision and strategic documents (VISION.md, CLAUDE.md) that guide development priorities",
+  },
+  "context://momentum": {
+    description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
   },
 };
