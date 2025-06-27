@@ -7,6 +7,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
+import { openai } from "@ai-sdk/openai";
+import { generateText } from "ai";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -887,111 +889,191 @@ export function registerResources(server: any) {
           momentumData.recentCompletions = [];
         }
         
-        // Get incomplete actions
+        // Get ALL incomplete actions to find workable ones
         const allActions = await ActionsService.getActionListResource({ 
-          limit: 100, 
+          limit: 1000, 
           offset: 0,
           includeCompleted: false 
         });
         
-        // Simple scoring based on available data
-        const scoredActions = [];
+        // First pass: Find truly workable actions (all dependencies complete + leaf nodes)
+        const workableActions = [];
         
-        for (const action of allActions.actions.slice(0, 20)) {
+        for (const action of allActions.actions) {
           const details = await ActionsService.getActionDetailResource(action.id);
           
-          let score = 50; // Base score
-          let reasoning = [];
-          
-          // Check if dependencies are complete
+          // Skip if dependencies aren't ALL complete
           if (details.dependencies && details.dependencies.length > 0) {
-            const completeDeps = details.dependencies.filter(d => d.done).length;
-            const depReadiness = (completeDeps / details.dependencies.length) * 100;
-            score += depReadiness * 0.3;
-            
-            if (depReadiness === 100) {
-              reasoning.push("All dependencies are complete");
-            } else if (depReadiness > 0) {
-              reasoning.push(`${completeDeps}/${details.dependencies.length} dependencies complete`);
+            const allDepsComplete = details.dependencies.every(d => d.done);
+            if (!allDepsComplete) {
+              continue; // Can't work on this action yet
             }
           }
           
-          // Check if recently worked on (momentum)
-          const recentlyWorkedOn = momentumData.recentCompletions?.some((log: any) => 
-            details.parent_chain?.some(p => p.id === log.actionId)
-          );
-          
-          if (recentlyWorkedOn) {
-            score += 30;
-            reasoning.push("Builds on recent work");
-          }
-          
-          // Check title/description for vision keywords
-          const visionText = visionData.documents?.vision || '';
-          const actionText = `${details.title} ${details.description || ''}`.toLowerCase();
-          
-          if (visionText && actionText.includes('done') || actionText.includes('magazine')) {
-            score += 20;
-            reasoning.push("Aligns with DONE magazine vision");
-          }
-          
-          if (actionText.includes('recommendation') || actionText.includes('prioritiz')) {
-            score += 15;
-            reasoning.push("Meta-improvement to the system");
-          }
-          
-          // Estimate effort based on children count
-          let effort = 'medium';
+          // Prefer leaf actions (no children)
           if (details.children.length === 0) {
-            effort = 'low';
-            score += 10;
-            reasoning.push("Leaf action - ready to implement");
-          } else if (details.children.length > 5) {
-            effort = 'high';
-            score -= 10;
+            workableActions.push(details);
           }
-          
-          // Categorize
-          let category = 'strategic';
-          if (actionText.includes('fix') || actionText.includes('bug')) {
-            category = 'technical-debt';
-          } else if (recentlyWorkedOn) {
-            category = 'momentum';
-          } else if (effort === 'low' && score > 70) {
-            category = 'quick-win';
-          }
-          
-          scoredActions.push({
-            action: details,
-            score,
-            reasoning: reasoning.join('. ') || 'Standard priority action',
-            category,
-            estimatedEffort: effort
-          });
         }
         
-        // Sort by score and return top 5
-        scoredActions.sort((a, b) => b.score - a.score);
-        const recommendations = scoredActions.slice(0, 5);
+        // If we have too many workable actions, filter to most relevant
+        let candidatesForScoring = workableActions;
+        if (workableActions.length > 15) {
+          // Quick filter based on recency and parent completion
+          candidatesForScoring = workableActions.filter(action => {
+            // Has a recently completed parent?
+            const hasRecentParent = momentumData.recentCompletions?.some((log: any) => 
+              action.parent_chain?.some(p => p.id === log.actionId)
+            );
+            // Is relatively new?
+            const ageInDays = (Date.now() - new Date(action.created_at).getTime()) / (1000 * 60 * 60 * 24);
+            return hasRecentParent || ageInDays < 30;
+          });
+          
+          // If still too many, take random sample
+          if (candidatesForScoring.length > 15) {
+            candidatesForScoring = candidatesForScoring
+              .sort(() => Math.random() - 0.5)
+              .slice(0, 15);
+          }
+        }
         
-        return {
-          contents: [
-            {
+        // Now use LLM to score the workable candidates
+        if (candidatesForScoring.length === 0) {
+          return {
+            contents: [{
+              uri: uri.toString(),
+              text: JSON.stringify({
+                recommendations: [],
+                message: "No workable actions found. All actions either have incomplete dependencies or are parent actions with children.",
+                context: {
+                  totalIncompleteActions: allActions.total,
+                  workableActionsFound: 0
+                },
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            }],
+          };
+        }
+        
+        // Prepare context for LLM scoring
+        const visionSummary = visionData.documents?.vision ? 
+          visionData.documents.vision.substring(0, 3000) : 
+          'No vision document available';
+        
+        const recentWorkSummary = momentumData.recentCompletions?.slice(0, 5)
+          .map((c: any) => `- ${c.actionTitle}: ${c.impactStory?.substring(0, 100)}...`)
+          .join('\n') || 'No recent completions';
+        
+        // Batch score all candidates with a single LLM call
+        const scoringPrompt = `You are helping prioritize work for the ActionBias project.
+
+Project Vision Summary:
+${visionSummary}
+
+Recent Work Completed:
+${recentWorkSummary}
+
+Score each of these workable actions (0-100) based on:
+1. Strategic alignment with the vision (especially DONE magazine concept)
+2. Builds on recent momentum 
+3. Unlocks future work
+4. Effort vs impact ratio
+5. Addresses technical debt or critical issues
+
+Workable Actions to Score:
+${candidatesForScoring.map((action, i) => `
+${i + 1}. ${action.title}
+Description: ${action.description || 'No description'}
+Vision: ${action.vision || 'No vision'}
+Created: ${action.created_at}
+Parent: ${action.parent_chain?.[action.parent_chain.length - 1]?.title || 'Root level'}
+`).join('')}
+
+Return a JSON array with this structure for each action:
+[
+  {
+    "index": 0,
+    "score": 85,
+    "reasoning": "Clear explanation of why this scores high/low",
+    "category": "strategic|quick-win|momentum|technical-debt",
+    "estimatedEffort": "low|medium|high"
+  }
+]
+
+Be selective - most actions should score between 20-80. Reserve 80+ for truly critical work.`;
+        
+        try {
+          const result = await generateText({
+            model: openai('gpt-4o-mini'),
+            prompt: scoringPrompt,
+            temperature: 0.3,
+            maxTokens: 2000,
+          });
+          
+          const scores = JSON.parse(result.text);
+          
+          // Map scores back to actions
+          const recommendations = scores
+            .map((score: any) => ({
+              action: candidatesForScoring[score.index],
+              score: score.score,
+              reasoning: score.reasoning,
+              category: score.category,
+              estimatedEffort: score.estimatedEffort
+            }))
+            .sort((a: any, b: any) => b.score - a.score)
+            .slice(0, 5);
+          
+          return {
+            contents: [{
               uri: uri.toString(),
               text: JSON.stringify({
                 recommendations,
                 context: {
                   totalIncompleteActions: allActions.total,
-                  currentBranch: momentumData.currentBranch,
-                  recentCommitCount: momentumData.recentCommits?.length || 0,
+                  workableActionsFound: workableActions.length,
+                  candidatesScored: candidatesForScoring.length,
+                  scoringModel: 'gpt-4o-mini',
                   hasVisionDoc: !!visionData.documents?.vision
                 },
                 generatedAt: new Date().toISOString()
               }, null, 2),
               mimeType: "application/json",
-            },
-          ],
-        };
+            }],
+          };
+          
+        } catch (aiError) {
+          console.error('LLM scoring failed:', aiError);
+          // Fallback to simple scoring
+          const fallbackRecommendations = candidatesForScoring
+            .slice(0, 5)
+            .map(action => ({
+              action,
+              score: 50,
+              reasoning: 'Workable action (dependencies complete, no children)',
+              category: 'strategic',
+              estimatedEffort: 'medium'
+            }));
+          
+          return {
+            contents: [{
+              uri: uri.toString(),
+              text: JSON.stringify({
+                recommendations: fallbackRecommendations,
+                context: {
+                  totalIncompleteActions: allActions.total,
+                  workableActionsFound: workableActions.length,
+                  scoringError: true,
+                  errorMessage: aiError instanceof Error ? aiError.message : 'Unknown error'
+                },
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            }],
+          };
+        }
       } catch (error) {
         console.error('Error generating recommendations:', error);
         throw new Error(`Failed to generate recommendations: ${error instanceof Error ? error.message : "Unknown error"}`);
