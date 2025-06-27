@@ -480,6 +480,14 @@ export class ActionsService {
         kind: "family",
       });
       
+      // Create automatic dependency: parent depends on child
+      // This ensures parent cannot be completed until child is done
+      await getDb().insert(edges).values({
+        src: newAction[0].id,  // child (must be completed first)
+        dst: parent_id,        // parent (depends on child)
+        kind: "depends_on",
+      });
+      
       // Generate family summaries for actions with explicit families
       generateFamilySummariesAsync(newAction[0].id).catch(console.error);
     }
@@ -564,14 +572,23 @@ export class ActionsService {
       .returning();
 
     // Create parent-child relationship
-    const newEdge = await getDb()
+    await getDb()
       .insert(edges)
       .values({
         src: parent_id,
         dst: newAction[0].id,
         kind: "family",
-      })
-      .returning();
+      });
+    
+    // Create automatic dependency: parent depends on child
+    // This ensures parent cannot be completed until child is done
+    await getDb()
+      .insert(edges)
+      .values({
+        src: newAction[0].id,  // child (must be completed first)
+        dst: parent_id,        // parent (depends on child)
+        kind: "depends_on",
+      });
 
     // Generate embedding and node summary asynchronously for new child action
     generateEmbeddingAsync(newAction[0].id, validatedData).catch(console.error);
@@ -585,8 +602,7 @@ export class ActionsService {
 
     return {
       action: newAction[0],
-      parent: parentAction[0],
-      edge: newEdge[0]
+      parent: parentAction[0]
     };
   }
 
@@ -947,12 +963,31 @@ export class ActionsService {
       and(eq(edges.dst, action_id), eq(edges.kind, "family"))
     );
 
+    // Remove existing dependency relationship from this action to old parent
+    if (old_family_id) {
+      await getDb().delete(edges).where(
+        and(
+          eq(edges.src, action_id),
+          eq(edges.dst, old_family_id),
+          eq(edges.kind, "depends_on")
+        )
+      );
+    }
+
     // Add new family relationship if provided
     if (new_family_id) {
       await getDb().insert(edges).values({
         src: new_family_id,
         dst: action_id,
         kind: "family",
+      });
+      
+      // Create automatic dependency: parent depends on child
+      // This ensures parent cannot be completed until child is done
+      await getDb().insert(edges).values({
+        src: action_id,        // child (must be completed first)
+        dst: new_family_id,    // parent (depends on child)
+        kind: "depends_on",
       });
     }
 

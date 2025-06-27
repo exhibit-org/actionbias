@@ -16,7 +16,7 @@ describe('MCP Prompts', () => {
   describe('registerPrompts', () => {
     it('should register prompts with the server', () => {
       registerPrompts(mockServer as any);
-      expect(mockServer.prompt).toHaveBeenCalledTimes(1);
+      expect(mockServer.prompt).toHaveBeenCalledTimes(9);
       expect(mockServer.prompt).toHaveBeenCalledWith(
         'claude-code-next-action',
         expect.any(String),

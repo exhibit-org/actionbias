@@ -53,12 +53,17 @@ node scripts/test-streamable-http-client.mjs http://localhost:3000
 
 ### Available MCP Tools
 - **create_action**: Create new actions with optional parent and dependencies
+  - Automatically creates parent→child dependency when family_id is provided
+  - This ensures parents cannot be completed until all children are done
 - **update_action**: Update action properties including completion status
 - **delete_action**: Delete actions with configurable child handling
 - **add_dependency**: Create dependency relationships between actions
 - **remove_dependency**: Remove dependency relationships
-- **update_parent**: Move actions within the hierarchy
-- **suggest_parent**: AI-powered intelligent action placement suggestions
+- **join_family**: Move actions within the hierarchy
+  - Automatically manages parent→child dependencies when moving actions
+  - Removes old dependency when leaving a family
+  - Creates new dependency when joining a family
+- **suggest_family**: AI-powered intelligent action placement suggestions using vector similarity
 
 ### Adding New Tools
 1. Define tool schema using Zod in `lib/mcp/tools.ts`
