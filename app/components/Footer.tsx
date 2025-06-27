@@ -40,7 +40,7 @@ export default function Footer({ colors }: FooterProps) {
               color: colors.text,
               textDecoration: 'none'
             }}>
-              ActionBias
+              done.engineering
             </a>
           </h3>
           <p style={{
@@ -49,7 +49,7 @@ export default function Footer({ colors }: FooterProps) {
             margin: '0 0 0.75rem 0',
             lineHeight: '1.5'
           }}>
-            Cross-LLM persistent planning system for focused action taking
+            The context layer for AI development. Done is the engine of more.
           </p>
           <p style={{
             fontSize: '0.75rem',

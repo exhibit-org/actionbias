@@ -134,7 +134,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                     fontSize: '1rem',
                     fontWeight: '600',
                     color: colors.text
-                  }}>ActionBias</span>
+                  }}>done.engineering</span>
                 </div>
                 <Link 
                   href="/" 
@@ -184,7 +184,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                   fontSize: '1rem',
                   fontWeight: '600',
                   color: colors.text
-                }}>ActionBias</span>
+                }}>done.engineering</span>
               </div>
               
               {/* Centered text with arc effect */}
@@ -272,7 +272,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               gap: '0.5rem'
             }}>
               <Zap size={20} style={{ color: '#3b82f6' }} />
-              ActionBias
+              done.engineering
             </h3>
             <p style={{
               fontSize: '0.9375rem',
@@ -280,8 +280,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 1rem 0',
               lineHeight: '1.6'
             }}>
-              The AI-forward planning platform that generates context-rich prompts for your AI agents. 
-              Captures family context vertically and dependency context laterally to make AI truly understand your project.
+              The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Done is the engine of more.
             </p>
             <Link 
               href="/" 
@@ -320,7 +319,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 0.75rem 0',
               color: colors.text
             }}>
-              Why people love ActionBias
+              Why people love done.engineering
             </h4>
             <ul style={{
               margin: 0,
@@ -332,15 +331,15 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
             }}>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Planning is organic and flexible - evolves naturally with your project</span>
+                <span>Your context, everywhere - never lose progress between AI conversations</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Automated execution is rapid and on-target with calibrated AI agents</span>
+                <span>Works seamlessly with Claude Code, Gemini CLI, and all MCP-enabled tools</span>
               </li>
               <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <span style={{ color: '#10b981', marginTop: '0.125rem' }}>✓</span>
-                <span>Cross-LLM persistence - never lose context between conversations</span>
+                <span>AI-powered intelligent task organization and dependency tracking</span>
               </li>
             </ul>
           </div>

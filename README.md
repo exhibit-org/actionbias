@@ -1,15 +1,15 @@
-# ActionBias
+# done.engineering
 
-**The AI-forward planning platform that calibrates AI agents precisely before you set them in motion.**
+**Your context, everywhere. Never start over again.**
 
-ActionBias is not just another task manager, but a platform that understands project relationships deeply enough to generate contextually perfect prompts for AI agents. It captures vertical (family) context and lateral (dependency) context, turning your project into a living knowledge graph that any AI can understand.
+The context layer for AI development that keeps your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Stop losing context when switching between AI conversations. Done is the engine of more.
 
 ## Core Value Propositions
 
-- **Planning is organic and flexible** - Evolves naturally with your project through AI conversations
-- **Automated execution is rapid and on-target** - Calibrated AI agents execute with complete context
-- **Cross-LLM persistence** - Never lose context between ChatGPT, Claude, or any other AI assistant
-- **Beautiful changelogs** - Share your wins with automatically generated, shareable changelog pages
+- **Your context, everywhere** - Never lose progress between AI conversations
+- **Works seamlessly** - Native integration with Claude Code, Gemini CLI, and all MCP-enabled tools
+- **AI-powered intelligence** - Automatic task organization and dependency tracking
+- **Done is the engine of more** - Track completions, build momentum, share your journey
 
 ## Key Features
 
@@ -54,7 +54,7 @@ The automated setup uses **PGlite** - PostgreSQL compiled to WebAssembly:
 
 ### Production Deployment
 
-ActionBias is optimized for **Vercel deployment**:
+done.engineering is optimized for **Vercel deployment**:
 
 1. Fork the repository
 2. Connect to Vercel
@@ -66,7 +66,7 @@ ActionBias is optimized for **Vercel deployment**:
 
 ## MCP Tools Available
 
-ActionBias exposes these tools via Model Context Protocol:
+done.engineering exposes these tools via Model Context Protocol:
 
 - **`create_action`** - Create actions with AI-suggested family placement
 - **`update_action`** - Update action properties
@@ -81,7 +81,7 @@ ActionBias exposes these tools via Model Context Protocol:
 
 ## MCP Resources
 
-ActionBias exposes these resources via Model Context Protocol:
+done.engineering exposes these resources via Model Context Protocol:
 
 ### Action Management
 - **`action://list`** - List all actions
@@ -171,7 +171,7 @@ MIT - see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Homepage](https://actionbias.com)
+- [Homepage](https://done.engineering)
 - [GitHub](https://github.com/exhibit-org/actionbias)
 - [Documentation](https://github.com/exhibit-org/actionbias/blob/main/README.md)
 

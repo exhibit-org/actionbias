@@ -24,7 +24,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `Next Action in ${scopeTitle} - ActionBias`,
+    title: `Next Action in ${scopeTitle} - done.engineering`,
     description: `Your next action to focus on within the ${scopeTitle} project`,
   };
 }

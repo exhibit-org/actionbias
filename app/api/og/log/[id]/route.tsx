@@ -97,7 +97,7 @@ export async function GET(
     const description = cleanText(
       changelogItem.impactStory || 
       changelogItem.actionDescription || 
-      'A completed action in ActionBias'
+      'A completed action in done.engineering'
     );
     
     const completionDate = new Date(changelogItem.completionTimestamp).toLocaleDateString('en-US', {
@@ -207,7 +207,7 @@ export async function GET(
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <div style={{ fontSize: 32, color: 'white', marginBottom: 16, display: 'flex' }}>ActionBias</div>
+          <div style={{ fontSize: 32, color: 'white', marginBottom: 16, display: 'flex' }}>done.engineering</div>
           <div style={{ fontSize: 18, color: '#64748b', display: 'flex' }}>Dream like a human. Execute like a machine.</div>
         </div>
       ),
