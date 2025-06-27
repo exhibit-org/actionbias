@@ -10,12 +10,20 @@ import { Action } from "../types/resources";
 export async function getWorkableActionsOptimized(limit: number = 50): Promise<Action[]> {
   console.log('[OPTIMIZED] Starting getWorkableActions with limit:', limit);
   const startTime = Date.now();
+  
+  // Add timeout protection
+  const timeout = 50000; // 50 seconds
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`Operation timed out after ${timeout}ms`)), timeout);
+  });
 
   // Step 1: Get ALL incomplete actions in one query
-  const incompleteActions = await getDb()
+  const queryPromise = getDb()
     .select()
     .from(actions)
     .where(eq(actions.done, false));
+    
+  const incompleteActions = await Promise.race([queryPromise, timeoutPromise]) as any[];
   
   console.log(`[OPTIMIZED] Found ${incompleteActions.length} incomplete actions in ${Date.now() - startTime}ms`);
 
@@ -32,17 +40,11 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
     getDb()
       .select()
       .from(edges)
-      .where(and(
-        eq(edges.kind, "family"),
-        inArray(edges.src, actionIds)
-      )),
+      .where(eq(edges.kind, "family")),  // Get ALL family edges, not just for our actions
     getDb()
       .select()
       .from(edges)
-      .where(and(
-        eq(edges.kind, "depends_on"),
-        inArray(edges.dst, actionIds)
-      ))
+      .where(eq(edges.kind, "depends_on"))  // Get ALL dependency edges
   ]);
   
   console.log(`[OPTIMIZED] Loaded ${familyEdges.length} family edges and ${dependencyEdges.length} dependency edges in ${Date.now() - edgeQueryStart}ms`);
@@ -98,8 +100,13 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
   // Step 5: Check each action for workability
   const filterStart = Date.now();
   const workableActions: Action[] = [];
+  let processed = 0;
 
   for (const action of incompleteActions as any[]) {
+    processed++;
+    if (processed % 50 === 0) {
+      console.log(`[OPTIMIZED] Processed ${processed}/${incompleteActions.length} actions...`);
+    }
     // Check dependencies
     const dependencies = dependenciesMap.get(action.id) || [];
     const hasUnmetDependencies = dependencies.some(depId => {

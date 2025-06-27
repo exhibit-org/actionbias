@@ -10,6 +10,7 @@ import { execSync } from "child_process";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { getWorkableActionsOptimized } from "../services/actions-optimized";
+import { getBlockingDependencies, getActionsWithNoDependencies } from "../services/blocking-dependencies";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -847,6 +848,113 @@ export function registerResources(server: any) {
     }
   );
 
+  // action://blockers - Get blocking dependencies
+  server.resource(
+    "Get incomplete dependencies that are blocking other work",
+    "action://blockers",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  blockers: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        const blockers = await getBlockingDependencies();
+        const duration = Date.now() - startTime;
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                blockers,
+                total: blockers.length,
+                totalBlocked: blockers.reduce((sum, b) => sum + b.blockCount, 0),
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching blocking dependencies:', error);
+        throw new Error(`Failed to fetch blockers: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://no-dependencies - Get actions with no dependencies
+  server.resource(
+    "Get incomplete actions that have no dependencies blocking them",
+    "action://no-dependencies",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  actions: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        const actionsNoDeps = await getActionsWithNoDependencies();
+        const duration = Date.now() - startTime;
+        
+        const formattedActions = actionsNoDeps.map((a: any) => ({
+          id: a.id,
+          data: a.data,
+          done: a.done,
+          version: a.version,
+          createdAt: new Date(a.created_at).toISOString(),
+          updatedAt: new Date(a.updated_at).toISOString()
+        }));
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                actions: formattedActions,
+                total: formattedActions.length,
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching no-dependency actions:', error);
+        throw new Error(`Failed to fetch actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
@@ -855,6 +963,12 @@ export const resourceCapabilities = {
   },
   "action://workable": {
     description: "Get all workable actions (leaf nodes with all dependencies completed)",
+  },
+  "action://blockers": {
+    description: "Get incomplete dependencies that are blocking other work",
+  },
+  "action://no-dependencies": {
+    description: "Get incomplete actions that have no dependencies blocking them",
   },
   "action://tree": {
     description: "Hierarchical view of actions showing family relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
