@@ -99,6 +99,12 @@ export interface DependencyCompletionContext {
   headline?: string;
   deck?: string;
   pull_quotes?: string[];
+  // Git information
+  git_commit_hash?: string;
+  git_commit_message?: string;
+  git_branch?: string;
+  git_commit_author?: string;
+  git_related_commits?: string[];
 }
 
 export interface ActionMetadata {

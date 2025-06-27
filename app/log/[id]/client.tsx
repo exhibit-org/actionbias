@@ -21,6 +21,12 @@ interface FeedItem {
   headline?: string;
   deck?: string;
   pullQuotes?: string[];
+  // Git information
+  gitCommitHash?: string;
+  gitCommitMessage?: string;
+  gitBranch?: string;
+  gitCommitAuthor?: string;
+  gitRelatedCommits?: string[];
 }
 
 interface Action {

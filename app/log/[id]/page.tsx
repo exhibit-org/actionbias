@@ -73,6 +73,12 @@ async function getScopedCompletedActions(rootId: string) {
             actionVision: actionDetail.vision,
             actionDone: actionDetail.done,
             actionCreatedAt: actionDetail.created_at,
+            // Git information
+            gitCommitHash: actionDetail.completion_context.git_commit_hash,
+            gitCommitMessage: actionDetail.completion_context.git_commit_message,
+            gitBranch: actionDetail.completion_context.git_branch,
+            gitCommitAuthor: actionDetail.completion_context.git_commit_author,
+            gitRelatedCommits: actionDetail.completion_context.git_related_commits,
           };
         } catch (error) {
           console.log(`Failed to fetch action detail for ${actionId}:`, error);
@@ -97,7 +103,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   
   if (!action) {
     return {
-      title: 'Action Not Found - ActionBias',
+      title: 'Action Not Found - done.engineering',
       description: 'The requested action could not be found.',
     };
   }

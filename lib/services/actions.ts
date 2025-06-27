@@ -1658,6 +1658,11 @@ export class ActionsService {
           headline: completionContexts.headline,
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
+          gitCommitHash: completionContexts.gitCommitHash,
+          gitCommitMessage: completionContexts.gitCommitMessage,
+          gitBranch: completionContexts.gitBranch,
+          gitCommitAuthor: completionContexts.gitCommitAuthor,
+          gitRelatedCommits: completionContexts.gitRelatedCommits,
         })
         .from(completionContexts)
         .innerJoin(actions, eq(completionContexts.actionId, actions.id))
@@ -1676,6 +1681,11 @@ export class ActionsService {
           headline: context.headline || undefined,
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
+          git_commit_hash: context.gitCommitHash || undefined,
+          git_commit_message: context.gitCommitMessage || undefined,
+          git_branch: context.gitBranch || undefined,
+          git_commit_author: context.gitCommitAuthor || undefined,
+          git_related_commits: context.gitRelatedCommits as string[] || undefined,
         });
       }
     }
@@ -1694,6 +1704,11 @@ export class ActionsService {
           headline: completionContexts.headline,
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
+          gitCommitHash: completionContexts.gitCommitHash,
+          gitCommitMessage: completionContexts.gitCommitMessage,
+          gitBranch: completionContexts.gitBranch,
+          gitCommitAuthor: completionContexts.gitCommitAuthor,
+          gitRelatedCommits: completionContexts.gitRelatedCommits,
         })
         .from(completionContexts)
         .where(eq(completionContexts.actionId, actionId))
@@ -1712,6 +1727,11 @@ export class ActionsService {
           headline: context.headline || undefined,
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
+          git_commit_hash: context.gitCommitHash || undefined,
+          git_commit_message: context.gitCommitMessage || undefined,
+          git_branch: context.gitBranch || undefined,
+          git_commit_author: context.gitCommitAuthor || undefined,
+          git_related_commits: context.gitRelatedCommits as string[] || undefined,
         };
       }
     }

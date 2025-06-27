@@ -20,6 +20,12 @@ interface ChangelogItemProps {
   actionVision?: string;
   actionDone: boolean;
   actionCreatedAt: string;
+  // Git information
+  gitCommitHash?: string;
+  gitCommitMessage?: string;
+  gitBranch?: string;
+  gitCommitAuthor?: string;
+  gitRelatedCommits?: string[];
 }
 
 export default function ChangelogItem({ 
@@ -127,6 +133,45 @@ export default function ChangelogItem({
           </div>
         </div>
       </div>
+
+      {/* Git information */}
+      {item.gitCommitHash && (
+        <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
+          <svg className="w-5 h-5 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <a 
+                href={`https://github.com/exhibit-org/actionbias/commit/${item.gitCommitHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-mono text-blue-600 hover:text-blue-800"
+              >
+                {item.gitCommitHash.substring(0, 7)}
+              </a>
+              {item.gitBranch && (
+                <span className="text-sm text-gray-600">
+                  on <span className="font-mono bg-gray-200 px-2 py-0.5 rounded">{item.gitBranch}</span>
+                </span>
+              )}
+              {item.gitCommitAuthor && (
+                <span className="text-sm text-gray-600">
+                  by <span className="font-medium">{item.gitCommitAuthor.split(' <')[0]}</span>
+                </span>
+              )}
+            </div>
+            {item.gitCommitMessage && (
+              <div className="text-sm text-gray-700 mt-1">{item.gitCommitMessage}</div>
+            )}
+            {item.gitRelatedCommits && item.gitRelatedCommits.length > 0 && (
+              <div className="text-xs text-gray-500 mt-1">
+                +{item.gitRelatedCommits.length} related commit{item.gitRelatedCommits.length === 1 ? '' : 's'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Completion Stories */}
       <div className="space-y-4">
