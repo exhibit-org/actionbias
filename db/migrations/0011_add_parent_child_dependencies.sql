@@ -14,7 +14,7 @@ LEFT JOIN edges dep ON
   dep.kind = 'depends_on'
 WHERE 
   family.kind = 'family' AND 
-  dep.id IS NULL;
+  dep.src IS NULL;
 
 -- Verify the migration by checking no family relationships lack dependencies
 DO $$
@@ -27,7 +27,7 @@ BEGIN
     dep.src = family.dst AND 
     dep.dst = family.src AND 
     dep.kind = 'depends_on'
-  WHERE family.kind = 'family' AND dep.id IS NULL;
+  WHERE family.kind = 'family' AND dep.src IS NULL;
   
   IF missing_count > 0 THEN
     RAISE EXCEPTION 'Migration failed: % family relationships still missing dependencies', missing_count;
