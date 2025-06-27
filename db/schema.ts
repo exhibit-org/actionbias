@@ -48,7 +48,20 @@ export const completionContextSchema = z.object({
   // Magazine-style editorial content (stored in structuredData)
   headline: z.string().optional(),              // AI-generated compelling headline
   deck: z.string().optional(),                  // AI-generated standfirst/subtitle
-  pull_quotes: z.array(z.string()).optional()   // AI-extracted key quotes
+  pull_quotes: z.array(z.string()).optional(),  // AI-extracted key quotes
+  // Git commit information
+  git_commit_hash: z.string().optional(),       // SHA hash of the primary commit
+  git_commit_message: z.string().optional(),    // Commit message  
+  git_branch: z.string().optional(),            // Branch name where commit was made
+  git_commit_author: z.string().optional(),     // Commit author (name <email>)
+  git_commit_timestamp: z.string().optional(),  // When the commit was made (ISO string)
+  git_diff_stats: z.object({                    // Statistics about the changes
+    filesChanged: z.number().optional(),
+    insertions: z.number().optional(),
+    deletions: z.number().optional(),
+    files: z.array(z.string()).optional()
+  }).optional(),
+  git_related_commits: z.array(z.string()).optional() // Array of related commit hashes
 });
 
 export type CompletionContext = z.infer<typeof completionContextSchema>;
@@ -66,6 +79,20 @@ export const completionContexts = pgTable('completion_contexts', {
   headline: text('headline'),                        // AI-generated compelling headline
   deck: text('deck'),                                // AI-generated standfirst/subtitle
   pullQuotes: jsonb('pull_quotes').$type<string[]>(), // AI-extracted key quotes
+  
+  // Git commit information
+  gitCommitHash: text('git_commit_hash'),           // SHA hash of the primary commit
+  gitCommitMessage: text('git_commit_message'),     // Commit message
+  gitBranch: text('git_branch'),                    // Branch name where commit was made
+  gitCommitAuthor: text('git_commit_author'),       // Commit author (name <email>)
+  gitCommitTimestamp: timestamp('git_commit_timestamp'), // When the commit was made
+  gitDiffStats: jsonb('git_diff_stats').$type<{    // Statistics about the changes
+    filesChanged?: number;
+    insertions?: number;
+    deletions?: number;
+    files?: string[];
+  }>(),
+  gitRelatedCommits: jsonb('git_related_commits').$type<string[]>(), // Array of related commit hashes
   
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),

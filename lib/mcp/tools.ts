@@ -354,7 +354,7 @@ export function registerTools(server: any) {
   // complete_action - Mark an action as completed with required completion context
   server.tool(
     "complete_action",
-    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering. Adopt a measured, analytical tone similar to The Economist or scientific journals.",
+    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering. Adopt a measured, analytical tone similar to The Economist or scientific journals. Optionally include git commit information to link completed work with code changes.",
     {
       action_id: z.string().uuid().describe("The ID of the action to complete"),
       implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting. IMPORTANT: Use backticks (`) around ALL technical terms including file paths (e.g., `/api/actions`), function names (e.g., `generateText()`), APIs, libraries, commands, and code-related terms."),
@@ -365,8 +365,14 @@ export function registerTools(server: any) {
       headline: z.string().describe("REQUIRED: AI-generated headline in the style of The Economist or Nature (e.g., 'Search latency reduced by 70% through architectural improvements', 'New caching strategy improves database performance')"),
       deck: z.string().describe("REQUIRED: AI-generated standfirst in the style of The Economist - a measured 2-3 sentence summary that provides context and key findings without hyperbole"),
       pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted notable quotes from the completion stories that highlight key findings, technical insights, or lessons learned - avoid superlatives"),
+      // Optional git commit information
+      git_commit_hash: z.string().optional().describe("SHA hash of the primary commit associated with this completed action"),
+      git_commit_message: z.string().optional().describe("Commit message describing the changes"),
+      git_branch: z.string().optional().describe("Git branch name where the commit was made"),
+      git_commit_author: z.string().optional().describe("Commit author in 'Name <email>' format"),
+      git_related_commits: z.array(z.string()).optional().describe("Array of related commit hashes if multiple commits were involved"),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes }: { 
+    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_commit_hash, git_commit_message, git_branch, git_commit_author, git_related_commits }: { 
       action_id: string; 
       implementation_story: string;
       impact_story: string;
@@ -375,6 +381,11 @@ export function registerTools(server: any) {
       headline: string;
       deck: string;
       pull_quotes: string[];
+      git_commit_hash?: string;
+      git_commit_message?: string;
+      git_branch?: string;
+      git_commit_author?: string;
+      git_related_commits?: string[];
     }, extra: any) => {
       try {
         console.log(`Completing action ${action_id} with completion context`);
@@ -390,7 +401,12 @@ export function registerTools(server: any) {
             changelog_visibility,
             headline,
             deck,
-            pull_quotes
+            pull_quotes,
+            git_commit_hash,
+            git_commit_message,
+            git_branch,
+            git_commit_author,
+            git_related_commits
           }
         });
         
@@ -400,6 +416,15 @@ export function registerTools(server: any) {
         message += `\n• Impact: ${impact_story.substring(0, 100)}${impact_story.length > 100 ? '...' : ''}`;
         message += `\n• Learning: ${learning_story.substring(0, 100)}${learning_story.length > 100 ? '...' : ''}`;
         message += `\n• Visibility: ${changelog_visibility}`;
+        
+        if (git_commit_hash || git_branch) {
+          message += `\n\n🔗 Git Information:`;
+          if (git_commit_hash) message += `\n• Commit: ${git_commit_hash.substring(0, 7)}`;
+          if (git_commit_message) message += `\n• Message: ${git_commit_message.substring(0, 50)}${git_commit_message.length > 50 ? '...' : ''}`;
+          if (git_branch) message += `\n• Branch: ${git_branch}`;
+          if (git_commit_author) message += `\n• Author: ${git_commit_author}`;
+          if (git_related_commits && git_related_commits.length > 0) message += `\n• Related commits: ${git_related_commits.length}`;
+        }
 
         return {
           content: [

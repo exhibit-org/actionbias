@@ -392,6 +392,11 @@ export interface UpdateActionParams {
     deck?: string;
     pull_quotes?: string[];
     changelog_visibility?: string;
+    git_commit_hash?: string;
+    git_commit_message?: string;
+    git_branch?: string;
+    git_commit_author?: string;
+    git_related_commits?: string[];
   };
 }
 
@@ -941,6 +946,11 @@ export class ActionsService {
           deck: completion_context.deck,
           pullQuotes: completion_context.pull_quotes,
           changelogVisibility: completion_context.changelog_visibility,
+          gitCommitHash: completion_context.git_commit_hash,
+          gitCommitMessage: completion_context.git_commit_message,
+          gitBranch: completion_context.git_branch,
+          gitCommitAuthor: completion_context.git_commit_author,
+          gitRelatedCommits: completion_context.git_related_commits,
         });
       } catch (error) {
         console.error(`Failed to update completion context for action ${action_id}:`, error);

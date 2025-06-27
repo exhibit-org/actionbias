@@ -12,6 +12,19 @@ export interface CreateCompletionContextParams {
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   structuredData?: Record<string, any>;
+  // Git commit information
+  gitCommitHash?: string;
+  gitCommitMessage?: string;
+  gitBranch?: string;
+  gitCommitAuthor?: string;
+  gitCommitTimestamp?: string;
+  gitDiffStats?: {
+    filesChanged?: number;
+    insertions?: number;
+    deletions?: number;
+    files?: string[];
+  };
+  gitRelatedCommits?: string[];
 }
 
 export interface UpdateCompletionContextParams {
@@ -24,6 +37,19 @@ export interface UpdateCompletionContextParams {
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   structuredData?: Record<string, any>;
+  // Git commit information
+  gitCommitHash?: string;
+  gitCommitMessage?: string;
+  gitBranch?: string;
+  gitCommitAuthor?: string;
+  gitCommitTimestamp?: string;
+  gitDiffStats?: {
+    filesChanged?: number;
+    insertions?: number;
+    deletions?: number;
+    files?: string[];
+  };
+  gitRelatedCommits?: string[];
 }
 
 export class CompletionContextService {
@@ -31,7 +57,7 @@ export class CompletionContextService {
    * Create a new completion context for an action
    */
   static async createCompletionContext(params: CreateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData, gitCommitHash, gitCommitMessage, gitBranch, gitCommitAuthor, gitCommitTimestamp, gitDiffStats, gitRelatedCommits } = params;
     
     // Check if completion context already exists for this action
     const existing = await getDb()
@@ -57,6 +83,13 @@ export class CompletionContextService {
         pullQuotes,
         changelogVisibility: changelogVisibility || 'team',
         structuredData,
+        gitCommitHash,
+        gitCommitMessage,
+        gitBranch,
+        gitCommitAuthor,
+        gitCommitTimestamp: gitCommitTimestamp ? new Date(gitCommitTimestamp) : undefined,
+        gitDiffStats,
+        gitRelatedCommits,
       })
       .returning();
 
@@ -67,7 +100,7 @@ export class CompletionContextService {
    * Update or create completion context for an action
    */
   static async upsertCompletionContext(params: UpdateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData, gitCommitHash, gitCommitMessage, gitBranch, gitCommitAuthor, gitCommitTimestamp, gitDiffStats, gitRelatedCommits } = params;
     
     // Check if completion context already exists
     const existing = await getDb()
@@ -90,6 +123,13 @@ export class CompletionContextService {
       if (pullQuotes !== undefined) updateData.pullQuotes = pullQuotes;
       if (changelogVisibility !== undefined) updateData.changelogVisibility = changelogVisibility;
       if (structuredData !== undefined) updateData.structuredData = structuredData;
+      if (gitCommitHash !== undefined) updateData.gitCommitHash = gitCommitHash;
+      if (gitCommitMessage !== undefined) updateData.gitCommitMessage = gitCommitMessage;
+      if (gitBranch !== undefined) updateData.gitBranch = gitBranch;
+      if (gitCommitAuthor !== undefined) updateData.gitCommitAuthor = gitCommitAuthor;
+      if (gitCommitTimestamp !== undefined) updateData.gitCommitTimestamp = gitCommitTimestamp ? new Date(gitCommitTimestamp) : null;
+      if (gitDiffStats !== undefined) updateData.gitDiffStats = gitDiffStats;
+      if (gitRelatedCommits !== undefined) updateData.gitRelatedCommits = gitRelatedCommits;
       
       const updatedContext = await getDb()
         .update(completionContexts)
