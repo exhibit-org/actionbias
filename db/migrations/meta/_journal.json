@@ -64,6 +64,13 @@
       "when": 1750700001000,
       "tag": "0008_update_family_edge_kind",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1751100000000,
+      "tag": "0012_add_git_commit_fields",
+      "breakpoints": true
     }
   ]
 }
