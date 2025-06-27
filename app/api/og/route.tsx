@@ -7,102 +7,111 @@ export async function GET() {
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #1a1f2e 0%, #111827 100%)',
+          background: '#000000',
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontFamily: 'monospace',
           position: 'relative',
         }}
       >
-        {/* Main content */}
+        {/* Terminal window frame */}
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            textAlign: 'center',
-            maxWidth: '800px',
+            width: '900px',
+            background: '#0a0a0a',
+            border: '1px solid #333',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
           }}
         >
-          {/* Logo/Brand */}
+          {/* Terminal header */}
           <div
             style={{
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: 'white',
-              marginBottom: '40px',
-              letterSpacing: '-1px',
+              background: '#1a1a1a',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '0 16px',
+              borderBottom: '1px solid #333',
             }}
           >
-            done.engineering
+            <div
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#ff5f56',
+                marginRight: '8px',
+              }}
+            />
+            <div
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#ffbd2e',
+                marginRight: '8px',
+              }}
+            />
+            <div
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                background: '#27c93f',
+              }}
+            />
+            <span
+              style={{
+                color: '#666',
+                fontSize: '14px',
+                marginLeft: '20px',
+              }}
+            >
+              done.engineering
+            </span>
           </div>
           
-          {/* Tagline */}
-          <h1
+          {/* Terminal content */}
+          <div
             style={{
-              fontSize: '64px',
-              fontWeight: 'bold',
-              color: 'white',
-              lineHeight: 1.1,
-              marginBottom: '24px',
+              padding: '40px',
+              color: '#10b981',
+              fontSize: '16px',
+              lineHeight: 1.6,
             }}
           >
-            Your context, everywhere.
-          </h1>
-          <h1
-            style={{
-              fontSize: '64px',
-              fontWeight: 'bold',
-              color: '#3b82f6',
-              lineHeight: 1.1,
-              marginBottom: '40px',
-            }}
-          >
-            Never start over again.
-          </h1>
-          
-          {/* Description */}
-          <p
-            style={{
-              fontSize: '24px',
-              color: '#94a3b8',
-              lineHeight: 1.4,
-              maxWidth: '600px',
-            }}
-          >
-            The context layer for AI development. Keep your project history alive across Claude Code, Gemini CLI, and every AI tool.
-          </p>
+            <div style={{ marginBottom: '24px' }}>
+              <span style={{ color: '#10b981' }}>$</span>
+              <span style={{ color: '#666', marginLeft: '8px' }}>claude-code</span>
+              <span style={{ color: '#444', marginLeft: '8px' }}>~/projects/startup</span>
+            </div>
+            
+            <div style={{ color: '#fff', fontSize: '48px', fontWeight: 'bold', marginBottom: '16px' }}>
+              Ship code. Tell the story.
+            </div>
+            <div style={{ color: '#10b981', fontSize: '36px', marginBottom: '32px' }}>
+              Done is the engine of more.
+            </div>
+            
+            <div style={{ color: '#888', fontSize: '20px', lineHeight: 1.8 }}>
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{ color: '#10b981' }}>&gt;</span> Your AI agents complete work with perfect memory
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <span style={{ color: '#10b981' }}>&gt;</span> Transform logs into magazine-quality changelogs
+              </div>
+              <div>
+                <span style={{ color: '#10b981' }}>&gt;</span> Build institutional memory that persists
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {/* Decorative elements */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '60px',
-            right: '60px',
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%)',
-            borderRadius: '50%',
-            filter: 'blur(80px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '60px',
-            left: '60px',
-            width: '250px',
-            height: '250px',
-            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, transparent 70%)',
-            borderRadius: '50%',
-            filter: 'blur(80px)',
-          }}
-        />
         
         {/* Bottom URL */}
         <div
@@ -110,7 +119,8 @@ export async function GET() {
             position: 'absolute',
             bottom: '40px',
             fontSize: '18px',
-            color: '#475569',
+            color: '#333',
+            fontFamily: 'monospace',
           }}
         >
           done.engineering
