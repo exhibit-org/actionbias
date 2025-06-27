@@ -34,38 +34,19 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
   const actionIds = incompleteActions.map((a: any) => a.id);
   const actionMap = new Map(incompleteActions.map((a: any) => [a.id, a]));
 
-  // Step 2: Get ALL edges in bulk (both family and dependency edges)
+  // Step 2: Get only dependency edges (family relationships are now handled through dependencies)
   const edgeQueryStart = Date.now();
-  const [familyEdges, dependencyEdges] = await Promise.all([
-    getDb()
-      .select()
-      .from(edges)
-      .where(eq(edges.kind, "family")),  // Get ALL family edges, not just for our actions
-    getDb()
-      .select()
-      .from(edges)
-      .where(eq(edges.kind, "depends_on"))  // Get ALL dependency edges
-  ]);
+  const dependencyEdges = await getDb()
+    .select()
+    .from(edges)
+    .where(eq(edges.kind, "depends_on"));
   
-  console.log(`[OPTIMIZED] Loaded ${familyEdges.length} family edges and ${dependencyEdges.length} dependency edges in ${Date.now() - edgeQueryStart}ms`);
+  console.log(`[OPTIMIZED] Loaded ${dependencyEdges.length} dependency edges in ${Date.now() - edgeQueryStart}ms`);
 
-  // Step 3: Build lookup maps
-  const childrenMap = new Map<string, string[]>();
+  // Step 3: Build dependencies map (only dependency edges needed now)
   const dependenciesMap = new Map<string, string[]>();
-  const parentMap = new Map<string, string>();
 
-  // Build children map and parent map from family edges
-  for (const edge of familyEdges as any[]) {
-    if (edge.src && edge.dst) {
-      if (!childrenMap.has(edge.src)) {
-        childrenMap.set(edge.src, []);
-      }
-      childrenMap.get(edge.src)!.push(edge.dst);
-      parentMap.set(edge.dst, edge.src);
-    }
-  }
-
-  // Build dependencies map
+  // Build dependencies map from dependency edges
   for (const edge of dependencyEdges as any[]) {
     if (edge.src && edge.dst) {
       if (!dependenciesMap.has(edge.dst)) {
@@ -97,7 +78,7 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
 
   console.log(`[OPTIMIZED] Loaded ${dependencyStatuses.size} dependency statuses`);
 
-  // Step 5: Check each action for workability
+  // Step 5: Check each action for workability (simplified - only check dependencies)
   const filterStart = Date.now();
   const workableActions: Action[] = [];
   let processed = 0;
@@ -107,7 +88,8 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
     if (processed % 50 === 0) {
       console.log(`[OPTIMIZED] Processed ${processed}/${incompleteActions.length} actions...`);
     }
-    // Check dependencies
+    
+    // Check dependencies only - parent-child relationships are now handled through dependencies
     const dependencies = dependenciesMap.get(action.id) || [];
     const hasUnmetDependencies = dependencies.some(depId => {
       const depDone = dependencyStatuses.get(depId);
@@ -115,39 +97,18 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
     });
 
     if (hasUnmetDependencies) {
-      continue;
+      continue; // Action is blocked by incomplete dependencies
     }
 
-    // Check if it's a leaf node or all children are done
-    const children = childrenMap.get(action.id) || [];
-    if (children.length === 0) {
-      // No children - it's a leaf node, so it's workable
-      workableActions.push({
-        id: action.id,
-        data: action.data as { title: string },
-        done: action.done,
-        version: action.version,
-        createdAt: action.createdAt.toISOString(),
-        updatedAt: action.updatedAt.toISOString(),
-      });
-    } else {
-      // Has children - check if all are done
-      const allChildrenDone = children.every(childId => {
-        const child = actionMap.get(childId) as any;
-        return child?.done === true;
-      });
-
-      if (allChildrenDone) {
-        workableActions.push({
-          id: action.id,
-          data: action.data as { title: string },
-          done: action.done,
-          version: action.version,
-          createdAt: action.createdAt.toISOString(),
-          updatedAt: action.updatedAt.toISOString(),
-        });
-      }
-    }
+    // No unmet dependencies - action is workable
+    workableActions.push({
+      id: action.id,
+      data: action.data as { title: string },
+      done: action.done,
+      version: action.version,
+      createdAt: action.createdAt.toISOString(),
+      updatedAt: action.updatedAt.toISOString(),
+    });
 
     if (workableActions.length >= limit) {
       break;
@@ -161,16 +122,15 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
 }
 
 /**
- * Even more optimized version using a single complex query
- * This pushes more logic to the database
+ * Simplified single query version that only checks dependencies
+ * Family relationships are handled through dependency edges now
  */
 export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
   console.log('[SINGLE-QUERY] Starting getWorkableActions');
   const startTime = Date.now();
 
-  // This query finds all incomplete actions that:
-  // 1. Have no incomplete dependencies
-  // 2. Either have no children OR all children are complete
+  // This query finds all incomplete actions that have no incomplete dependencies
+  // Since parents now depend on children, family relationships are automatically handled
   const query = sql`
     WITH incomplete_actions AS (
       SELECT * FROM ${actions} WHERE ${actions.done} = false
@@ -183,15 +143,6 @@ export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
       WHERE e.kind = 'depends_on' 
         AND e.dst IN (SELECT id FROM incomplete_actions)
         AND a.done = false
-    ),
-    -- Actions with incomplete children
-    has_incomplete_children AS (
-      SELECT DISTINCT e.src as action_id
-      FROM ${edges} e
-      JOIN ${actions} a ON a.id = e.dst
-      WHERE e.kind = 'family'
-        AND e.src IN (SELECT id FROM incomplete_actions)
-        AND a.done = false
     )
     SELECT 
       a.id,
@@ -202,10 +153,8 @@ export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
       a.updated_at
     FROM incomplete_actions a
     WHERE 
-      -- No incomplete dependencies
+      -- No incomplete dependencies (this handles parent-child relationships too)
       a.id NOT IN (SELECT action_id FROM has_incomplete_deps)
-      -- Either no children or no incomplete children
-      AND a.id NOT IN (SELECT action_id FROM has_incomplete_children)
     ORDER BY a.updated_at DESC
     LIMIT 1000;
   `;
