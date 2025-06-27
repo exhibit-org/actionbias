@@ -348,14 +348,30 @@ export default function HomePage() {
             <div className="flex items-center text-gray-600">
               <span>© 2025 done.engineering</span>
               <span className="mx-2">•</span>
-              <span>built by @bennevile</span>
+              <span>built by </span>
+              <a 
+                href="https://twitter.com/saoul" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                @saoul
+              </a>
             </div>
             <div className="flex items-center space-x-6">
+              <a 
+                href="https://github.com/bennevile" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                @bennevile
+              </a>
               <a 
                 href="https://github.com/exhibit-org/actionbias" 
                 className="text-gray-600 hover:text-gray-400 transition-colors"
               >
-                github
+                project
               </a>
               <a 
                 href="https://github.com/exhibit-org/actionbias/blob/main/README.md" 
