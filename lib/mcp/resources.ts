@@ -846,61 +846,6 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://recommendations - Simplified recommendation service
-  server.resource(
-    "[DEPRECATED - Use action://workable with client-side analysis] Simple recommendation service that returns workable actions",
-    "action://recommendations",
-    async (uri: any) => {
-      try {
-        // Check if database is available
-        if (!process.env.DATABASE_URL) {
-          return {
-            contents: [
-              {
-                uri: uri.toString(),
-                text: JSON.stringify({
-                  error: "Database not configured",
-                  message: "DATABASE_URL environment variable is not set",
-                  recommendations: []
-                }, null, 2),
-                mimeType: "application/json",
-              },
-            ],
-          };
-        }
-        
-        // Get workable actions
-        const workableActions = await ActionsService.getWorkableActions(20);
-        
-        // Return simple recommendations without LLM scoring
-        return {
-          contents: [{
-            uri: uri.toString(),
-            text: JSON.stringify({
-              deprecated: true,
-              message: "This resource is deprecated. Use action://workable with client-side analysis for intelligent recommendations.",
-              recommendations: workableActions.slice(0, 5).map(action => ({
-                action,
-                score: 50,
-                reasoning: 'Workable action (dependencies complete, no children)',
-                category: 'workable',
-                estimatedEffort: 'unknown'
-              })),
-              context: {
-                workableActionsFound: workableActions.length,
-                deprecationNotice: "Use action://workable, context://vision, and context://momentum for full analysis"
-              },
-              generatedAt: new Date().toISOString()
-            }, null, 2),
-            mimeType: "application/json",
-          }],
-        };
-      } catch (error) {
-        console.error('Error generating recommendations:', error);
-        throw new Error(`Failed to generate recommendations: ${error instanceof Error ? error.message : "Unknown error"}`);
-      }
-    }
-  );
 }
 
 export const resourceCapabilities = {
@@ -939,8 +884,5 @@ export const resourceCapabilities = {
   },
   "context://momentum": {
     description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
-  },
-  "action://recommendations": {
-    description: "[DEPRECATED - Use action://workable with client-side analysis] Simple recommendation service that returns workable actions",
   },
 };

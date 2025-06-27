@@ -120,4 +120,4 @@ I want to find all actions related to "UI" or "frontend". Please:
 - The `action://workable` resource returns all workable actions without filtering
 - Client-side analysis in Claude Code is more flexible than server-side LLM calls
 - Resources can be fetched in parallel for better performance
-- The deprecated `action://recommendations` resource can still be used but is limited
+- Combine multiple resources for comprehensive analysis
