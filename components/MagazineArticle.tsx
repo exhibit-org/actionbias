@@ -164,24 +164,6 @@ export default function MagazineArticle({
             <span className="font-medium text-gray-700">Visibility:</span>
             <span className="capitalize font-medium">{item.changelogVisibility}</span>
           </div>
-          {item.gitCommitHash && (
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <a 
-                href={`https://github.com/exhibit-org/actionbias/commit/${item.gitCommitHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-mono text-blue-600 hover:text-blue-800"
-              >
-                {item.gitCommitHash.substring(0, 7)}
-              </a>
-              {item.gitBranch && (
-                <span className="text-gray-500">on {item.gitBranch}</span>
-              )}
-            </div>
-          )}
           {showShare && (
             <button
               onClick={handleShare}
@@ -297,6 +279,35 @@ export default function MagazineArticle({
                       <dd className="text-gray-900 font-medium">{formatDate(item.completionTimestamp)}</dd>
                     </div>
                   </div>
+                  {item.gitCommitHash && (
+                    <div className="pt-3 mt-3 border-t border-gray-200">
+                      <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-2">Implementation</dt>
+                      <dd className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                          <a 
+                            href={`https://github.com/exhibit-org/actionbias/commit/${item.gitCommitHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            {item.gitCommitHash.substring(0, 7)}
+                          </a>
+                          {item.gitBranch && (
+                            <span className="text-xs text-gray-500">on {item.gitBranch}</span>
+                          )}
+                        </div>
+                        {item.gitCommitMessage && (
+                          <p className="text-xs text-gray-700 pl-6">{item.gitCommitMessage}</p>
+                        )}
+                        {item.gitCommitAuthor && (
+                          <p className="text-xs text-gray-500 pl-6">by {item.gitCommitAuthor.split(' <')[0]}</p>
+                        )}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </div>
 
