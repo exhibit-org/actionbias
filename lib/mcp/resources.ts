@@ -741,43 +741,13 @@ export function registerResources(server: any) {
       try {
         const momentum: any = {};
         
-        // Get recent git commits
-        try {
-          const gitLog = execSync('git log --pretty=format:"%h|%an|%ae|%ad|%s" --date=iso -20', {
-            encoding: 'utf-8',
-            cwd: process.cwd()
-          });
-          
-          momentum.recentCommits = gitLog.split('\n').map(line => {
-            const [hash, author, email, date, message] = line.split('|');
-            return { hash, author, email, date, message };
-          });
-        } catch (gitError) {
-          console.log('Could not get git history:', gitError);
-          momentum.recentCommits = [];
-        }
-        
-        // Get changed files in last commit
-        try {
-          const changedFiles = execSync('git diff --name-only HEAD~1 HEAD', {
-            encoding: 'utf-8',
-            cwd: process.cwd()
-          }).trim().split('\n').filter(f => f);
-          
-          momentum.recentlyChangedFiles = changedFiles;
-        } catch (gitError) {
-          momentum.recentlyChangedFiles = [];
-        }
-        
-        // Get current branch
-        try {
-          momentum.currentBranch = execSync('git rev-parse --abbrev-ref HEAD', {
-            encoding: 'utf-8',
-            cwd: process.cwd()
-          }).trim();
-        } catch (gitError) {
-          momentum.currentBranch = 'unknown';
-        }
+        // Git integration not available in production yet
+        // TODO: This will be populated via GitHub/GitLab integration
+        momentum.recentCommits = [];
+        momentum.recentlyChangedFiles = [];
+        momentum.currentBranch = 'main'; // Default assumption
+        momentum.gitIntegrationPending = true;
+        momentum.note = 'Git history will be available after GitHub/GitLab integration is implemented';
         
         // Get recently completed actions from database
         if (process.env.DATABASE_URL) {
@@ -889,32 +859,22 @@ export function registerResources(server: any) {
           momentumData.recentCompletions = [];
         }
         
-        // Get ALL incomplete actions to find workable ones
+        // Efficiently get workable actions (dependencies met + leaf nodes)
+        const workableActionsList = await ActionsService.getWorkableActions(30);
+        
+        // Get detailed info for workable actions including context
+        const workableActions = [];
+        for (const action of workableActionsList) {
+          const details = await ActionsService.getActionDetailResource(action.id);
+          workableActions.push(details);
+        }
+        
+        // Get total count for context
         const allActions = await ActionsService.getActionListResource({ 
-          limit: 1000, 
+          limit: 1, 
           offset: 0,
           includeCompleted: false 
         });
-        
-        // First pass: Find truly workable actions (all dependencies complete + leaf nodes)
-        const workableActions = [];
-        
-        for (const action of allActions.actions) {
-          const details = await ActionsService.getActionDetailResource(action.id);
-          
-          // Skip if dependencies aren't ALL complete
-          if (details.dependencies && details.dependencies.length > 0) {
-            const allDepsComplete = details.dependencies.every(d => d.done);
-            if (!allDepsComplete) {
-              continue; // Can't work on this action yet
-            }
-          }
-          
-          // Prefer leaf actions (no children)
-          if (details.children.length === 0) {
-            workableActions.push(details);
-          }
-        }
         
         // If we have too many workable actions, filter to most relevant
         let candidatesForScoring = workableActions;
