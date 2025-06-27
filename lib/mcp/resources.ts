@@ -792,9 +792,63 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://recommendations - Intelligent work prioritization
+  // action://workable - Get all workable actions (leaf nodes with dependencies met)
   server.resource(
-    "Intelligent work prioritization recommendations based on vision alignment, momentum, dependencies, and strategic importance",
+    "Get all workable actions (leaf nodes with all dependencies completed)",
+    "action://workable",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  workable: [],
+                  total: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const startTime = Date.now();
+        console.log('[WORKABLE] Starting to get workable actions');
+        
+        // Get all workable actions without artificial limit
+        const workableActions = await ActionsService.getWorkableActions(1000);
+        
+        const duration = Date.now() - startTime;
+        console.log(`[WORKABLE] Found ${workableActions.length} workable actions in ${duration}ms`);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                workable: workableActions,
+                total: workableActions.length,
+                queryDuration: duration,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching workable actions:', error);
+        throw new Error(`Failed to fetch workable actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // action://recommendations - Simplified recommendation service
+  server.resource(
+    "[DEPRECATED - Use action://workable with client-side analysis] Simple recommendation service that returns workable actions",
     "action://recommendations",
     async (uri: any) => {
       try {
@@ -815,225 +869,32 @@ export function registerResources(server: any) {
           };
         }
         
-        // Get context data directly (can't call other resources from within a resource)
-        const visionData: any = { documents: {} };
-        const momentumData: any = {};
+        // Get workable actions
+        const workableActions = await ActionsService.getWorkableActions(20);
         
-        // Read vision documents
-        const visionPath = join(process.cwd(), 'VISION.md');
-        if (existsSync(visionPath)) {
-          visionData.documents.vision = readFileSync(visionPath, 'utf-8');
-        }
-        
-        // Get recent git commits for momentum
-        try {
-          const gitLog = execSync('git log --pretty=format:"%h|%an|%ae|%ad|%s" --date=iso -10', {
-            encoding: 'utf-8',
-            cwd: process.cwd()
-          });
-          
-          momentumData.recentCommits = gitLog.split('\n').map(line => {
-            const [hash, author, email, date, message] = line.split('|');
-            return { hash, author, email, date, message };
-          });
-        } catch (gitError) {
-          momentumData.recentCommits = [];
-        }
-        
-        // Get recently completed actions
-        try {
-          const recentCompletions = await getDb()
-            .select({
-              actionId: completionContexts.actionId,
-              actionTitle: actions.title,
-              completionTimestamp: completionContexts.completionTimestamp,
-              impactStory: completionContexts.impactStory,
-            })
-            .from(completionContexts)
-            .innerJoin(actions, eq(completionContexts.actionId, actions.id))
-            .orderBy(desc(completionContexts.completionTimestamp))
-            .limit(10);
-          
-          momentumData.recentCompletions = recentCompletions;
-        } catch (dbError) {
-          momentumData.recentCompletions = [];
-        }
-        
-        // Efficiently get workable actions (dependencies met + leaf nodes)
-        const workableActionsList = await ActionsService.getWorkableActions(30);
-        
-        // Get detailed info for workable actions including context
-        const workableActions = [];
-        for (const action of workableActionsList) {
-          const details = await ActionsService.getActionDetailResource(action.id);
-          workableActions.push(details);
-        }
-        
-        // Get total count for context
-        const allActions = await ActionsService.getActionListResource({ 
-          limit: 1, 
-          offset: 0,
-          includeCompleted: false 
-        });
-        
-        // If we have too many workable actions, filter to most relevant
-        let candidatesForScoring = workableActions;
-        if (workableActions.length > 15) {
-          // Quick filter based on recency and parent completion
-          candidatesForScoring = workableActions.filter(action => {
-            // Has a recently completed parent?
-            const hasRecentParent = momentumData.recentCompletions?.some((log: any) => 
-              action.parent_chain?.some(p => p.id === log.actionId)
-            );
-            // Is relatively new?
-            const ageInDays = (Date.now() - new Date(action.created_at).getTime()) / (1000 * 60 * 60 * 24);
-            return hasRecentParent || ageInDays < 30;
-          });
-          
-          // If still too many, take random sample
-          if (candidatesForScoring.length > 15) {
-            candidatesForScoring = candidatesForScoring
-              .sort(() => Math.random() - 0.5)
-              .slice(0, 15);
-          }
-        }
-        
-        // Now use LLM to score the workable candidates
-        if (candidatesForScoring.length === 0) {
-          return {
-            contents: [{
-              uri: uri.toString(),
-              text: JSON.stringify({
-                recommendations: [],
-                message: "No workable actions found. All actions either have incomplete dependencies or are parent actions with children.",
-                context: {
-                  totalIncompleteActions: allActions.total,
-                  workableActionsFound: 0
-                },
-                generatedAt: new Date().toISOString()
-              }, null, 2),
-              mimeType: "application/json",
-            }],
-          };
-        }
-        
-        // Prepare context for LLM scoring
-        const visionSummary = visionData.documents?.vision ? 
-          visionData.documents.vision.substring(0, 3000) : 
-          'No vision document available';
-        
-        const recentWorkSummary = momentumData.recentCompletions?.slice(0, 5)
-          .map((c: any) => `- ${c.actionTitle}: ${c.impactStory?.substring(0, 100)}...`)
-          .join('\n') || 'No recent completions';
-        
-        // Batch score all candidates with a single LLM call
-        const scoringPrompt = `You are helping prioritize work for the ActionBias project.
-
-Project Vision Summary:
-${visionSummary}
-
-Recent Work Completed:
-${recentWorkSummary}
-
-Score each of these workable actions (0-100) based on:
-1. Strategic alignment with the vision (especially DONE magazine concept)
-2. Builds on recent momentum 
-3. Unlocks future work
-4. Effort vs impact ratio
-5. Addresses technical debt or critical issues
-
-Workable Actions to Score:
-${candidatesForScoring.map((action, i) => `
-${i + 1}. ${action.title}
-Description: ${action.description || 'No description'}
-Vision: ${action.vision || 'No vision'}
-Created: ${action.created_at}
-Parent: ${action.parent_chain?.[action.parent_chain.length - 1]?.title || 'Root level'}
-`).join('')}
-
-Return a JSON array with this structure for each action:
-[
-  {
-    "index": 0,
-    "score": 85,
-    "reasoning": "Clear explanation of why this scores high/low",
-    "category": "strategic|quick-win|momentum|technical-debt",
-    "estimatedEffort": "low|medium|high"
-  }
-]
-
-Be selective - most actions should score between 20-80. Reserve 80+ for truly critical work.`;
-        
-        try {
-          const result = await generateText({
-            model: openai('gpt-4o-mini'),
-            prompt: scoringPrompt,
-            temperature: 0.3,
-            maxTokens: 2000,
-          });
-          
-          const scores = JSON.parse(result.text);
-          
-          // Map scores back to actions
-          const recommendations = scores
-            .map((score: any) => ({
-              action: candidatesForScoring[score.index],
-              score: score.score,
-              reasoning: score.reasoning,
-              category: score.category,
-              estimatedEffort: score.estimatedEffort
-            }))
-            .sort((a: any, b: any) => b.score - a.score)
-            .slice(0, 5);
-          
-          return {
-            contents: [{
-              uri: uri.toString(),
-              text: JSON.stringify({
-                recommendations,
-                context: {
-                  totalIncompleteActions: allActions.total,
-                  workableActionsFound: workableActions.length,
-                  candidatesScored: candidatesForScoring.length,
-                  scoringModel: 'gpt-4o-mini',
-                  hasVisionDoc: !!visionData.documents?.vision
-                },
-                generatedAt: new Date().toISOString()
-              }, null, 2),
-              mimeType: "application/json",
-            }],
-          };
-          
-        } catch (aiError) {
-          console.error('LLM scoring failed:', aiError);
-          // Fallback to simple scoring
-          const fallbackRecommendations = candidatesForScoring
-            .slice(0, 5)
-            .map(action => ({
-              action,
-              score: 50,
-              reasoning: 'Workable action (dependencies complete, no children)',
-              category: 'strategic',
-              estimatedEffort: 'medium'
-            }));
-          
-          return {
-            contents: [{
-              uri: uri.toString(),
-              text: JSON.stringify({
-                recommendations: fallbackRecommendations,
-                context: {
-                  totalIncompleteActions: allActions.total,
-                  workableActionsFound: workableActions.length,
-                  scoringError: true,
-                  errorMessage: aiError instanceof Error ? aiError.message : 'Unknown error'
-                },
-                generatedAt: new Date().toISOString()
-              }, null, 2),
-              mimeType: "application/json",
-            }],
-          };
-        }
+        // Return simple recommendations without LLM scoring
+        return {
+          contents: [{
+            uri: uri.toString(),
+            text: JSON.stringify({
+              deprecated: true,
+              message: "This resource is deprecated. Use action://workable with client-side analysis for intelligent recommendations.",
+              recommendations: workableActions.slice(0, 5).map(action => ({
+                action,
+                score: 50,
+                reasoning: 'Workable action (dependencies complete, no children)',
+                category: 'workable',
+                estimatedEffort: 'unknown'
+              })),
+              context: {
+                workableActionsFound: workableActions.length,
+                deprecationNotice: "Use action://workable, context://vision, and context://momentum for full analysis"
+              },
+              generatedAt: new Date().toISOString()
+            }, null, 2),
+            mimeType: "application/json",
+          }],
+        };
       } catch (error) {
         console.error('Error generating recommendations:', error);
         throw new Error(`Failed to generate recommendations: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -1045,6 +906,9 @@ Be selective - most actions should score between 20-80. Reserve 80+ for truly cr
 export const resourceCapabilities = {
   "action://list": {
     description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  },
+  "action://workable": {
+    description: "Get all workable actions (leaf nodes with all dependencies completed)",
   },
   "action://tree": {
     description: "Hierarchical view of actions showing family relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
@@ -1077,6 +941,6 @@ export const resourceCapabilities = {
     description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
   },
   "action://recommendations": {
-    description: "Intelligent work prioritization recommendations based on vision alignment, momentum, dependencies, and strategic importance",
+    description: "[DEPRECATED - Use action://workable with client-side analysis] Simple recommendation service that returns workable actions",
   },
 };
