@@ -38,7 +38,7 @@ export async function GET() {
               letterSpacing: '-1px',
             }}
           >
-            ActionBias
+            done.engineering
           </div>
           
           {/* Tagline */}
@@ -51,7 +51,7 @@ export async function GET() {
               marginBottom: '24px',
             }}
           >
-            Dream like a human.
+            Your context, everywhere.
           </h1>
           <h1
             style={{
@@ -62,7 +62,7 @@ export async function GET() {
               marginBottom: '40px',
             }}
           >
-            Execute like a machine.
+            Never start over again.
           </h1>
           
           {/* Description */}
@@ -74,7 +74,7 @@ export async function GET() {
               maxWidth: '600px',
             }}
           >
-            The AI-forward planning platform that transforms your vision into precisely calibrated instructions
+            The context layer for AI development. Keep your project history alive across Claude Code, Gemini CLI, and every AI tool.
           </p>
         </div>
         
@@ -113,7 +113,7 @@ export async function GET() {
             color: '#475569',
           }}
         >
-          actionbias.com
+          done.engineering
         </div>
       </div>
     ),

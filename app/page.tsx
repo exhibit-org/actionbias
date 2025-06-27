@@ -53,7 +53,7 @@ export default function HomePage() {
       <header className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <span className="text-xl font-semibold text-gray-900">ActionBias</span>
+            <span className="text-xl font-semibold text-gray-900">done.engineering</span>
           </div>
           <nav className="flex items-center space-x-6">
             <a 
@@ -74,23 +74,22 @@ export default function HomePage() {
         <div className="text-center max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-6">
             <Zap size={16} />
-            <span>Where human creativity meets machine precision</span>
+            <span>Built for Claude Code & Gemini CLI power users</span>
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Dream like a human.<br />Execute like a machine.
+            Your context, everywhere.<br />Never start over again.
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed">
-            Let your imagination run wild. Explore possibilities. Change direction. 
-            When you're ready, ActionBias{' '}
-            <span className="text-gray-900 font-semibold">transforms your vision into precisely calibrated instructions</span>{' '}
-            any AI can follow.
+            Stop losing context when switching between Claude Code, Gemini CLI, and other AI tools.
+            <span className="text-gray-900 font-semibold"> Keep your entire project history alive</span>{' '}
+            across every conversation, every agent, every session.
           </p>
 
           <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">
-            Your ideas evolve organically through conversations. We capture every insight, 
-            every connection, every dependency—building a living blueprint for flawless execution.
+            Done is the engine of more. Every completed task becomes context for the next.
+            Your AI agents understand not just what to do, but why—because they have the full story.
           </p>
 
           {/* Email Signup Form */}
@@ -127,7 +126,7 @@ export default function HomePage() {
               </div>
             )}
             <p className="text-sm text-gray-500 mt-3">
-              Join the waitlist to be first when we launch. No spam, ever.
+              Get early access to the context layer for AI development. No spam, ever.
             </p>
           </div>
         </div>
@@ -136,7 +135,7 @@ export default function HomePage() {
       {/* How It Works */}
       <section className="max-w-7xl mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-          From dreams to reality in three steps
+          Context that travels with you
         </h2>
         
         <div className="grid md:grid-cols-3 gap-8">
@@ -144,10 +143,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">1</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Dream freely</h3>
+            <h3 className="text-xl font-semibold mb-3">Start anywhere</h3>
             <p className="text-gray-600">
-              Brainstorm with ChatGPT, Claude, or any AI. Change your mind. 
-              Explore tangents. ActionBias remembers everything.
+              Begin with Claude Code, switch to Gemini CLI, jump to ChatGPT.
+              Your project context follows you everywhere.
             </p>
           </div>
           
@@ -155,10 +154,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">2</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Shape organically</h3>
+            <h3 className="text-xl font-semibold mb-3">Build continuously</h3>
             <p className="text-gray-600">
-              Your vision evolves naturally through conversations. 
-              We map every connection, building a complete picture of your project.
+              Every completed action enriches your project's context.
+              Your AI agents get smarter with each task they complete.
             </p>
           </div>
           
@@ -166,10 +165,10 @@ export default function HomePage() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl font-bold text-blue-600">3</span>
             </div>
-            <h3 className="text-xl font-semibold mb-3">Execute flawlessly</h3>
+            <h3 className="text-xl font-semibold mb-3">Ship confidently</h3>
             <p className="text-gray-600">
-              When you're ready, we transform your organic plan into 
-              machine-precise instructions any AI agent can follow perfectly.
+              Beautiful changelogs showcase your progress. Every "done"
+              becomes fuel for what's next. Done is the engine of more.
             </p>
           </div>
         </div>
@@ -179,7 +178,7 @@ export default function HomePage() {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">
-            Built for engineers who ship
+            Essential for AI-native developers
           </h2>
           
           <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
@@ -188,10 +187,10 @@ export default function HomePage() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-2">Cross-LLM persistence</h3>
+                <h3 className="text-lg font-semibold mb-2">Never lose context again</h3>
                 <p className="text-gray-600">
-                  Your project context works seamlessly across ChatGPT, Claude, Gemini, 
-                  and any other AI assistant. Never lose context again.
+                  Switch between Claude Code and Gemini CLI without missing a beat.
+                  Your entire project history, decisions, and progress travel with you.
                 </p>
               </div>
             </div>
@@ -201,10 +200,10 @@ export default function HomePage() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-2">Intelligent dependencies</h3>
+                <h3 className="text-lg font-semibold mb-2">Context-aware AI agents</h3>
                 <p className="text-gray-600">
-                  Automatically tracks what needs to happen before what. 
-                  Your AI agents always know the right order of operations.
+                  Your AI understands not just the current task, but the entire project story.
+                  Every agent knows what's been done and why it matters.
                 </p>
               </div>
             </div>
@@ -214,10 +213,10 @@ export default function HomePage() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-2">Beautiful changelogs</h3>
+                <h3 className="text-lg font-semibold mb-2">Done is the engine of more</h3>
                 <p className="text-gray-600">
-                  Share your wins with automatically generated changelog pages. 
-                  Perfect for team updates and stakeholder communication.
+                  Every completed task enriches your project's context. Beautiful changelogs
+                  showcase progress and fuel what comes next.
                 </p>
               </div>
             </div>
@@ -227,10 +226,10 @@ export default function HomePage() {
                 <CheckCircle className="text-green-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-2">Open source</h3>
+                <h3 className="text-lg font-semibold mb-2">Built for your workflow</h3>
                 <p className="text-gray-600">
-                  Self-host for complete control. Extend and customize to fit 
-                  your workflow. Join a growing community of builders.
+                  Works with your existing tools via MCP (Model Context Protocol).
+                  Open source and self-hostable for complete control.
                 </p>
               </div>
             </div>
@@ -241,11 +240,11 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-6 py-20 text-center">
         <h2 className="text-3xl font-bold text-gray-900 mb-6">
-          Ready to bridge the gap between dreams and execution?
+          Stop starting over. Start shipping more.
         </h2>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Join visionary builders who refuse to compromise between 
-          creative exploration and flawless implementation.
+          Join developers who use Claude Code and Gemini CLI to build faster
+          without losing context between sessions.
         </p>
         
         {!isSubmitted ? (
@@ -275,7 +274,7 @@ export default function HomePage() {
               </button>
             </form>
             <p className="text-sm text-gray-500 mt-3">
-              Be among the first to experience the future of AI project management.
+              Be among the first to experience persistent context across all your AI tools.
             </p>
           </div>
         ) : (
@@ -291,7 +290,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center">
-              <span className="text-sm text-gray-600">© 2025 ActionBias</span>
+              <span className="text-sm text-gray-600">© 2025 done.engineering</span>
             </div>
             <div className="flex items-center space-x-6 text-sm">
               <a 

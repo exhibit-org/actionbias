@@ -5,31 +5,31 @@ import QuickActionModal from "./components/QuickActionModal";
 import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
 
 export const metadata: Metadata = {
-  title: "ActionBias - Dream like a human. Execute like a machine.",
-  description: "The AI-forward planning platform that transforms your vision into precisely calibrated instructions any AI can follow. Let your imagination run wild, then execute flawlessly.",
-  keywords: ["AI", "planning", "MCP", "cross-LLM", "project management", "artificial intelligence", "AI agents", "context-aware"],
-  authors: [{ name: "ActionBias Team" }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://www.actionbias.ai'),
+  title: "done.engineering - Your context, everywhere. Never start over again.",
+  description: "The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Done is the engine of more.",
+  keywords: ["Claude Code", "Gemini CLI", "AI context", "MCP", "Model Context Protocol", "AI development", "context persistence", "AI agents"],
+  authors: [{ name: "done.engineering" }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'),
   openGraph: {
-    title: "ActionBias - Dream like a human. Execute like a machine.",
-    description: "Let your imagination run wild. Explore possibilities. When you're ready, ActionBias transforms your vision into precisely calibrated instructions any AI can follow.",
+    title: "done.engineering - Your context, everywhere. Never start over again.",
+    description: "Stop losing context when switching between Claude Code, Gemini CLI, and other AI tools. Keep your entire project history alive across every conversation.",
     type: "website",
-    siteName: "ActionBias",
+    siteName: "done.engineering",
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.actionbias.ai'}/api/og`,
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'}/api/og`,
         width: 1200,
         height: 630,
-        alt: "ActionBias - Where human creativity meets machine precision",
+        alt: "done.engineering - The context layer for AI development",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ActionBias - Dream like a human. Execute like a machine.",
-    description: "Let your imagination run wild. Explore possibilities. When you're ready, ActionBias transforms your vision into precisely calibrated instructions.",
-    images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.actionbias.ai'}/api/og`],
-    creator: "@actionbias",
+    title: "done.engineering - Your context, everywhere. Never start over again.",
+    description: "Stop losing context when switching between Claude Code, Gemini CLI, and other AI tools. Keep your entire project history alive.",
+    images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'}/api/og`],
+    creator: "@doneengineering",
   },
   icons: {
     icon: "/icon.svg",
