@@ -9,6 +9,7 @@ import { join } from "path";
 import { execSync } from "child_process";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
+import { getWorkableActionsOptimized } from "../services/actions-optimized";
 
 export function registerResources(server: any) {
   // action://list - List all actions with pagination support
@@ -819,8 +820,8 @@ export function registerResources(server: any) {
         const startTime = Date.now();
         console.log('[WORKABLE] Starting to get workable actions');
         
-        // Get all workable actions without artificial limit
-        const workableActions = await ActionsService.getWorkableActions(1000);
+        // Get all workable actions using optimized query
+        const workableActions = await getWorkableActionsOptimized(1000);
         
         const duration = Date.now() - startTime;
         console.log(`[WORKABLE] Found ${workableActions.length} workable actions in ${duration}ms`);
