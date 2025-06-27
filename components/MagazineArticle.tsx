@@ -303,7 +303,17 @@ export default function MagazineArticle({
                           <p className="text-xs text-gray-700 pl-6">{item.gitCommitMessage}</p>
                         )}
                         {item.gitCommitAuthor && (
-                          <p className="text-xs text-gray-500 pl-6">by {item.gitCommitAuthor.split(' <')[0]}</p>
+                          <p className="text-xs text-gray-500 pl-6">
+                            by{' '}
+                            <a 
+                              href={`https://github.com/bbn`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              {item.gitCommitAuthor.split(' <')[0]}
+                            </a>
+                          </p>
                         )}
                       </dd>
                     </div>

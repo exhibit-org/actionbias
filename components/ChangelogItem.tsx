@@ -157,7 +157,15 @@ export default function ChangelogItem({
               )}
               {item.gitCommitAuthor && (
                 <span className="text-sm text-gray-600">
-                  by <span className="font-medium">{item.gitCommitAuthor.split(' <')[0]}</span>
+                  by{' '}
+                  <a 
+                    href={`https://github.com/bbn`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-blue-600 hover:text-blue-800"
+                  >
+                    {item.gitCommitAuthor.split(' <')[0]}
+                  </a>
                 </span>
               )}
             </div>
