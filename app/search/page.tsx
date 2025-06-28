@@ -118,8 +118,8 @@ export default function SearchPage() {
             {results.map((result) => (
               <Link
                 key={result.id}
-                href={`/actions/${result.id}`}
-                className="block p-4 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border"
+                href={`/${result.id}`}
+                className="block p-4 rounded-lg hover:bg-muted/50 transition-colors border border-transparent hover:border-border cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   {result.done && (
