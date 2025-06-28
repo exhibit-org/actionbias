@@ -255,38 +255,41 @@ Give me a 3-line summary of what I should focus on.`;
     }
   );
 
-  // Intelligent action placement prompt
+  // Create new action prompt
   server.prompt(
-    'place-action',
-    'Intelligently determine where to place a new action in the hierarchy',
+    'create-action',
+    'Create a new action with intelligent placement in the hierarchy',
     { 
       title: z.string().describe('Title of the action to place'),
       description: z.string().optional().describe('Description of the action'),
       vision: z.string().optional().describe('Vision/outcome for the action')
     },
     async ({ title, description, vision }: { title: string; description?: string; vision?: string }) => {
-      const prompt = `I need to intelligently place a new action in the hierarchy. The action is:
+      const prompt = `I want to create a new action: "${title}"
+${description ? `\nDescription: ${description}` : ''}${vision ? `\nVision: ${vision}` : ''}
 
-**Title:** ${title}
-${description ? `**Description:** ${description}\n` : ''}${vision ? `**Vision:** ${vision}\n` : ''}
-Please help me find the best parent for this action:
+Please help me:
 
-1. Use action://tree to understand the current hierarchy structure
-2. Use search_actions tool with query="${title}" to find similar existing actions
-3. If description provided, also search for key terms from the description
-4. Analyze the search results and tree structure to identify:
-   - Actions with similar themes or domains
-   - Parent actions that logically encompass this work
-   - Existing "areas" or "categories" in the hierarchy
+1. First check if a similar action already exists:
+   - Use search_actions tool with query="${title}" to find potential duplicates
+   - If very similar actions exist (>70% match), suggest using those instead
 
-5. Recommend the TOP 3 best parent options with reasoning:
-   - Why this parent makes semantic sense
-   - How it fits within that parent's scope
-   - What sibling actions it would join
+2. If creating new action, find the best placement:
+   - Use action://tree to understand the current hierarchy
+   - Search for related actions to understand where similar work lives
+   - Identify the most logical parent action
 
-6. If no good parent exists, recommend creating it as a root action with explanation
+3. Create the action using create_action tool with:
+   - The title, description, and vision provided
+   - The best parent action ID as family_id
+   - Any obvious dependencies if you identify them
 
-Be thoughtful about hierarchy depth - prefer placing actions 2-4 levels deep rather than creating too many root actions or going too deep.`;
+4. After creation, show me:
+   - The new action's ID and full path in the hierarchy
+   - Any sibling actions it's now grouped with
+   - Suggested next steps or related actions to create
+
+Only proceed with creation if you're confident about the placement. If unsure, show me the top 2-3 parent options and ask for confirmation.`;
 
       return {
         messages: [
@@ -331,7 +334,7 @@ export const promptCapabilities = {
   'find-related': {
     description: 'Find actions related to a specific topic',
   },
-  'place-action': {
-    description: 'Intelligently determine where to place a new action in the hierarchy',
+  'create-action': {
+    description: 'Create a new action with intelligent placement in the hierarchy',
   },
 };
