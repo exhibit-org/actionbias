@@ -749,7 +749,7 @@ export function registerResources(server: any) {
         momentum.gitIntegrationPending = true;
         momentum.note = 'Git history will be available after GitHub/GitLab integration is implemented';
         
-        // Get recently completed actions from database
+        // Get recent action activity (both completed and in-progress with completion contexts)
         if (process.env.DATABASE_URL) {
           try {
             const recentCompletions = await getDb()
@@ -758,6 +758,7 @@ export function registerResources(server: any) {
                 actionTitle: actions.title,
                 completionTimestamp: completionContexts.completionTimestamp,
                 impactStory: completionContexts.impactStory,
+                isCurrentlyComplete: actions.done,
               })
               .from(completionContexts)
               .innerJoin(actions, eq(completionContexts.actionId, actions.id))

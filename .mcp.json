@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "done": {
+    "Tasks": {
       "command": "/Users/bbn/code/actionbias/done-mcp-wrapper.sh",
       "args": []
     }
