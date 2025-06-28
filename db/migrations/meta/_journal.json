@@ -99,6 +99,13 @@
       "when": 1751080800000,
       "tag": "0016_git_context_final",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1751082000000,
+      "tag": "0017_remove_structured_data",
+      "breakpoints": true
     }
   ]
 }

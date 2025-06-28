@@ -11,7 +11,6 @@ export interface CreateCompletionContextParams {
   deck?: string; // AI-generated standfirst/subtitle
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
-  structuredData?: Record<string, any>;
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -67,7 +66,6 @@ export interface UpdateCompletionContextParams {
   deck?: string; // AI-generated standfirst/subtitle
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
-  structuredData?: Record<string, any>;
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -119,7 +117,7 @@ export class CompletionContextService {
    * Create a new completion context for an action
    */
   static async createCompletionContext(params: CreateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData, gitContext } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = params;
     
     // Check if completion context already exists for this action
     const existing = await getDb()
@@ -144,7 +142,6 @@ export class CompletionContextService {
         deck,
         pullQuotes,
         changelogVisibility: changelogVisibility || 'team',
-        structuredData,
         gitContext,
       })
       .returning();
@@ -156,7 +153,7 @@ export class CompletionContextService {
    * Update or create completion context for an action
    */
   static async upsertCompletionContext(params: UpdateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, structuredData, gitContext } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = params;
     
     // Check if completion context already exists
     const existing = await getDb()
@@ -178,7 +175,6 @@ export class CompletionContextService {
       if (deck !== undefined) updateData.deck = deck;
       if (pullQuotes !== undefined) updateData.pullQuotes = pullQuotes;
       if (changelogVisibility !== undefined) updateData.changelogVisibility = changelogVisibility;
-      if (structuredData !== undefined) updateData.structuredData = structuredData;
       if (gitContext !== undefined) updateData.gitContext = gitContext;
       
       const updatedContext = await getDb()

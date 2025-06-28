@@ -7,7 +7,6 @@ const updateCompletionContextSchema = z.object({
   impactStory: z.string().optional(),
   learningStory: z.string().optional(),
   changelogVisibility: z.enum(["private", "team", "public"]).optional(),
-  structuredData: z.record(z.any()).optional(),
   // Magazine-style editorial content
   headline: z.string().optional(),
   deck: z.string().optional(),
@@ -31,7 +30,6 @@ const updateCompletionContextSchema = z.object({
            data.impactStory !== undefined || 
            data.learningStory !== undefined || 
            data.changelogVisibility !== undefined || 
-           data.structuredData !== undefined ||
            data.headline !== undefined ||
            data.deck !== undefined ||
            data.pullQuotes !== undefined ||

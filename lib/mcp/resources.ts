@@ -556,7 +556,6 @@ export function registerResources(server: any) {
             learningStory: completionContexts.learningStory,
             changelogVisibility: completionContexts.changelogVisibility,
             completionTimestamp: completionContexts.completionTimestamp,
-            structuredData: completionContexts.structuredData,
           })
           .from(completionContexts)
           .innerJoin(actions, eq(completionContexts.actionId, actions.id));
@@ -646,7 +645,6 @@ export function registerResources(server: any) {
             learningStory: completionContexts.learningStory,
             changelogVisibility: completionContexts.changelogVisibility,
             completionTimestamp: completionContexts.completionTimestamp,
-            structuredData: completionContexts.structuredData,
           })
           .from(completionContexts)
           .innerJoin(actions, eq(completionContexts.actionId, actions.id))

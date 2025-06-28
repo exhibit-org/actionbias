@@ -44,8 +44,7 @@ export const completionContextSchema = z.object({
   implementation_story: z.string().optional(),  // "How did you build this?" (supports markdown)
   impact_story: z.string().optional(),          // "What did you accomplish?" (supports markdown)
   learning_story: z.string().optional(),        // "What did you learn?" (supports markdown)
-  structured_data: z.record(z.any()).optional(), // Future AI parsing/enhancement
-  // Magazine-style editorial content (stored in structuredData)
+  // Magazine-style editorial content
   headline: z.string().optional(),              // AI-generated compelling headline
   deck: z.string().optional(),                  // AI-generated standfirst/subtitle
   pull_quotes: z.array(z.string()).optional(),  // AI-extracted key quotes
@@ -161,10 +160,7 @@ export const completionContexts = pgTable('completion_contexts', {
   changelogVisibility: text('changelog_visibility').default('team').notNull(),
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  
-  // Future flexibility
-  structuredData: jsonb('structured_data')          // For future AI parsing/enhancement
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
 });
 
 // Waitlist table for email signups

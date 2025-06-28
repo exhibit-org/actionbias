@@ -580,7 +580,6 @@ describe("MCP Resources", () => {
       learningStory: "TDD is effective",
       changelogVisibility: "team",
       completionTimestamp: new Date(),
-      structuredData: null,
     };
     
     // Mock both queries - first for logs, second for count
@@ -649,7 +648,6 @@ describe("MCP Resources", () => {
                 learningStory: "TDD is effective",
                 changelogVisibility: "team",
                 completionTimestamp: new Date(),
-                structuredData: null,
               }])
             })
           })

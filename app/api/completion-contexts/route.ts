@@ -8,7 +8,6 @@ const createCompletionContextSchema = z.object({
   impactStory: z.string().optional(),
   learningStory: z.string().optional(),
   changelogVisibility: z.enum(["private", "team", "public"]).default("team"),
-  structuredData: z.record(z.any()).optional(),
 });
 
 const listCompletionContextsSchema = z.object({
