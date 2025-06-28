@@ -61,7 +61,7 @@ describe("MCP Resources", () => {
 
   it("registers all resources", () => {
     registerResources(server);
-    expect(server.resource).toHaveBeenCalledTimes(14);
+    expect(server.resource).toHaveBeenCalledTimes(12);
     expect(Object.keys(resourceCapabilities)).toEqual([
       "action://list",
       "action://workable",
@@ -70,8 +70,6 @@ describe("MCP Resources", () => {
       "action://tree",
       "action://tree/{id}",
       "action://dependencies",
-      "action://next",
-      "action://next/{id}",
       "action://item/{id}",
       "action://log",
       "action://log/{id}",
@@ -161,82 +159,10 @@ describe("MCP Resources", () => {
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
 
-  it("next resource returns action structure", async () => {
-    registerResources(server);
-    // Find the correct next resource by checking the URI
-    const nextCall = server.resource.mock.calls.find(call => call[1] === "action://next");
-    const handler = nextCall[2];
-    const mockAction = { id: "123", data: { title: "Next Action" }, done: false, version: 1, createdAt: "now", updatedAt: "now" } as any;
-    const mockActionDetail = {
-      id: "123",
-      title: "Next Action",
-      description: undefined,
-      vision: undefined,
-      done: false,
-      version: 1,
-      created_at: "now",
-      updated_at: "now",
-      parent_id: undefined,
-      parent_chain: [],
-      children: [],
-      dependencies: [],
-      dependents: [],
-      family_context_summary: "test context summary",
-      family_vision_summary: "test vision summary"
-    };
-    mockedService.getNextAction.mockResolvedValue(mockAction);
-    mockedService.getActionDetailResource.mockResolvedValue(mockActionDetail);
-    const result = await handler(new URL("action://next"));
-    expect(mockedService.getNextAction).toHaveBeenCalled();
-    expect(mockedService.getActionDetailResource).toHaveBeenCalledWith("123");
-    const data = JSON.parse(result.contents[0].text);
-    expect(data).toBeDefined();
-    expect(data.id).toBe("123");
-    expect(data.title).toBe("Next Action");
-    expect(data.parent_chain).toEqual([]);
-    expect(data.family_context_summary).toBe("test context summary");
-    expect(data.family_vision_summary).toBe("test vision summary");
-  });
-
-
-  it("next resource returns null when no action", async () => {
-    registerResources(server);
-    // Find the correct next resource by checking the URI
-    const nextCall = server.resource.mock.calls.find(call => call[1] === "action://next");
-    const handler = nextCall[2];
-    mockedService.getNextAction.mockResolvedValue(null);
-    const result = await handler(new URL("action://next"));
-    expect(mockedService.getNextAction).toHaveBeenCalled();
-    const data = JSON.parse(result.contents[0].text);
-    expect(data.next_action).toBe(null);
-  });
-
-  it("next resource handles database errors", async () => {
-    registerResources(server);
-    // Find the correct next resource by checking the URI
-    const nextCall = server.resource.mock.calls.find(call => call[1] === "action://next");
-    const handler = nextCall[2];
-    mockedService.getNextAction.mockRejectedValue(new Error("Database connection failed"));
-    const result = await handler(new URL("action://next"));
-    const data = JSON.parse(result.contents[0].text);
-    expect(data.error).toBe("Database connection failed");
-  });
-
-  it("next resource handles missing database url", async () => {
-    process.env.DATABASE_URL = "";
-    registerResources(server);
-    // Find the correct next resource by checking the URI
-    const nextCall = server.resource.mock.calls.find(call => call[1] === "action://next");
-    const handler = nextCall[2];
-    const result = await handler(new URL("action://next"));
-    const data = JSON.parse(result.contents[0].text);
-    expect(data.error).toBe("Database not configured");
-    expect(data.next_action).toBe(null);
-  });
 
   it("detail resource returns data", async () => {
     registerResources(server);
-    // Find the detail resource by index (action://item/{id} is at index 3)
+    // action://item/{id} is at index 3
     const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const expected = { id: "123", title: "Test", children: [], dependencies: [], dependents: [], done: false, created_at: "now", updated_at: "now", family_context_summary: "test context", family_vision_summary: "test vision", dependency_completion_context: []  } as any;
@@ -249,7 +175,7 @@ describe("MCP Resources", () => {
 
   it("detail resource displays completion context prominently", async () => {
     registerResources(server);
-    // Find the detail resource by index (action://item/{id} is at index 3)
+    // action://item/{id} is at index 3
     const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const expected = { 
@@ -289,7 +215,7 @@ describe("MCP Resources", () => {
 
   it("detail resource rejects missing id", async () => {
     registerResources(server);
-    // Find the detail resource by index (action://item/{id} is at index 3)
+    // action://item/{id} is at index 3
     const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     await expect(handler(new URL("action://{id}"), { id: "{id}" })).rejects.toThrow();
@@ -298,7 +224,7 @@ describe("MCP Resources", () => {
   it("detail resource handles missing database url", async () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
-    // Find the detail resource by index (action://item/{id} is at index 3)
+    // action://item/{id} is at index 3
     const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     const result = await handler(new URL("action://123"), { id: "123" });
@@ -309,7 +235,7 @@ describe("MCP Resources", () => {
 
   it("detail resource handles database errors", async () => {
     registerResources(server);
-    // Find the detail resource by index (action://item/{id} is at index 3)
+    // action://item/{id} is at index 3
     const detailCall = server.resource.mock.calls[3];
     const handler = detailCall[2];
     mockedService.getActionDetailResource.mockRejectedValue(new Error("Database error"));
@@ -472,16 +398,6 @@ describe("MCP Resources", () => {
     await expect(handler(new URL("action://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Unknown error");
   });
 
-  it("next resource handles non-Error exceptions", async () => {
-    registerResources(server);
-    const nextCall = server.resource.mock.calls.find(call => call[1] === "action://next");
-    const handler = nextCall[2];
-    mockedService.getNextAction.mockRejectedValue("String error");
-    
-    const result = await handler(new URL("action://next"));
-    const data = JSON.parse(result.contents[0].text);
-    expect(data.error).toBe("Unknown error");
-  });
 
   it("detail resource handles array id parameter", async () => {
     registerResources(server);

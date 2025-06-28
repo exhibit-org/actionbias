@@ -135,6 +135,20 @@ ActionBias becomes more than project management - it's a system for:
 
 The same completed action generates different outputs for different audiences.
 
+## Architectural Philosophy: LLM-First Intelligence
+
+ActionBias embraces a fundamental architectural principle: **Intelligence belongs in the LLM, not the server.**
+
+Rather than building complex recommendation algorithms, scoring systems, and decision engines into our backend, we provide rich data through MCP resources and let LLMs apply their reasoning capabilities. This approach:
+
+- **Leverages LLM Strengths**: Each AI model can apply its unique reasoning capabilities to understand context and make recommendations
+- **Reduces Complexity**: The server focuses on data storage and retrieval, not decision-making logic
+- **Increases Flexibility**: Users can customize their prioritization through prompts rather than rigid algorithms
+- **Enables Evolution**: As LLMs improve, the system automatically gets smarter without code changes
+- **Supports Diversity**: Different users can apply different reasoning strategies through their choice of prompts
+
+The server provides the map; the LLM navigates the territory.
+
 ## Long-Term Vision
 
 ActionBias becomes the bridge between human creativity and AI capability:

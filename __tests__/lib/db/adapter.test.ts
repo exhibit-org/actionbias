@@ -72,13 +72,13 @@ describe('Database Adapter', () => {
     it('throws error when DATABASE_URL is not set', () => {
       delete process.env.DATABASE_URL;
       
-      expect(() => getDb()).toThrow('DATABASE_URL environment variable is not set');
+      expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
 
     it('throws error when DATABASE_URL is empty string', () => {
       process.env.DATABASE_URL = '';
       
-      expect(() => getDb()).toThrow('DATABASE_URL environment variable is not set');
+      expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
 
     it('creates PostgreSQL connection when DATABASE_URL is set', () => {
