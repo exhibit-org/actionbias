@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 import { useQuickAction } from '../contexts/QuickActionContext';
+import { useSearch } from '@/components/SearchContext';
 
 export default function GlobalKeyboardListener() {
   const { openModal } = useQuickAction();
+  const { openSearch } = useSearch();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -19,11 +21,11 @@ export default function GlobalKeyboardListener() {
         openModal();
       }
       
-      // TODO: CMD+K reserved for search functionality
-      // if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      //   e.preventDefault();
-      //   // openSearchModal();
-      // }
+      // CMD+K for search functionality
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearch();
+      }
     };
 
     // Add event listener
@@ -33,7 +35,7 @@ export default function GlobalKeyboardListener() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [openModal]);
+  }, [openModal, openSearch]);
 
   // This component doesn't render anything
   return null;
