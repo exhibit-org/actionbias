@@ -260,7 +260,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
           gap: '2rem',
           marginBottom: '1.5rem'
         }}>
-          {/* What is ActionBias */}
+          {/* What is done.engineering */}
           <div>
             <h3 style={{
               fontSize: '1.25rem',

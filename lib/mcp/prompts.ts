@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ActionsService } from "../services/actions";
 import { buildActionPrompt } from "../utils/action-prompt-builder";
+import { BRAND } from "../config/brand";
 
 export function registerPrompts(server: any) {
   // Original action detail prompt
@@ -32,7 +33,7 @@ export function registerPrompts(server: any) {
     'Get intelligent work recommendations based on vision, momentum, and dependencies',
     {},
     async () => {
-      const prompt = `I need help prioritizing what to work on next in the ActionBias project. Please:
+      const prompt = `I need help prioritizing what to work on next in the ${BRAND.name} project. Please:
 
 1. First, read the project vision using the context://vision MCP resource
 2. Check recent momentum using the context://momentum MCP resource  
