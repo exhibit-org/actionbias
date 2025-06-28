@@ -9,10 +9,11 @@ interface SearchResult {
   id: string;
   title: string;
   description?: string;
-  path?: string[];
+  hierarchyPath?: string[];
   done: boolean;
   similarity?: number;
-  match_type: 'vector' | 'keyword' | 'hybrid';
+  matchType: 'vector' | 'keyword' | 'hybrid';
+  keywordMatches?: string[];
   highlight?: {
     title?: string;
     description?: string;
@@ -60,15 +61,19 @@ export default function SearchPage() {
           query: searchQuery,
           search_mode: 'hybrid',
           limit: 20,
-          include_completed: false,
+          include_completed: true,
         }),
         signal: newController.signal,
       });
 
       if (!response.ok) throw new Error('Search failed');
       
-      const data: SearchResponse = await response.json();
-      setResults(data.results);
+      const apiResponse = await response.json();
+      if (apiResponse.success && apiResponse.data) {
+        setResults(apiResponse.data.results || []);
+      } else {
+        setResults([]);
+      }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('Search error:', error);
@@ -137,9 +142,9 @@ export default function SearchPage() {
                         )}
                       </p>
                     )}
-                    {result.path && Array.isArray(result.path) && result.path.length > 0 && (
+                    {result.hierarchyPath && Array.isArray(result.hierarchyPath) && result.hierarchyPath.length > 0 && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        {result.path.map((segment, i) => (
+                        {result.hierarchyPath.map((segment, i) => (
                           <span key={i} className="flex items-center gap-1">
                             {i > 0 && <ChevronRight className="h-3 w-3" />}
                             <span className="truncate max-w-[200px]">{segment}</span>
