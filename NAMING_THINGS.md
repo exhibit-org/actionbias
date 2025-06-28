@@ -118,3 +118,7 @@ This isn't just stylistic—it reflects a fundamental truth: **In semantic syste
 ---
 
 *This represents a fundamental shift in how we think about code as communication—not just between humans across time, but between humans and AI in real-time collaboration.*
+
+---
+
+*Note: The insights about properties vs. context were added based on a conversation about how semantic programming changes our approach to task management and naming conventions.*
