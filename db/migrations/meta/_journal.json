@@ -92,6 +92,13 @@
       "when": 1751080200000,
       "tag": "0015_fix_git_context_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1751080800000,
+      "tag": "0016_git_context_final",
+      "breakpoints": true
     }
   ]
 }
