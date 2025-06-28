@@ -127,12 +127,14 @@ export function SearchModal() {
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/80 pt-[10vh]"
+      className="fixed inset-0 z-[99999] flex items-start justify-center bg-black/80 pt-[10vh]"
       onClick={closeSearch}
+      style={{ zIndex: 99999, position: 'fixed' }}
     >
       <div 
-        className="w-full max-w-2xl rounded-lg bg-background shadow-lg border border-border"
+        className="w-full max-w-2xl rounded-lg bg-background shadow-lg border border-border relative z-[99999]"
         onClick={e => e.stopPropagation()}
+        style={{ position: 'relative', zIndex: 99999 }}
       >
         <div className="flex items-center border-b border-border p-4">
           <Search className="h-5 w-5 text-muted-foreground mr-3" />
