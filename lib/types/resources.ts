@@ -104,6 +104,7 @@ export interface DependencyCompletionContext {
   git_commit_message?: string;
   git_branch?: string;
   git_commit_author?: string;
+  git_commit_author_username?: string;
   git_related_commits?: string[];
 }
 

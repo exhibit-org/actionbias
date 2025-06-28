@@ -24,6 +24,7 @@ interface MagazineArticleProps {
   gitCommitMessage?: string;
   gitBranch?: string;
   gitCommitAuthor?: string;
+  gitCommitAuthorUsername?: string;
   gitRelatedCommits?: string[];
 }
 
@@ -306,7 +307,7 @@ export default function MagazineArticle({
                           <p className="text-xs text-gray-500 pl-6">
                             by{' '}
                             <a 
-                              href={`https://github.com/bbn`}
+                              href={`https://github.com/${item.gitCommitAuthorUsername || 'bbn'}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800"

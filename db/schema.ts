@@ -54,6 +54,7 @@ export const completionContextSchema = z.object({
   git_commit_message: z.string().optional(),    // Commit message  
   git_branch: z.string().optional(),            // Branch name where commit was made
   git_commit_author: z.string().optional(),     // Commit author (name <email>)
+  git_commit_author_username: z.string().optional(), // GitHub username
   git_commit_timestamp: z.string().optional(),  // When the commit was made (ISO string)
   git_diff_stats: z.object({                    // Statistics about the changes
     filesChanged: z.number().optional(),
@@ -85,6 +86,7 @@ export const completionContexts = pgTable('completion_contexts', {
   gitCommitMessage: text('git_commit_message'),     // Commit message
   gitBranch: text('git_branch'),                    // Branch name where commit was made
   gitCommitAuthor: text('git_commit_author'),       // Commit author (name <email>)
+  gitCommitAuthorUsername: text('git_commit_author_username'), // GitHub username
   gitCommitTimestamp: timestamp('git_commit_timestamp'), // When the commit was made
   gitDiffStats: jsonb('git_diff_stats').$type<{    // Statistics about the changes
     filesChanged?: number;

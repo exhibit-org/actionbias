@@ -1,0 +1,1 @@
+ALTER TABLE "completion_contexts" ADD COLUMN "git_commit_author_username" text;

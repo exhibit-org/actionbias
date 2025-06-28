@@ -396,6 +396,7 @@ export interface UpdateActionParams {
     git_commit_message?: string;
     git_branch?: string;
     git_commit_author?: string;
+    git_commit_author_username?: string;
     git_related_commits?: string[];
   };
 }
@@ -950,6 +951,7 @@ export class ActionsService {
           gitCommitMessage: completion_context.git_commit_message,
           gitBranch: completion_context.git_branch,
           gitCommitAuthor: completion_context.git_commit_author,
+          gitCommitAuthorUsername: completion_context.git_commit_author_username,
           gitRelatedCommits: completion_context.git_related_commits,
         });
       } catch (error) {
@@ -1662,6 +1664,7 @@ export class ActionsService {
           gitCommitMessage: completionContexts.gitCommitMessage,
           gitBranch: completionContexts.gitBranch,
           gitCommitAuthor: completionContexts.gitCommitAuthor,
+          gitCommitAuthorUsername: completionContexts.gitCommitAuthorUsername,
           gitRelatedCommits: completionContexts.gitRelatedCommits,
         })
         .from(completionContexts)
@@ -1685,6 +1688,7 @@ export class ActionsService {
           git_commit_message: context.gitCommitMessage || undefined,
           git_branch: context.gitBranch || undefined,
           git_commit_author: context.gitCommitAuthor || undefined,
+          git_commit_author_username: context.gitCommitAuthorUsername || undefined,
           git_related_commits: context.gitRelatedCommits as string[] || undefined,
         });
       }
@@ -1708,6 +1712,7 @@ export class ActionsService {
           gitCommitMessage: completionContexts.gitCommitMessage,
           gitBranch: completionContexts.gitBranch,
           gitCommitAuthor: completionContexts.gitCommitAuthor,
+          gitCommitAuthorUsername: completionContexts.gitCommitAuthorUsername,
           gitRelatedCommits: completionContexts.gitRelatedCommits,
         })
         .from(completionContexts)
@@ -1731,6 +1736,7 @@ export class ActionsService {
           git_commit_message: context.gitCommitMessage || undefined,
           git_branch: context.gitBranch || undefined,
           git_commit_author: context.gitCommitAuthor || undefined,
+          git_commit_author_username: context.gitCommitAuthorUsername || undefined,
           git_related_commits: context.gitRelatedCommits as string[] || undefined,
         };
       }

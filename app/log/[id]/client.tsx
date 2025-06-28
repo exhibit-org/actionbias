@@ -26,6 +26,7 @@ interface FeedItem {
   gitCommitMessage?: string;
   gitBranch?: string;
   gitCommitAuthor?: string;
+  gitCommitAuthorUsername?: string;
   gitRelatedCommits?: string[];
 }
 

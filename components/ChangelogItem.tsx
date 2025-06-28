@@ -25,6 +25,7 @@ interface ChangelogItemProps {
   gitCommitMessage?: string;
   gitBranch?: string;
   gitCommitAuthor?: string;
+  gitCommitAuthorUsername?: string;
   gitRelatedCommits?: string[];
 }
 
@@ -159,7 +160,7 @@ export default function ChangelogItem({
                 <span className="text-sm text-gray-600">
                   by{' '}
                   <a 
-                    href={`https://github.com/bbn`}
+                    href={`https://github.com/${item.gitCommitAuthorUsername || 'bbn'}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-blue-600 hover:text-blue-800"

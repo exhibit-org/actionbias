@@ -370,9 +370,10 @@ export function registerTools(server: any) {
       git_commit_message: z.string().optional().describe("Commit message describing the changes"),
       git_branch: z.string().optional().describe("Git branch name where the commit was made"),
       git_commit_author: z.string().optional().describe("Commit author in 'Name <email>' format"),
+      git_commit_author_username: z.string().optional().describe("GitHub username of the commit author"),
       git_related_commits: z.array(z.string()).optional().describe("Array of related commit hashes if multiple commits were involved"),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_commit_hash, git_commit_message, git_branch, git_commit_author, git_related_commits }: { 
+    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_commit_hash, git_commit_message, git_branch, git_commit_author, git_commit_author_username, git_related_commits }: { 
       action_id: string; 
       implementation_story: string;
       impact_story: string;
@@ -385,6 +386,7 @@ export function registerTools(server: any) {
       git_commit_message?: string;
       git_branch?: string;
       git_commit_author?: string;
+      git_commit_author_username?: string;
       git_related_commits?: string[];
     }, extra: any) => {
       try {
@@ -406,6 +408,7 @@ export function registerTools(server: any) {
             git_commit_message,
             git_branch,
             git_commit_author,
+            git_commit_author_username,
             git_related_commits
           }
         });

@@ -78,6 +78,7 @@ async function getScopedCompletedActions(rootId: string) {
             gitCommitMessage: actionDetail.completion_context.git_commit_message,
             gitBranch: actionDetail.completion_context.git_branch,
             gitCommitAuthor: actionDetail.completion_context.git_commit_author,
+            gitCommitAuthorUsername: actionDetail.completion_context.git_commit_author_username,
             gitRelatedCommits: actionDetail.completion_context.git_related_commits,
           };
         } catch (error) {
