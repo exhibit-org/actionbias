@@ -120,7 +120,7 @@ export function SearchModal() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[10vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 pt-[10vh]"
       onClick={closeSearch}
     >
       <div 
@@ -176,14 +176,16 @@ export function SearchModal() {
                         )}
                       </div>
                     )}
-                    <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                      {result.path.map((segment, i) => (
-                        <span key={i} className="flex items-center gap-1">
-                          {i > 0 && <ChevronRight className="h-3 w-3" />}
-                          <span className="truncate max-w-[150px]">{segment}</span>
-                        </span>
-                      ))}
-                    </div>
+                    {result.path && result.path.length > 0 && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                        {result.path.map((segment, i) => (
+                          <span key={i} className="flex items-center gap-1">
+                            {i > 0 && <ChevronRight className="h-3 w-3" />}
+                            <span className="truncate max-w-[150px]">{segment}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {result.similarity && (
                     <div className="text-xs text-muted-foreground">
