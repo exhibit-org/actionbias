@@ -9,7 +9,7 @@ import { join } from "path";
 import { execSync } from "child_process";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
-import { getWorkableActionsOptimized } from "../services/actions-optimized";
+import { getUnblockedActionsOptimized } from "../services/actions-optimized";
 import { getBlockingDependencies, getActionsWithNoDependencies } from "../services/blocking-dependencies";
 
 export function registerResources(server: any) {
@@ -634,10 +634,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://workable - Get all workable actions (leaf nodes with dependencies met)
+  // action://unblocked - Get all unblocked actions (leaf nodes with dependencies met)
   server.resource(
-    "Get all workable actions (leaf nodes with all dependencies completed)",
-    "action://workable",
+    "Get all unblocked actions (leaf nodes with all dependencies completed)",
+    "action://unblocked",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -649,7 +649,7 @@ export function registerResources(server: any) {
                 text: JSON.stringify({
                   error: "Database not configured",
                   message: "DATABASE_URL environment variable is not set",
-                  workable: [],
+                  unblocked: [],
                   total: 0
                 }, null, 2),
                 mimeType: "application/json",
@@ -659,21 +659,21 @@ export function registerResources(server: any) {
         }
         
         const startTime = Date.now();
-        console.log('[WORKABLE] Starting to get workable actions');
+        console.log('[UNBLOCKED] Starting to get unblocked actions');
         
-        // Get all workable actions using optimized query
-        const workableActions = await getWorkableActionsOptimized(1000);
+        // Get all unblocked actions using optimized query
+        const unblockedActions = await getUnblockedActionsOptimized(1000);
         
         const duration = Date.now() - startTime;
-        console.log(`[WORKABLE] Found ${workableActions.length} workable actions in ${duration}ms`);
+        console.log(`[UNBLOCKED] Found ${unblockedActions.length} unblocked actions in ${duration}ms`);
         
         return {
           contents: [
             {
               uri: uri.toString(),
               text: JSON.stringify({
-                workable: workableActions,
-                total: workableActions.length,
+                unblocked: unblockedActions,
+                total: unblockedActions.length,
                 queryDuration: duration,
                 generatedAt: new Date().toISOString()
               }, null, 2),
@@ -682,8 +682,8 @@ export function registerResources(server: any) {
           ],
         };
       } catch (error) {
-        console.error('Error fetching workable actions:', error);
-        throw new Error(`Failed to fetch workable actions: ${error instanceof Error ? error.message : "Unknown error"}`);
+        console.error('Error fetching unblocked actions:', error);
+        throw new Error(`Failed to fetch unblocked actions: ${error instanceof Error ? error.message : "Unknown error"}`);
       }
     }
   );
@@ -801,8 +801,8 @@ export const resourceCapabilities = {
   "action://list": {
     description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
   },
-  "action://workable": {
-    description: "Get all workable actions (leaf nodes with all dependencies completed)",
+  "action://unblocked": {
+    description: "Get all unblocked actions (leaf nodes with all dependencies completed)",
   },
   "action://blockers": {
     description: "Get incomplete dependencies that are blocking other work",

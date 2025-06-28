@@ -128,7 +128,7 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     async () => {
       const prompt = `I want to understand what's blocking progress. Please:
 1. Use action://blockers to see which incomplete actions are blocking the most work
-2. Use action://no-dependencies to see what's immediately workable
+2. Use action://no-dependencies to see what's immediately available to work on
 3. Identify the top 3 blockers that would unlock the most work if completed
 4. For each blocker, list what specific actions it's preventing`;
 
@@ -209,9 +209,9 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     {},
     async () => {
       const prompt = `I'm starting my work session. Please quickly check:
-- action://next for the recommended next action
+- action://unblocked for actions ready to work on
 - context://momentum for recent activity  
-- action://no-dependencies to see immediately available work
+- action://blockers to see what would unlock the most work
 
 Give me a 3-line summary of what I should focus on.`;
 
@@ -240,6 +240,53 @@ Give me a 3-line summary of what I should focus on.`;
 2. Filter for ones that mention ${topic} or related terms in their title/description
 3. Check context://vision to see if ${topic} work aligns with current priorities
 4. Rank them by importance`;
+
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: prompt,
+            },
+          },
+        ],
+      };
+    }
+  );
+
+  // Intelligent action placement prompt
+  server.prompt(
+    'place-action',
+    'Intelligently determine where to place a new action in the hierarchy',
+    { 
+      title: z.string().describe('Title of the action to place'),
+      description: z.string().optional().describe('Description of the action'),
+      vision: z.string().optional().describe('Vision/outcome for the action')
+    },
+    async ({ title, description, vision }: { title: string; description?: string; vision?: string }) => {
+      const prompt = `I need to intelligently place a new action in the hierarchy. The action is:
+
+**Title:** ${title}
+${description ? `**Description:** ${description}\n` : ''}${vision ? `**Vision:** ${vision}\n` : ''}
+Please help me find the best parent for this action:
+
+1. Use action://tree to understand the current hierarchy structure
+2. Use search_actions tool with query="${title}" to find similar existing actions
+3. If description provided, also search for key terms from the description
+4. Analyze the search results and tree structure to identify:
+   - Actions with similar themes or domains
+   - Parent actions that logically encompass this work
+   - Existing "areas" or "categories" in the hierarchy
+
+5. Recommend the TOP 3 best parent options with reasoning:
+   - Why this parent makes semantic sense
+   - How it fits within that parent's scope
+   - What sibling actions it would join
+
+6. If no good parent exists, recommend creating it as a root action with explanation
+
+Be thoughtful about hierarchy depth - prefer placing actions 2-4 levels deep rather than creating too many root actions or going too deep.`;
 
       return {
         messages: [
@@ -283,5 +330,8 @@ export const promptCapabilities = {
   },
   'find-related': {
     description: 'Find actions related to a specific topic',
+  },
+  'place-action': {
+    description: 'Intelligently determine where to place a new action in the hierarchy',
   },
 };

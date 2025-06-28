@@ -5,10 +5,10 @@ import { eq, and, inArray, sql, desc } from "drizzle-orm";
 
 export const maxDuration = 60; // 60 seconds timeout
 
-interface WorkableDebugInfo {
+interface UnblockedDebugInfo {
   totalActions: number;
   incompleteActions: number;
-  workableActions: number;
+  unblockedActions: number;
   timings: {
     loadActions?: number;
     loadEdges?: number;
@@ -22,10 +22,10 @@ interface WorkableDebugInfo {
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  const debug: WorkableDebugInfo = {
+  const debug: UnblockedDebugInfo = {
     totalActions: 0,
     incompleteActions: 0,
-    workableActions: 0,
+    unblockedActions: 0,
     timings: {},
     errors: [],
     sample: []
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     
     // Step 3: Process each incomplete action
     const processStart = Date.now();
-    const workableActions = [];
+    const unblockedActions = [];
     
     for (const action of incompleteActions) {
       // Check dependencies
@@ -95,22 +95,22 @@ export async function GET(request: NextRequest) {
       
       // Check children
       const children = childrenMap.get(action.id) || [];
-      let isWorkable = true;
+      let isUnblocked = true;
       
       if (children.length > 0) {
         // Has children - check if all are done
         for (const childId of children) {
           const child = actionMap.get(childId) as any;
           if (child && !child.done) {
-            isWorkable = false;
+            isUnblocked = false;
             break;
           }
         }
       }
-      // If no children, it's a leaf node and is workable
+      // If no children, it's a leaf node and is unblocked
       
-      if (isWorkable) {
-        workableActions.push({
+      if (isUnblocked) {
+        unblockedActions.push({
           id: action.id,
           title: (action.data as any).title,
           dependencies: dependencies.length,
@@ -120,14 +120,14 @@ export async function GET(request: NextRequest) {
     }
     
     debug.timings.processDependencies = Date.now() - processStart;
-    debug.workableActions = workableActions.length;
-    debug.sample = workableActions.slice(0, 5);
+    debug.unblockedActions = unblockedActions.length;
+    debug.sample = unblockedActions.slice(0, 5);
     debug.timings.total = Date.now() - startTime;
     
     return NextResponse.json({
       success: true,
       debug,
-      workable: workableActions
+      unblocked: unblockedActions
     });
     
   } catch (error) {

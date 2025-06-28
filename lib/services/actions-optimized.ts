@@ -4,11 +4,11 @@ import { getDb } from "../db/adapter";
 import { Action } from "../types/resources";
 
 /**
- * Optimized version of getWorkableActions that uses bulk queries
+ * Optimized version of getUnblockedActions that uses bulk queries
  * instead of individual queries per action
  */
-export async function getWorkableActionsOptimized(limit: number = 50): Promise<Action[]> {
-  console.log('[OPTIMIZED] Starting getWorkableActions with limit:', limit);
+export async function getUnblockedActionsOptimized(limit: number = 50): Promise<Action[]> {
+  console.log('[OPTIMIZED] Starting getUnblockedActions with limit:', limit);
   const startTime = Date.now();
   
   // Add timeout protection
@@ -80,7 +80,7 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
 
   // Step 5: Check each action for workability (simplified - only check dependencies)
   const filterStart = Date.now();
-  const workableActions: Action[] = [];
+  const unblockedActions: Action[] = [];
   let processed = 0;
 
   for (const action of incompleteActions as any[]) {
@@ -100,8 +100,8 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
       continue; // Action is blocked by incomplete dependencies
     }
 
-    // No unmet dependencies - action is workable
-    workableActions.push({
+    // No unmet dependencies - action is unblocked
+    unblockedActions.push({
       id: action.id,
       data: action.data as { title: string },
       done: action.done,
@@ -110,23 +110,23 @@ export async function getWorkableActionsOptimized(limit: number = 50): Promise<A
       updatedAt: action.updatedAt.toISOString(),
     });
 
-    if (workableActions.length >= limit) {
+    if (unblockedActions.length >= limit) {
       break;
     }
   }
 
-  console.log(`[OPTIMIZED] Found ${workableActions.length} workable actions in ${Date.now() - filterStart}ms filtering`);
+  console.log(`[OPTIMIZED] Found ${unblockedActions.length} unblocked actions in ${Date.now() - filterStart}ms filtering`);
   console.log(`[OPTIMIZED] Total time: ${Date.now() - startTime}ms`);
 
-  return workableActions;
+  return unblockedActions;
 }
 
 /**
  * Simplified single query version that only checks dependencies
  * Family relationships are handled through dependency edges now
  */
-export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
-  console.log('[SINGLE-QUERY] Starting getWorkableActions');
+export async function getUnblockedActionsSingleQuery(): Promise<Action[]> {
+  console.log('[SINGLE-QUERY] Starting getUnblockedActions');
   const startTime = Date.now();
 
   // This query finds all incomplete actions that have no incomplete dependencies
@@ -161,7 +161,7 @@ export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
 
   const result = await getDb().execute(query);
   
-  const workableActions = result.rows.map((row: any) => ({
+  const unblockedActions = result.rows.map((row: any) => ({
     id: row.id,
     data: row.data as { title: string },
     done: row.done,
@@ -170,7 +170,7 @@ export async function getWorkableActionsSingleQuery(): Promise<Action[]> {
     updatedAt: new Date(row.updated_at).toISOString(),
   }));
 
-  console.log(`[SINGLE-QUERY] Found ${workableActions.length} workable actions in ${Date.now() - startTime}ms`);
+  console.log(`[SINGLE-QUERY] Found ${unblockedActions.length} unblocked actions in ${Date.now() - startTime}ms`);
   
-  return workableActions;
+  return unblockedActions;
 }

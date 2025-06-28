@@ -1818,7 +1818,7 @@ export class ActionsService {
     return null;
   }
 
-  static async getWorkableActions(limit: number = 50): Promise<Action[]> {
+  static async getUnblockedActions(limit: number = 50): Promise<Action[]> {
     // Get all incomplete actions
     const openActions = await getDb()
       .select()
@@ -1827,7 +1827,7 @@ export class ActionsService {
       .orderBy(desc(actions.updatedAt))
       .limit(limit * 3); // Get more than needed to account for filtering
 
-    const workableActions: Action[] = [];
+    const unblockedActions: Action[] = [];
 
     for (const action of openActions) {
       // Check if all dependencies are met
@@ -1844,7 +1844,7 @@ export class ActionsService {
       
       if (childEdges.length === 0) {
         // No children, this is a leaf node
-        workableActions.push({
+        unblockedActions.push({
           id: action.id,
           data: action.data as { title: string },
           done: action.done,
@@ -1853,7 +1853,7 @@ export class ActionsService {
           updatedAt: action.updatedAt.toISOString(),
         });
         
-        if (workableActions.length >= limit) {
+        if (unblockedActions.length >= limit) {
           break;
         }
       } else {
@@ -1867,8 +1867,8 @@ export class ActionsService {
           
           const allChildrenDone = children.every((child: any) => child.done);
           if (allChildrenDone) {
-            // All children are done, so this parent is workable
-            workableActions.push({
+            // All children are done, so this parent is unblocked
+            unblockedActions.push({
               id: action.id,
               data: action.data as { title: string },
               done: action.done,
@@ -1877,7 +1877,7 @@ export class ActionsService {
               updatedAt: action.updatedAt.toISOString(),
             });
             
-            if (workableActions.length >= limit) {
+            if (unblockedActions.length >= limit) {
               break;
             }
           }
@@ -1885,7 +1885,7 @@ export class ActionsService {
       }
     }
 
-    return workableActions;
+    return unblockedActions;
   }
 
   static async getNextActionScoped(scopeActionId: string): Promise<Action | null> {

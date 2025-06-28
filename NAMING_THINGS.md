@@ -25,6 +25,43 @@
 - Case study: ActionBias as a context engineering system
 - The shift from "Is this data current?" to "Is this context sufficient for decision-making?"
 
+#### The Property Trap: Why We No Longer Decorate Tasks with Data
+
+In the heuristic programming era, we encoded decision-making data as properties:
+- `task.priority = "high"`
+- `project.deadline = "2024-12-19"`
+- `milestone.status = "at-risk"`
+
+This forced us to:
+1. Constantly update these properties as circumstances changed
+2. Build complex cache invalidation logic when properties became stale
+3. Create rigid schemas that couldn't adapt to new types of context
+
+**The semantic shift**: In AI-driven systems, we recognize that "Ralph moved the deadline to Dec 12th" isn't a property of the project—it's a property of the context the project lives within. The deadline didn't change; our understanding of urgency did.
+
+Instead of:
+```javascript
+// Old paradigm: Properties as data
+project.updateDeadline("2024-12-12");
+cache.invalidate(project.id);
+tasks.reprioritize();
+```
+
+We now have:
+```javascript
+// New paradigm: Context as input
+const urgencyContext = [
+  "Ralph moved the deadline for Project ABC to Dec 12th",
+  "Customer reported critical bug in production",
+  "Team velocity decreased due to illness"
+];
+const nextAction = await ai.determineNextAction(allActions, urgencyContext);
+```
+
+This fundamentally changes naming from nouns (properties) to concepts (contexts):
+- ❌ `task.priority`, `project.deadline`, `issue.severity`
+- ✅ `urgencySignals`, `contextualConstraints`, `environmentalFactors`
+
 ### III. Evolution 2: Naming Things → Runtime AI Decision-Making
 - Traditional challenge: Programmer-to-programmer communication
 - Historical focus on human readability and maintainability
@@ -50,6 +87,22 @@
 - Lexical common-sense as a design principle
 - Domain-specific terminology that AI can map to concepts
 - Avoiding ambiguous or context-dependent names
+
+#### From Properties to Contexts: A Naming Revolution
+
+The shift from heuristic to semantic programming demands new naming conventions:
+
+**Old World (Properties as Nouns)**:
+- `task.priority` - suggests a fixed attribute
+- `project.deadline` - implies ownership by the project
+- `user.permissions` - static assignment
+
+**New World (Contexts as Concepts)**:
+- `workPressureSignals` - dynamic environmental input
+- `temporalConstraints` - fluid time-based considerations  
+- `accessContext` - situational authorization factors
+
+This isn't just stylistic—it reflects a fundamental truth: **In semantic systems, the context IS the data**. When we name things as if they own their properties, we create brittle systems that require constant maintenance. When we name things as contextual inputs, we create flexible systems that adapt to changing circumstances without code changes.
 
 ### V. Practical Guidelines
 - Naming conventions that enhance AI comprehension
