@@ -392,12 +392,49 @@ export interface UpdateActionParams {
     deck?: string;
     pull_quotes?: string[];
     changelog_visibility?: string;
-    git_commit_hash?: string;
-    git_commit_message?: string;
-    git_branch?: string;
-    git_commit_author?: string;
-    git_commit_author_username?: string;
-    git_related_commits?: string[];
+    git_context?: {
+      commits?: Array<{
+        hash?: string;
+        shortHash?: string;
+        message: string;
+        author?: {
+          name: string;
+          email?: string;
+          username?: string;
+        };
+        timestamp?: string;
+        branch?: string;
+        repository?: string;
+        stats?: {
+          filesChanged?: number;
+          insertions?: number;
+          deletions?: number;
+          files?: string[];
+        };
+      }>;
+      pullRequests?: Array<{
+        number?: number;
+        title: string;
+        url?: string;
+        repository?: string;
+        author?: {
+          name?: string;
+          username?: string;
+        };
+        state?: 'open' | 'closed' | 'merged' | 'draft';
+        merged?: boolean;
+        mergedAt?: string;
+        branch?: {
+          head: string;
+          base: string;
+        };
+      }>;
+      repositories?: Array<{
+        name: string;
+        url?: string;
+        platform?: 'github' | 'gitlab' | 'other';
+      }>;
+    };
   };
 }
 
@@ -947,12 +984,7 @@ export class ActionsService {
           deck: completion_context.deck,
           pullQuotes: completion_context.pull_quotes,
           changelogVisibility: completion_context.changelog_visibility,
-          gitCommitHash: completion_context.git_commit_hash,
-          gitCommitMessage: completion_context.git_commit_message,
-          gitBranch: completion_context.git_branch,
-          gitCommitAuthor: completion_context.git_commit_author,
-          gitCommitAuthorUsername: completion_context.git_commit_author_username,
-          gitRelatedCommits: completion_context.git_related_commits,
+          gitContext: completion_context.git_context,
         });
       } catch (error) {
         console.error(`Failed to update completion context for action ${action_id}:`, error);
@@ -1660,12 +1692,7 @@ export class ActionsService {
           headline: completionContexts.headline,
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
-          gitCommitHash: completionContexts.gitCommitHash,
-          gitCommitMessage: completionContexts.gitCommitMessage,
-          gitBranch: completionContexts.gitBranch,
-          gitCommitAuthor: completionContexts.gitCommitAuthor,
-          gitCommitAuthorUsername: completionContexts.gitCommitAuthorUsername,
-          gitRelatedCommits: completionContexts.gitRelatedCommits,
+          gitContext: completionContexts.gitContext,
         })
         .from(completionContexts)
         .innerJoin(actions, eq(completionContexts.actionId, actions.id))
@@ -1684,12 +1711,7 @@ export class ActionsService {
           headline: context.headline || undefined,
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
-          git_commit_hash: context.gitCommitHash || undefined,
-          git_commit_message: context.gitCommitMessage || undefined,
-          git_branch: context.gitBranch || undefined,
-          git_commit_author: context.gitCommitAuthor || undefined,
-          git_commit_author_username: context.gitCommitAuthorUsername || undefined,
-          git_related_commits: context.gitRelatedCommits as string[] || undefined,
+          git_context: context.gitContext || undefined,
         });
       }
     }
@@ -1708,12 +1730,7 @@ export class ActionsService {
           headline: completionContexts.headline,
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
-          gitCommitHash: completionContexts.gitCommitHash,
-          gitCommitMessage: completionContexts.gitCommitMessage,
-          gitBranch: completionContexts.gitBranch,
-          gitCommitAuthor: completionContexts.gitCommitAuthor,
-          gitCommitAuthorUsername: completionContexts.gitCommitAuthorUsername,
-          gitRelatedCommits: completionContexts.gitRelatedCommits,
+          gitContext: completionContexts.gitContext,
         })
         .from(completionContexts)
         .where(eq(completionContexts.actionId, actionId))
@@ -1732,12 +1749,7 @@ export class ActionsService {
           headline: context.headline || undefined,
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
-          git_commit_hash: context.gitCommitHash || undefined,
-          git_commit_message: context.gitCommitMessage || undefined,
-          git_branch: context.gitBranch || undefined,
-          git_commit_author: context.gitCommitAuthor || undefined,
-          git_commit_author_username: context.gitCommitAuthorUsername || undefined,
-          git_related_commits: context.gitRelatedCommits as string[] || undefined,
+          git_context: context.gitContext || undefined,
         };
       }
     }

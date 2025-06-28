@@ -21,13 +21,50 @@ interface FeedItem {
   headline?: string;
   deck?: string;
   pullQuotes?: string[];
-  // Git information
-  gitCommitHash?: string;
-  gitCommitMessage?: string;
-  gitBranch?: string;
-  gitCommitAuthor?: string;
-  gitCommitAuthorUsername?: string;
-  gitRelatedCommits?: string[];
+  // Git context information
+  gitContext?: {
+    commits?: Array<{
+      hash?: string;
+      shortHash?: string;
+      message: string;
+      author?: {
+        name: string;
+        email?: string;
+        username?: string;
+      };
+      timestamp?: string;
+      branch?: string;
+      repository?: string;
+      stats?: {
+        filesChanged?: number;
+        insertions?: number;
+        deletions?: number;
+        files?: string[];
+      };
+    }>;
+    pullRequests?: Array<{
+      number?: number;
+      title: string;
+      url?: string;
+      repository?: string;
+      author?: {
+        name?: string;
+        username?: string;
+      };
+      state?: 'open' | 'closed' | 'merged' | 'draft';
+      merged?: boolean;
+      mergedAt?: string;
+      branch?: {
+        head: string;
+        base: string;
+      };
+    }>;
+    repositories?: Array<{
+      name: string;
+      url?: string;
+      platform?: 'github' | 'gitlab' | 'other';
+    }>;
+  };
 }
 
 interface Action {

@@ -99,13 +99,50 @@ export interface DependencyCompletionContext {
   headline?: string;
   deck?: string;
   pull_quotes?: string[];
-  // Git information
-  git_commit_hash?: string;
-  git_commit_message?: string;
-  git_branch?: string;
-  git_commit_author?: string;
-  git_commit_author_username?: string;
-  git_related_commits?: string[];
+  // Git context information
+  git_context?: {
+    commits?: Array<{
+      hash?: string;
+      shortHash?: string;
+      message: string;
+      author?: {
+        name: string;
+        email?: string;
+        username?: string;
+      };
+      timestamp?: string;
+      branch?: string;
+      repository?: string;
+      stats?: {
+        filesChanged?: number;
+        insertions?: number;
+        deletions?: number;
+        files?: string[];
+      };
+    }>;
+    pullRequests?: Array<{
+      number?: number;
+      title: string;
+      url?: string;
+      repository?: string;
+      author?: {
+        name?: string;
+        username?: string;
+      };
+      state?: 'open' | 'closed' | 'merged' | 'draft';
+      merged?: boolean;
+      mergedAt?: string;
+      branch?: {
+        head: string;
+        base: string;
+      };
+    }>;
+    repositories?: Array<{
+      name: string;
+      url?: string;
+      platform?: 'github' | 'gitlab' | 'other';
+    }>;
+  };
 }
 
 export interface ActionMetadata {

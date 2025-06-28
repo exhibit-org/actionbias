@@ -49,20 +49,50 @@ export const completionContextSchema = z.object({
   headline: z.string().optional(),              // AI-generated compelling headline
   deck: z.string().optional(),                  // AI-generated standfirst/subtitle
   pull_quotes: z.array(z.string()).optional(),  // AI-extracted key quotes
-  // Git commit information
-  git_commit_hash: z.string().optional(),       // SHA hash of the primary commit
-  git_commit_message: z.string().optional(),    // Commit message  
-  git_branch: z.string().optional(),            // Branch name where commit was made
-  git_commit_author: z.string().optional(),     // Commit author (name <email>)
-  git_commit_author_username: z.string().optional(), // GitHub username
-  git_commit_timestamp: z.string().optional(),  // When the commit was made (ISO string)
-  git_diff_stats: z.object({                    // Statistics about the changes
-    filesChanged: z.number().optional(),
-    insertions: z.number().optional(),
-    deletions: z.number().optional(),
-    files: z.array(z.string()).optional()
-  }).optional(),
-  git_related_commits: z.array(z.string()).optional() // Array of related commit hashes
+  // Git context - flexible structure for commits, PRs, and repositories
+  git_context: z.object({
+    commits: z.array(z.object({
+      hash: z.string().optional(),               // SHA hash (optional - might not know yet)
+      shortHash: z.string().optional(),          // Short SHA (7 chars)
+      message: z.string(),                       // Commit message (required)
+      author: z.object({                         // Author information
+        name: z.string(),
+        email: z.string().optional(),
+        username: z.string().optional()         // GitHub username
+      }).optional(),
+      timestamp: z.string().optional(),          // ISO timestamp
+      branch: z.string().optional(),             // Branch name
+      repository: z.string().optional(),         // Repository name/URL
+      stats: z.object({                          // Diff statistics
+        filesChanged: z.number().optional(),
+        insertions: z.number().optional(),
+        deletions: z.number().optional(),
+        files: z.array(z.string()).optional()
+      }).optional()
+    })).optional(),
+    pullRequests: z.array(z.object({
+      number: z.number().optional(),             // PR number (optional - might not exist yet)
+      title: z.string(),                         // PR title (required)
+      url: z.string().optional(),                // Full PR URL
+      repository: z.string().optional(),         // Repository name/URL
+      author: z.object({                         // PR author
+        name: z.string().optional(),
+        username: z.string().optional()
+      }).optional(),
+      state: z.enum(['open', 'closed', 'merged', 'draft']).optional(),
+      merged: z.boolean().optional(),
+      mergedAt: z.string().optional(),           // ISO timestamp
+      branch: z.object({                         // Branch information
+        head: z.string(),                        // Source branch
+        base: z.string()                         // Target branch
+      }).optional()
+    })).optional(),
+    repositories: z.array(z.object({             // Repositories involved
+      name: z.string(),
+      url: z.string().optional(),
+      platform: z.enum(['github', 'gitlab', 'other']).optional()
+    })).optional()
+  }).optional()
 });
 
 export type CompletionContext = z.infer<typeof completionContextSchema>;
@@ -81,20 +111,50 @@ export const completionContexts = pgTable('completion_contexts', {
   deck: text('deck'),                                // AI-generated standfirst/subtitle
   pullQuotes: jsonb('pull_quotes').$type<string[]>(), // AI-extracted key quotes
   
-  // Git commit information
-  gitCommitHash: text('git_commit_hash'),           // SHA hash of the primary commit
-  gitCommitMessage: text('git_commit_message'),     // Commit message
-  gitBranch: text('git_branch'),                    // Branch name where commit was made
-  gitCommitAuthor: text('git_commit_author'),       // Commit author (name <email>)
-  gitCommitAuthorUsername: text('git_commit_author_username'), // GitHub username
-  gitCommitTimestamp: timestamp('git_commit_timestamp'), // When the commit was made
-  gitDiffStats: jsonb('git_diff_stats').$type<{    // Statistics about the changes
-    filesChanged?: number;
-    insertions?: number;
-    deletions?: number;
-    files?: string[];
+  // Git context - flexible structure for commits, PRs, and repositories
+  gitContext: jsonb('git_context').$type<{
+    commits?: Array<{
+      hash?: string;              // SHA hash (optional - might not know yet)
+      shortHash?: string;         // Short SHA (7 chars)
+      message: string;            // Commit message (required)
+      author?: {                  // Author information
+        name: string;
+        email?: string;
+        username?: string;        // GitHub username
+      };
+      timestamp?: string;         // ISO timestamp
+      branch?: string;            // Branch name
+      repository?: string;        // Repository name/URL
+      stats?: {                   // Diff statistics
+        filesChanged?: number;
+        insertions?: number;
+        deletions?: number;
+        files?: string[];
+      };
+    }>;
+    pullRequests?: Array<{
+      number?: number;            // PR number (optional - might not exist yet)
+      title: string;              // PR title (required)
+      url?: string;               // Full PR URL
+      repository?: string;        // Repository name/URL
+      author?: {                  // PR author
+        name?: string;
+        username?: string;
+      };
+      state?: 'open' | 'closed' | 'merged' | 'draft';
+      merged?: boolean;
+      mergedAt?: string;          // ISO timestamp
+      branch?: {                  // Branch information
+        head: string;             // Source branch
+        base: string;             // Target branch
+      };
+    }>;
+    repositories?: Array<{        // Repositories involved
+      name: string;
+      url?: string;
+      platform?: 'github' | 'gitlab' | 'other';
+    }>;
   }>(),
-  gitRelatedCommits: jsonb('git_related_commits').$type<string[]>(), // Array of related commit hashes
   
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),

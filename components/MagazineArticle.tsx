@@ -19,13 +19,50 @@ interface MagazineArticleProps {
   actionVision?: string;
   actionDone: boolean;
   actionCreatedAt: string;
-  // Git information
-  gitCommitHash?: string;
-  gitCommitMessage?: string;
-  gitBranch?: string;
-  gitCommitAuthor?: string;
-  gitCommitAuthorUsername?: string;
-  gitRelatedCommits?: string[];
+  // Git context information
+  gitContext?: {
+    commits?: Array<{
+      hash?: string;
+      shortHash?: string;
+      message: string;
+      author?: {
+        name: string;
+        email?: string;
+        username?: string;
+      };
+      timestamp?: string;
+      branch?: string;
+      repository?: string;
+      stats?: {
+        filesChanged?: number;
+        insertions?: number;
+        deletions?: number;
+        files?: string[];
+      };
+    }>;
+    pullRequests?: Array<{
+      number?: number;
+      title: string;
+      url?: string;
+      repository?: string;
+      author?: {
+        name?: string;
+        username?: string;
+      };
+      state?: 'open' | 'closed' | 'merged' | 'draft';
+      merged?: boolean;
+      mergedAt?: string;
+      branch?: {
+        head: string;
+        base: string;
+      };
+    }>;
+    repositories?: Array<{
+      name: string;
+      url?: string;
+      platform?: 'github' | 'gitlab' | 'other';
+    }>;
+  };
 }
 
 export default function MagazineArticle({ 
@@ -280,41 +317,65 @@ export default function MagazineArticle({
                       <dd className="text-gray-900 font-medium">{formatDate(item.completionTimestamp)}</dd>
                     </div>
                   </div>
-                  {item.gitCommitHash && (
+                  {item.gitContext?.commits && item.gitContext.commits.length > 0 && (
                     <div className="pt-3 mt-3 border-t border-gray-200">
                       <dt className="font-bold text-gray-600 uppercase text-xs tracking-wider mb-2">Implementation</dt>
-                      <dd className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                          <a 
-                            href={`https://github.com/exhibit-org/actionbias/commit/${item.gitCommitHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-sm text-blue-600 hover:text-blue-800"
-                          >
-                            {item.gitCommitHash.substring(0, 7)}
-                          </a>
-                          {item.gitBranch && (
-                            <span className="text-xs text-gray-500">on {item.gitBranch}</span>
-                          )}
-                        </div>
-                        {item.gitCommitMessage && (
-                          <p className="text-xs text-gray-700 pl-6">{item.gitCommitMessage}</p>
-                        )}
-                        {item.gitCommitAuthor && (
-                          <p className="text-xs text-gray-500 pl-6">
-                            by{' '}
-                            <a 
-                              href={`https://github.com/${item.gitCommitAuthorUsername || 'bbn'}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800"
-                            >
-                              {item.gitCommitAuthor.split(' <')[0]}
-                            </a>
-                          </p>
+                      <dd className="space-y-2">
+                        {item.gitContext.commits.map((commit, index) => (
+                          <div key={commit.hash || index} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              {commit.hash && (
+                                <a 
+                                  href={`https://github.com/exhibit-org/actionbias/commit/${commit.hash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-sm text-blue-600 hover:text-blue-800"
+                                >
+                                  {commit.shortHash || commit.hash.substring(0, 7)}
+                                </a>
+                              )}
+                              {commit.branch && (
+                                <span className="text-xs text-gray-500">on {commit.branch}</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-700 pl-6">{commit.message}</p>
+                            {commit.author && (
+                              <p className="text-xs text-gray-500 pl-6">
+                                by{' '}
+                                <a 
+                                  href={`https://github.com/${commit.author.username || 'bbn'}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  {commit.author.name}
+                                </a>
+                              </p>
+                            )}
+                            {commit.repository && (
+                              <p className="text-xs text-gray-500 pl-6">Repository: {commit.repository}</p>
+                            )}
+                          </div>
+                        ))}
+                        {item.gitContext.pullRequests && item.gitContext.pullRequests.length > 0 && (
+                          <div className="mt-2 pl-6">
+                            <div className="text-xs font-medium text-gray-600 mb-1">Pull Requests:</div>
+                            {item.gitContext.pullRequests.map((pr, index) => (
+                              <div key={pr.number || index} className="text-xs text-gray-600">
+                                {pr.url ? (
+                                  <a href={pr.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                    {pr.title}
+                                  </a>
+                                ) : (
+                                  pr.title
+                                )}
+                                {pr.state && <span className="ml-2 text-gray-500">({pr.state})</span>}
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </dd>
                     </div>

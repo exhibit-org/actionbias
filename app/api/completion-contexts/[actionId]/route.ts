@@ -8,12 +8,41 @@ const updateCompletionContextSchema = z.object({
   learningStory: z.string().optional(),
   changelogVisibility: z.enum(["private", "team", "public"]).optional(),
   structuredData: z.record(z.any()).optional(),
+  // Magazine-style editorial content
+  headline: z.string().optional(),
+  deck: z.string().optional(),
+  pullQuotes: z.array(z.string()).optional(),
+  // Git commit information
+  gitCommitHash: z.string().optional(),
+  gitCommitMessage: z.string().optional(),
+  gitBranch: z.string().optional(),
+  gitCommitAuthor: z.string().optional(),
+  gitCommitAuthorUsername: z.string().optional(),
+  gitCommitTimestamp: z.string().optional(),
+  gitDiffStats: z.object({
+    filesChanged: z.number().optional(),
+    insertions: z.number().optional(),
+    deletions: z.number().optional(),
+    files: z.array(z.string()).optional()
+  }).optional(),
+  gitRelatedCommits: z.array(z.string()).optional(),
 }).refine(
   (data) => data.implementationStory !== undefined || 
            data.impactStory !== undefined || 
            data.learningStory !== undefined || 
            data.changelogVisibility !== undefined || 
-           data.structuredData !== undefined,
+           data.structuredData !== undefined ||
+           data.headline !== undefined ||
+           data.deck !== undefined ||
+           data.pullQuotes !== undefined ||
+           data.gitCommitHash !== undefined ||
+           data.gitCommitMessage !== undefined ||
+           data.gitBranch !== undefined ||
+           data.gitCommitAuthor !== undefined ||
+           data.gitCommitAuthorUsername !== undefined ||
+           data.gitCommitTimestamp !== undefined ||
+           data.gitDiffStats !== undefined ||
+           data.gitRelatedCommits !== undefined,
   {
     message: "At least one field must be provided for update",
   }
@@ -66,7 +95,7 @@ export async function PUT(
     const result = await CompletionContextService.upsertCompletionContext({
       actionId: resolvedParams.actionId,
       ...updateParams
-    });
+    } as UpdateCompletionContextParams);
     
     return NextResponse.json({
       success: true,

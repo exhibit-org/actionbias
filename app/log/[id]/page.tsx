@@ -73,13 +73,8 @@ async function getScopedCompletedActions(rootId: string) {
             actionVision: actionDetail.vision,
             actionDone: actionDetail.done,
             actionCreatedAt: actionDetail.created_at,
-            // Git information
-            gitCommitHash: actionDetail.completion_context.git_commit_hash,
-            gitCommitMessage: actionDetail.completion_context.git_commit_message,
-            gitBranch: actionDetail.completion_context.git_branch,
-            gitCommitAuthor: actionDetail.completion_context.git_commit_author,
-            gitCommitAuthorUsername: actionDetail.completion_context.git_commit_author_username,
-            gitRelatedCommits: actionDetail.completion_context.git_related_commits,
+            // Git context information
+            gitContext: actionDetail.completion_context.git_context,
           };
         } catch (error) {
           console.log(`Failed to fetch action detail for ${actionId}:`, error);

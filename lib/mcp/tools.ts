@@ -365,15 +365,52 @@ export function registerTools(server: any) {
       headline: z.string().describe("REQUIRED: AI-generated headline in the style of The Economist or Nature (e.g., 'Search latency reduced by 70% through architectural improvements', 'New caching strategy improves database performance')"),
       deck: z.string().describe("REQUIRED: AI-generated standfirst in the style of The Economist - a measured 2-3 sentence summary that provides context and key findings without hyperbole"),
       pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted notable quotes from the completion stories that highlight key findings, technical insights, or lessons learned - avoid superlatives"),
-      // Optional git commit information
-      git_commit_hash: z.string().optional().describe("SHA hash of the primary commit associated with this completed action"),
-      git_commit_message: z.string().optional().describe("Commit message describing the changes"),
-      git_branch: z.string().optional().describe("Git branch name where the commit was made"),
-      git_commit_author: z.string().optional().describe("Commit author in 'Name <email>' format"),
-      git_commit_author_username: z.string().optional().describe("GitHub username of the commit author"),
-      git_related_commits: z.array(z.string()).optional().describe("Array of related commit hashes if multiple commits were involved"),
+      // Optional git context information
+      git_context: z.object({
+        commits: z.array(z.object({
+          hash: z.string().optional().describe("SHA hash (optional - might not know yet)"),
+          shortHash: z.string().optional().describe("Short SHA (7 chars)"),
+          message: z.string().describe("Commit message (required)"),
+          author: z.object({
+            name: z.string().describe("Author name"),
+            email: z.string().optional().describe("Author email"),
+            username: z.string().optional().describe("GitHub username")
+          }).optional(),
+          timestamp: z.string().optional().describe("ISO timestamp"),
+          branch: z.string().optional().describe("Branch name"),
+          repository: z.string().optional().describe("Repository name/URL"),
+          stats: z.object({
+            filesChanged: z.number().optional(),
+            insertions: z.number().optional(),
+            deletions: z.number().optional(),
+            files: z.array(z.string()).optional()
+          }).optional()
+        })).optional().describe("Array of commits associated with this action"),
+        pullRequests: z.array(z.object({
+          number: z.number().optional().describe("PR number (optional - might not exist yet)"),
+          title: z.string().describe("PR title (required)"),
+          url: z.string().optional().describe("Full PR URL"),
+          repository: z.string().optional().describe("Repository name/URL"),
+          author: z.object({
+            name: z.string().optional(),
+            username: z.string().optional()
+          }).optional(),
+          state: z.enum(['open', 'closed', 'merged', 'draft']).optional(),
+          merged: z.boolean().optional(),
+          mergedAt: z.string().optional(),
+          branch: z.object({
+            head: z.string().describe("Source branch"),
+            base: z.string().describe("Target branch")
+          }).optional()
+        })).optional().describe("Array of pull requests associated with this action"),
+        repositories: z.array(z.object({
+          name: z.string().describe("Repository name"),
+          url: z.string().optional().describe("Repository URL"),
+          platform: z.enum(['github', 'gitlab', 'other']).optional()
+        })).optional().describe("Repositories involved in this work")
+      }).optional().describe("Flexible git context including commits, pull requests, and repository information. Provide whatever information you have available."),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_commit_hash, git_commit_message, git_branch, git_commit_author, git_commit_author_username, git_related_commits }: { 
+    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_context }: { 
       action_id: string; 
       implementation_story: string;
       impact_story: string;
@@ -382,12 +419,49 @@ export function registerTools(server: any) {
       headline: string;
       deck: string;
       pull_quotes: string[];
-      git_commit_hash?: string;
-      git_commit_message?: string;
-      git_branch?: string;
-      git_commit_author?: string;
-      git_commit_author_username?: string;
-      git_related_commits?: string[];
+      git_context?: {
+        commits?: Array<{
+          hash?: string;
+          shortHash?: string;
+          message: string;
+          author?: {
+            name: string;
+            email?: string;
+            username?: string;
+          };
+          timestamp?: string;
+          branch?: string;
+          repository?: string;
+          stats?: {
+            filesChanged?: number;
+            insertions?: number;
+            deletions?: number;
+            files?: string[];
+          };
+        }>;
+        pullRequests?: Array<{
+          number?: number;
+          title: string;
+          url?: string;
+          repository?: string;
+          author?: {
+            name?: string;
+            username?: string;
+          };
+          state?: 'open' | 'closed' | 'merged' | 'draft';
+          merged?: boolean;
+          mergedAt?: string;
+          branch?: {
+            head: string;
+            base: string;
+          };
+        }>;
+        repositories?: Array<{
+          name: string;
+          url?: string;
+          platform?: 'github' | 'gitlab' | 'other';
+        }>;
+      };
     }, extra: any) => {
       try {
         console.log(`Completing action ${action_id} with completion context`);
@@ -404,12 +478,7 @@ export function registerTools(server: any) {
             headline,
             deck,
             pull_quotes,
-            git_commit_hash,
-            git_commit_message,
-            git_branch,
-            git_commit_author,
-            git_commit_author_username,
-            git_related_commits
+            git_context
           }
         });
         
@@ -420,13 +489,22 @@ export function registerTools(server: any) {
         message += `\n• Learning: ${learning_story.substring(0, 100)}${learning_story.length > 100 ? '...' : ''}`;
         message += `\n• Visibility: ${changelog_visibility}`;
         
-        if (git_commit_hash || git_branch) {
+        if (git_context?.commits && git_context.commits.length > 0) {
           message += `\n\n🔗 Git Information:`;
-          if (git_commit_hash) message += `\n• Commit: ${git_commit_hash.substring(0, 7)}`;
-          if (git_commit_message) message += `\n• Message: ${git_commit_message.substring(0, 50)}${git_commit_message.length > 50 ? '...' : ''}`;
-          if (git_branch) message += `\n• Branch: ${git_branch}`;
-          if (git_commit_author) message += `\n• Author: ${git_commit_author}`;
-          if (git_related_commits && git_related_commits.length > 0) message += `\n• Related commits: ${git_related_commits.length}`;
+          git_context.commits.forEach((commit, index) => {
+            if (index < 3) { // Show up to 3 commits in summary
+              if (commit.hash) message += `\n• Commit: ${commit.shortHash || commit.hash.substring(0, 7)}`;
+              message += `\n  ${commit.message.substring(0, 50)}${commit.message.length > 50 ? '...' : ''}`;
+              if (commit.branch) message += `\n  Branch: ${commit.branch}`;
+              if (commit.author) message += `\n  Author: ${commit.author.name}`;
+            }
+          });
+          if (git_context.commits.length > 3) {
+            message += `\n• ...and ${git_context.commits.length - 3} more commit${git_context.commits.length - 3 === 1 ? '' : 's'}`;
+          }
+          if (git_context.pullRequests && git_context.pullRequests.length > 0) {
+            message += `\n• Pull Requests: ${git_context.pullRequests.length}`;
+          }
         }
 
         return {
