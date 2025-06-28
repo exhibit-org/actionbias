@@ -64,7 +64,7 @@ describe("MCP Resources", () => {
     expect(server.resource).toHaveBeenCalledTimes(12);
     expect(Object.keys(resourceCapabilities)).toEqual([
       "action://list",
-      "action://workable",
+      "action://unblocked",
       "action://blockers",
       "action://no-dependencies",
       "action://tree",

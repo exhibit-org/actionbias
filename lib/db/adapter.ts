@@ -94,10 +94,33 @@ export async function initializePGlite() {
                   try {
                     await pgliteDb.execute(sql.raw(cleanStatement));
                   } catch (error) {
+                    const errorMessage = String(error);
                     // Skip errors for duplicate objects (tables/indexes already exist)
-                    if (!String(error).includes('already exists')) {
-                      throw error;
+                    if (errorMessage.includes('already exists')) {
+                      continue;
                     }
+                    
+                    // For ALTER TABLE ADD COLUMN, skip if column already exists
+                    if (cleanStatement.includes('ALTER TABLE') && cleanStatement.includes('ADD COLUMN')) {
+                      if (errorMessage.includes('already exists') || errorMessage.includes('duplicate column')) {
+                        console.warn(`Warning: Migration ${file} tried to add an existing column. Skipping.`);
+                        continue;
+                      }
+                    }
+                    
+                    // For ALTER TABLE RENAME COLUMN, check if the column doesn't exist
+                    if (cleanStatement.includes('ALTER TABLE') && cleanStatement.includes('RENAME COLUMN')) {
+                      // Check if error is about column not existing
+                      if (errorMessage.includes('does not exist') || errorMessage.includes('column') && errorMessage.includes('not found')) {
+                        // This might mean the migration has already been applied or the schema is different
+                        // Log it but continue
+                        console.warn(`Warning: Migration ${file} tried to rename a non-existent column. This might be expected if the migration was already applied.`);
+                        continue;
+                      }
+                    }
+                    
+                    // For other errors, provide more context
+                    throw new Error(`Migration ${file} failed: ${errorMessage}\nStatement: ${cleanStatement}`);
                   }
                 }
               }

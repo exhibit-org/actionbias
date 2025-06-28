@@ -69,12 +69,12 @@ export function registerTools(server: any) {
   // create_action - Create a new action
   server.tool(
     "create_action",
-    "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+    "Create a new action in the database with a required family",
     {
       title: z.string().min(1).describe("The title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      family_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
+      family_id: z.string().uuid().describe("Required family action ID to create a family relationship"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
       override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
     },
@@ -87,7 +87,7 @@ export function registerTools(server: any) {
         const familyAction = await db.select().from(actions).where(eq(actions.id, family_id)).limit(1);
         
         if (familyAction.length === 0) {
-          throw new Error(`Family action with ID ${family_id} not found. Use suggest_family tool to find a valid family.`);
+          throw new Error(`Family action with ID ${family_id} not found. Use search_actions or action://tree to find a valid family.`);
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues
@@ -743,7 +743,7 @@ export function registerTools(server: any) {
 
 export const toolCapabilities = {
   create_action: {
-    description: "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+    description: "Create a new action in the database with a required family",
   },
   add_dependency: {
     description: "Create a dependency relationship between two existing actions",

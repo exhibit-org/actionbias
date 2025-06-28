@@ -76,7 +76,6 @@ done.engineering exposes these tools via Model Context Protocol:
 - **`complete_action`** - Mark complete with rich context stories
 - **`uncomplete_action`** - Reopen completed actions
 - **`join_family`** - Move actions between families
-- **`suggest_family`** - AI-powered family suggestions
 - **`search_actions`** - Semantic + keyword hybrid search
 
 ## MCP Resources
@@ -146,8 +145,7 @@ pnpm build
 - `GET /api/feed` - List changelog feed
 
 ### AI Features
-- `POST /api/actions/suggest-family` - Get AI family suggestions
-- `POST /api/actions/search` - Semantic search
+- `POST /api/actions/search` - Semantic + keyword hybrid search
 
 ## Environment Variables
 

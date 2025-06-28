@@ -41,7 +41,7 @@ describe('MCP Tools', () => {
     it('should register all tools with the server', () => {
       registerTools(mockServer);
 
-      expect(mockServer.tool).toHaveBeenCalledTimes(10);
+      expect(mockServer.tool).toHaveBeenCalledTimes(9);
       expect(mockServer.tool).toHaveBeenCalledWith('create_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('add_dependency', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('delete_action', expect.any(String), expect.any(Object), expect.any(Function));
@@ -50,7 +50,6 @@ describe('MCP Tools', () => {
       expect(mockServer.tool).toHaveBeenCalledWith('complete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('uncomplete_action', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('join_family', expect.any(String), expect.any(Object), expect.any(Function));
-      expect(mockServer.tool).toHaveBeenCalledWith('suggest_family', expect.any(String), expect.any(Object), expect.any(Function));
       expect(mockServer.tool).toHaveBeenCalledWith('search_actions', expect.any(String), expect.any(Object), expect.any(Function));
     });
   });
@@ -65,12 +64,10 @@ describe('MCP Tools', () => {
       expect(toolCapabilities).toHaveProperty('complete_action');
       expect(toolCapabilities).toHaveProperty('uncomplete_action');
       expect(toolCapabilities).toHaveProperty('join_family');
-      expect(toolCapabilities).toHaveProperty('suggest_family');
       expect(toolCapabilities).toHaveProperty('search_actions');
 
-      expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with a required family (use suggest_family to find appropriate placement)');
+      expect(toolCapabilities.create_action.description).toBe('Create a new action in the database with a required family');
       expect(toolCapabilities.join_family.description).toBe('Update an action\'s family relationship by having it join a new family or making it independent');
-      expect(toolCapabilities.suggest_family.description).toBe('Get an intelligent family suggestion for an action using vector similarity search. Can accept either action details or just an action_id to fetch data automatically.');
     });
   });
 

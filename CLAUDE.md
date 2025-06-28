@@ -63,7 +63,6 @@ node scripts/test-streamable-http-client.mjs http://localhost:3000
   - Automatically manages parent→child dependencies when moving actions
   - Removes old dependency when leaving a family
   - Creates new dependency when joining a family
-- **suggest_family**: AI-powered intelligent action placement suggestions using vector similarity
 
 ### Adding New Tools
 1. Define tool schema using Zod in `lib/mcp/tools.ts`

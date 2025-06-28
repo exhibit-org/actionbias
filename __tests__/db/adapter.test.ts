@@ -48,8 +48,9 @@ describe('Database Adapter', () => {
   describe('environment detection', () => {
     it('should throw error when DATABASE_URL is not set', () => {
       delete process.env.DATABASE_URL;
+      delete process.env.POSTGRES_URL;
       
-      expect(() => getDb()).toThrow('DATABASE_URL environment variable is not set');
+      expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
 
     it('should detect PGlite URL format', () => {
