@@ -4,6 +4,14 @@ import { QuickActionProvider } from "./contexts/QuickActionContext";
 import QuickActionModal from "./components/QuickActionModal";
 import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
 
+// Ensure migrations on app startup
+import { ensureMigrations } from "@/lib/db/ensure-migrations";
+
+// Trigger migration check on server startup
+if (typeof window === 'undefined') {
+  ensureMigrations().catch(console.error);
+}
+
 export const metadata: Metadata = {
   title: "done.engineering - Your context, everywhere. Never start over again.",
   description: "The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Done is the engine of more.",

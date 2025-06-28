@@ -1,17 +1,17 @@
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/vercel-postgres";
 import { sql } from "drizzle-orm";
-import postgres from "postgres";
+import { sql as vercelSql } from "@vercel/postgres";
 
 // Lazy-load database connection to avoid startup failures
-let client: postgres.Sql | null = null;
 let db: ReturnType<typeof drizzle> | null = null;
 let pgliteDb: any = null;
 
 function getDb() {
-  const databaseUrl = process.env.DATABASE_URL;
+  // Check both DATABASE_URL and POSTGRES_URL for compatibility
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is not set');
+    throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set');
   }
   
   // Handle PGlite URLs
@@ -22,10 +22,9 @@ function getDb() {
     return pgliteDb;
   }
   
-  // Handle regular PostgreSQL URLs
+  // Handle regular PostgreSQL URLs with Vercel Postgres
   if (!db) {
-    client = postgres(databaseUrl);
-    db = drizzle(client);
+    db = drizzle(vercelSql);
   }
   
   return db;
@@ -141,7 +140,6 @@ export async function cleanupPGlite() {
 
 // Test utility to reset cache (only for tests)
 export function resetCache() {
-  client = null;
   db = null;
   pgliteDb = null;
   rawPgliteInstance = null;
