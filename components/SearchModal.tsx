@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useSearch } from './SearchContext';
 import { CheckCircle2, Loader2, Search, ChevronRight } from 'lucide-react';
@@ -39,6 +40,7 @@ export function SearchModal() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -92,6 +94,11 @@ export function SearchModal() {
   }, [query, performSearch]);
 
   useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
       setQuery('');
@@ -116,9 +123,9 @@ export function SearchModal() {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div 
       className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/80 pt-[10vh]"
       onClick={closeSearch}
@@ -210,6 +217,7 @@ export function SearchModal() {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
