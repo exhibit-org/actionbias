@@ -3,8 +3,6 @@ import type { Metadata } from "next";
 import { QuickActionProvider } from "./contexts/QuickActionContext";
 import QuickActionModal from "./components/QuickActionModal";
 import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
-import { SearchProvider } from "@/components/SearchContext";
-import { SearchModal } from "@/components/SearchModal";
 
 // Ensure migrations on app startup
 import { ensureMigrations } from "@/lib/db/ensure-migrations";
@@ -54,15 +52,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="h-full antialiased">
-        <SearchProvider>
-          <QuickActionProvider>
-            <GlobalKeyboardListener />
-            {children}
-            <QuickActionModal />
-          </QuickActionProvider>
-          <SearchModal />
-        </SearchProvider>
-        <div id="search-portal-root" />
+        <QuickActionProvider>
+          <GlobalKeyboardListener />
+          {children}
+          <QuickActionModal />
+        </QuickActionProvider>
       </body>
     </html>
   );

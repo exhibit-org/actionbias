@@ -2,11 +2,11 @@
 
 import { useEffect } from 'react';
 import { useQuickAction } from '../contexts/QuickActionContext';
-import { useSearch } from '@/components/SearchContext';
+import { useRouter } from 'next/navigation';
 
 export default function GlobalKeyboardListener() {
   const { openModal } = useQuickAction();
-  const { openSearch } = useSearch();
+  const router = useRouter();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -21,10 +21,10 @@ export default function GlobalKeyboardListener() {
         openModal();
       }
       
-      // CMD+K for search functionality
+      // CMD+K for search functionality - redirect to search page
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        openSearch();
+        router.push('/search');
       }
     };
 
@@ -35,7 +35,7 @@ export default function GlobalKeyboardListener() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [openModal, openSearch]);
+  }, [openModal, router]);
 
   // This component doesn't render anything
   return null;
