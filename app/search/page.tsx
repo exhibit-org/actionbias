@@ -9,7 +9,7 @@ interface SearchResult {
   id: string;
   title: string;
   description?: string;
-  path: string[];
+  path?: string[];
   done: boolean;
   similarity?: number;
   match_type: 'vector' | 'keyword' | 'hybrid';
@@ -137,7 +137,7 @@ export default function SearchPage() {
                         )}
                       </p>
                     )}
-                    {result.path && result.path.length > 0 && (
+                    {result.path && Array.isArray(result.path) && result.path.length > 0 && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         {result.path.map((segment, i) => (
                           <span key={i} className="flex items-center gap-1">

@@ -1,11 +1,8 @@
 {
   "mcpServers": {
-    "Done": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://www.done.engineering/mcp/sse"],
-      "env": {
-        "MCP_AUTH_HEADER": "Authorization: Bearer access_1748888712761_uot06hsah"
-      }
+    "done": {
+      "command": "/Users/bbn/code/actionbias/done-mcp-wrapper.sh",
+      "args": []
     }
   }
 }

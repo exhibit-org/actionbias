@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Share, Check, Calendar, Clock, Eye } from 'react-feather';
+import { BRAND } from '@/lib/config/brand';
 
 interface MagazineArticleProps {
   id: string;
