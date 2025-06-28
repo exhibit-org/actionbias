@@ -220,6 +220,6 @@ export function SearchModal() {
         )}
       </div>
     </div>,
-    document.body
+    document.getElementById('search-portal-root') || document.body
   );
 }

@@ -59,9 +59,10 @@ export default function RootLayout({
             <GlobalKeyboardListener />
             {children}
             <QuickActionModal />
-            <SearchModal />
           </QuickActionProvider>
+          <SearchModal />
         </SearchProvider>
+        <div id="search-portal-root" />
       </body>
     </html>
   );
