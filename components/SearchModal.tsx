@@ -120,7 +120,7 @@ export function SearchModal() {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 pt-[10vh]"
+      className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/80 pt-[10vh]"
       onClick={closeSearch}
     >
       <div 
