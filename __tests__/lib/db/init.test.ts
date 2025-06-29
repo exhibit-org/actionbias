@@ -41,6 +41,7 @@ describe('Database Initialization', () => {
 
     it('does nothing when DATABASE_URL is not set', async () => {
       delete process.env.DATABASE_URL;
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by Jest setup
 
       await initializeDatabase();
 
@@ -50,6 +51,7 @@ describe('Database Initialization', () => {
 
     it('does nothing when DATABASE_URL is empty string', async () => {
       process.env.DATABASE_URL = '';
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by Jest setup
 
       await initializeDatabase();
 
@@ -59,6 +61,7 @@ describe('Database Initialization', () => {
 
     it('does nothing when DATABASE_URL is PostgreSQL URL', async () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/testdb';
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by Jest setup
 
       await initializeDatabase();
 
@@ -68,6 +71,7 @@ describe('Database Initialization', () => {
 
     it('does nothing when DATABASE_URL has different protocol', async () => {
       process.env.DATABASE_URL = 'mysql://user:pass@localhost:3306/testdb';
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by Jest setup
 
       await initializeDatabase();
 

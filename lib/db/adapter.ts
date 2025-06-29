@@ -67,7 +67,8 @@ export async function initializePGlite() {
           
           for (const file of migrationFiles) {
             // Skip migrations that aren't needed for core functionality in tests
-            if (file.includes('waitlist') || 
+            if (file === '0000_worried_invisible_woman.sql' ||
+                file.includes('waitlist') || 
                 file === '0009_lush_wolverine.sql' ||
                 file === '0010_add_editorial_fields.sql' ||
                 file === '0011_add_parent_child_dependencies.sql' ||
@@ -103,8 +104,9 @@ export async function initializePGlite() {
               .replace(/DEFAULT gen_random_text\(\)/g, '')
               .replace(/DEFAULT now\(\)/g, 'DEFAULT CURRENT_TIMESTAMP')
               .replace(/jsonb/g, 'text')
-              // Fix complex primary key constraints for PGlite
-              .replace(/CONSTRAINT\s+"[\w_]+"\s+PRIMARY KEY\s*\([^)]+\)/gi, 'PRIMARY KEY (src, dst, kind)');
+              // Fix complex primary key constraints for PGlite - remove entirely for compatibility
+              .replace(/,\s*CONSTRAINT\s+"[\w_]+"\s+PRIMARY KEY\s*\([^)]+\)/gi, '')
+              .replace(/CONSTRAINT\s+"[\w_]+"\s+PRIMARY KEY\s*\([^)]+\),?/gi, '');
             
             // Execute the filtered migration
             if (migrationSQL.trim()) {

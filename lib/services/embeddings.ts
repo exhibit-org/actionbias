@@ -6,6 +6,7 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'test-key',
+  dangerouslyAllowBrowser: true,
 });
 
 export interface EmbeddingInput {

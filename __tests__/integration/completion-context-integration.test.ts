@@ -6,7 +6,6 @@ import { actions, edges, completionContexts } from "../../db/schema";
 // Mock dependencies
 jest.mock("../../lib/db/adapter");
 jest.mock("../../lib/db/init");
-jest.mock("../../lib/services/analysis");
 jest.mock("../../lib/services/placement");
 jest.mock("../../lib/services/embeddings");
 jest.mock("../../lib/services/vector");

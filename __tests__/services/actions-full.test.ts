@@ -6,7 +6,8 @@ const createMutableQueryBuilder = (resolvedValue: any) => {
     from: jest.fn(() => builder),
     where: jest.fn(() => builder),
     limit: jest.fn(() => builder),
-    orderBy: jest.fn(() => Promise.resolve(resolvedValue)),
+    orderBy: jest.fn(() => builder),
+    execute: jest.fn(() => Promise.resolve(resolvedValue)), // Added execute for explicit resolution
     then: (resolve: any) => Promise.resolve(resolvedValue).then(resolve), // Make it thenable
   };
   return builder;
