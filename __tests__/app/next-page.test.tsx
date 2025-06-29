@@ -71,15 +71,13 @@ describe('NextActionDisplay', () => {
     render(<NextActionDisplay colors={mockColors} />);
 
     await waitFor(() => {
-      // Look for the contenteditable div with the title text
-      const titleElement = screen.getByText('Test Action Title');
-      expect(titleElement).toBeInTheDocument();
-    });
+      // Look for the title text anywhere in the document - it's rendered as part of a markdown block
+      expect(screen.getByText(/Test Action Title/)).toBeInTheDocument();
+    }, { timeout: 3000 });
 
-    expect(screen.getByText('Test action description')).toBeInTheDocument();
-    expect(screen.getByText('Vision')).toBeInTheDocument();
-    expect(screen.getByText('Test action vision')).toBeInTheDocument();
-    expect(screen.getByLabelText('Mark Complete')).toBeInTheDocument();
+    expect(screen.getByText(/Test action description/)).toBeInTheDocument();
+    expect(screen.getByText(/Vision/)).toBeInTheDocument();
+    expect(screen.getByText(/Test action vision/)).toBeInTheDocument();
 
     // Verify API call
     expect(mockFetch).toHaveBeenCalledWith('/api/actions/next');

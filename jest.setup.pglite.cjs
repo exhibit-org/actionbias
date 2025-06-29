@@ -3,8 +3,8 @@ const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-// Set PGlite URL for test database 
-process.env.POSTGRES_URL = 'pglite://.pglite-test';
+// Set PGlite URL for test database - use memory to avoid file path issues
+process.env.POSTGRES_URL = 'pglite://memory';
 // Skip migrations for tests to avoid PGlite compatibility issues
 process.env.SKIP_MIGRATIONS = 'true';
 // Clear any existing DATABASE_URL to prevent conflicts

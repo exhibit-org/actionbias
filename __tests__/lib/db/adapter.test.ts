@@ -67,12 +67,14 @@ describe('Database Adapter', () => {
   describe('getDb', () => {
     it('throws error when DATABASE_URL is not set', () => {
       delete process.env.DATABASE_URL;
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by global setup
       
       expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
 
     it('throws error when DATABASE_URL is empty string', () => {
       process.env.DATABASE_URL = '';
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by global setup
       
       expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
@@ -121,7 +123,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
@@ -131,7 +134,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('./custom/path.db');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('custom/path.db'));
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
@@ -141,7 +145,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
 
@@ -260,7 +265,8 @@ describe('Database Adapter', () => {
       
       await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('./data/databases/test-app.db');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('data/databases/test-app.db'));
     });
 
     it('handles PGlite URLs with just protocol', async () => {
@@ -268,7 +274,17 @@ describe('Database Adapter', () => {
       
       await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
+    });
+
+    it('handles memory database correctly', async () => {
+      process.env.DATABASE_URL = 'pglite://memory';
+      
+      await initializePGlite();
+      
+      // Memory should be passed as-is without path resolution
+      expect(mockPGliteModule).toHaveBeenCalledWith('memory');
     });
   });
 });

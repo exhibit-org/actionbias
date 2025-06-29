@@ -1,8 +1,15 @@
+/**
+ * @jest-environment jsdom
+ */
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import EditableField from '../../../app/next/components/EditableField';
 import { ColorScheme } from '../../../app/next/components/types';
+
+// This component doesn't need database, so clear database URLs to prevent PGlite issues
+delete process.env.DATABASE_URL;
+delete process.env.POSTGRES_URL;
 
 // Mock window.getSelection
 const mockSelection = {

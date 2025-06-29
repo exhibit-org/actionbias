@@ -50,7 +50,17 @@ export async function initializePGlite() {
       const fs = await import('fs');
       const path = await import('path');
       
-      const dbPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
+      const urlPath = process.env.DATABASE_URL?.replace('pglite://', '') || '.pglite';
+      
+      // Handle special PGlite cases
+      let dbPath;
+      if (urlPath === 'memory') {
+        dbPath = urlPath; // Keep as 'memory' for in-memory database
+      } else {
+        // Resolve relative paths to absolute paths for file-based PGlite
+        dbPath = path.resolve(urlPath);
+      }
+      
       const pglite = new PGlite(dbPath);
       rawPgliteInstance = pglite; // Store for cleanup
       pgliteDb = drizzlePGlite(pglite);
