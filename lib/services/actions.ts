@@ -21,6 +21,7 @@ import { FamilySummaryService } from './family-summary';
 import { CompletionContextService } from './completion-context';
 import { ActionSearchService } from './action-search';
 import { EditorialAIService } from './editorial-ai';
+import { ContextService } from './context';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
@@ -1754,6 +1755,52 @@ export class ActionsService {
       }
     }
 
+    // Get siblings (same-parent actions, excluding current action)
+    const siblings: ActionMetadata[] = [];
+    if (parentId) {
+      const siblingEdgesResult = await getDb().select().from(edges).where(
+        and(eq(edges.src, parentId), eq(edges.kind, "family"))
+      );
+      const siblingEdges = Array.isArray(siblingEdgesResult) ? siblingEdgesResult : [];
+      const siblingIds = siblingEdges
+        .map((edge: any) => edge.dst)
+        .filter((id: any): id is string => id !== null && id !== actionId); // Exclude current action
+      
+      if (siblingIds.length > 0) {
+        const siblingActions = await getDb().select().from(actions).where(inArray(actions.id, siblingIds));
+        siblings.push(...siblingActions.map(toActionMetadata));
+      }
+    }
+
+    // Build relationship flags to indicate which lists each action appears in
+    const relationshipFlags: { [action_id: string]: string[] } = {};
+    
+    // Track which lists each action appears in
+    parentChain.forEach((ancestor: ActionMetadata) => {
+      if (!relationshipFlags[ancestor.id]) relationshipFlags[ancestor.id] = [];
+      relationshipFlags[ancestor.id].push('ancestor');
+    });
+    
+    children.map(toActionMetadata).forEach((child: ActionMetadata) => {
+      if (!relationshipFlags[child.id]) relationshipFlags[child.id] = [];
+      relationshipFlags[child.id].push('child');
+    });
+    
+    dependencies.map(toActionMetadata).forEach((dep: ActionMetadata) => {
+      if (!relationshipFlags[dep.id]) relationshipFlags[dep.id] = [];
+      relationshipFlags[dep.id].push('dependency');
+    });
+    
+    dependents.map(toActionMetadata).forEach((dependent: ActionMetadata) => {
+      if (!relationshipFlags[dependent.id]) relationshipFlags[dependent.id] = [];
+      relationshipFlags[dependent.id].push('dependent');
+    });
+    
+    siblings.forEach((sibling: ActionMetadata) => {
+      if (!relationshipFlags[sibling.id]) relationshipFlags[sibling.id] = [];
+      relationshipFlags[sibling.id].push('sibling');
+    });
+
     return {
       id: action[0].id,
       title: action[0].title || action[0].data?.title || 'untitled',
@@ -1768,6 +1815,8 @@ export class ActionsService {
       children: children.map(toActionMetadata),
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
+      siblings: siblings,
+      relationship_flags: relationshipFlags,
       dependency_completion_context: dependencyCompletionContext,
       // Family summaries from database columns
       family_context_summary: action[0].familyContextSummary,

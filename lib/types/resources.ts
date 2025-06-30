@@ -76,14 +76,21 @@ export interface ActionDetailResource {
   created_at: string;
   updated_at: string;
   parent_id?: string;
-  parent_chain: ActionMetadata[]; // all parent actions up to root
+  parent_chain: ActionMetadata[]; // all parent actions up to root (renamed from ancestors for consistency)
   family_context_summary?: string; // AI-generated summary of family context
   family_vision_summary?: string; // AI-generated summary of family vision
   children: ActionMetadata[];
   dependencies: ActionMetadata[]; // actions this depends on
   dependents: ActionMetadata[]; // actions that depend on this one
+  siblings: ActionMetadata[]; // same-parent actions (excluding current action)
+  relationship_flags: RelationshipFlags; // indicates which lists each action appears in
   dependency_completion_context: DependencyCompletionContext[]; // completion context from dependencies
   completion_context?: DependencyCompletionContext; // action's own completion context if completed
+}
+
+// Relationship flags to help clients avoid duplicate display
+export interface RelationshipFlags {
+  [action_id: string]: string[]; // array of relationship types: 'ancestor', 'child', 'dependency', 'dependent', 'sibling'
 }
 
 // Completion context from dependencies for enhanced knowledge transfer
