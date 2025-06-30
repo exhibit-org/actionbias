@@ -159,7 +159,7 @@ API routes follow Next.js App Router conventions in `app/api/`:
 ## Deployment Workflow
 - Repository: `exhibit-org/actionbias` on GitHub
 - To test changes: push to main branch and wait ~60 seconds for Vercel deployment
-- **Push Policy**: Push liberally as long as tests pass - don't wait for explicit permission to push changes that build successfully
+- **Push Policy**: Push liberally as long as tests pass and commit frequently for incremental progress
 - Pre-commit hooks run tests automatically to ensure code quality
 
 ## Important Notes
