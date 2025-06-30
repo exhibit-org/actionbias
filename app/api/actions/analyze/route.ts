@@ -95,12 +95,12 @@ Vision: ${actionFields.vision || 'No vision provided'}
 
 SIMILAR ACTIONS FOUND (${similarActions.length} results):
 ${similarActions.map(action => 
-  `- "${action.title}" (${action.score}% match) - ${action.description || 'No description'}`
+  `- ID: ${action.id} | Title: "${action.title}" (${action.score}% match) - ${action.description || 'No description'}`
 ).join('\n') || 'No similar actions found'}
 
 ACTION HIERARCHY CONTEXT:
 ${actionTree.rootActions.length > 0 ? 
-  actionTree.rootActions.slice(0, 10).map(item => `- ${item.title} (${item.children?.length || 0} children)`).join('\n') :
+  actionTree.rootActions.slice(0, 10).map(item => `- ID: ${item.id} | Title: "${item.title}" (${item.children?.length || 0} children)`).join('\n') :
   'Action hierarchy not available'}
 
 ANALYSIS TASK:
@@ -111,10 +111,12 @@ ANALYSIS TASK:
 Return ONLY this JSON format:
 {
   "isDuplicate": boolean,
-  "duplicateAction": { "id": "...", "title": "...", "similarity": 0.95 } or null,
-  "recommendedParent": { "id": "...", "title": "...", "reasoning": "..." } or null,
+  "duplicateAction": { "id": "uuid-from-similar-actions", "title": "...", "similarity": 0.95 } or null,
+  "recommendedParent": { "id": "uuid-from-hierarchy", "title": "...", "reasoning": "..." } or null,
   "reasoning": "Your analysis and reasoning"
-}`;
+}
+
+IMPORTANT: Use the actual UUID from the ID field (e.g., "c70f8794-ce64-44dc-9156-fb662f40b6b2"), NOT the title.`;
 
       console.log('[AnalyzeAPI] Sending context-rich prompt to LLM...');
       
@@ -123,12 +125,12 @@ Return ONLY this JSON format:
         schema: z.object({
           isDuplicate: z.boolean(),
           duplicateAction: z.object({
-            id: z.string(),
+            id: z.string().uuid(),
             title: z.string(),
             similarity: z.number()
           }).nullable(),
           recommendedParent: z.object({
-            id: z.string(),
+            id: z.string().uuid(),
             title: z.string(),
             reasoning: z.string()
           }).nullable(),
