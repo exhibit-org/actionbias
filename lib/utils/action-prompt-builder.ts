@@ -2,7 +2,7 @@ import { ActionDetailResource } from '../types/resources';
 
 export function buildActionPrompt(action: ActionDetailResource): string {
   let prompt = `# Current Task\n**${action.title}**\n`;
-  prompt += `https://www.actionbias.ai/${action.id}\n`;
+  prompt += `https://done.engineering/${action.id}\n`;
   if (action.description) prompt += `\n${action.description}\n\n`;
   else prompt += `\n`;
   prompt += `# Vision\n${action.vision || 'No vision defined for this action.'}\n\n`;
