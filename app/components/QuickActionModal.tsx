@@ -29,27 +29,6 @@ interface AIPreview {
   };
 }
 
-interface ActionMetadata {
-  id: string;
-  title: string;
-  description?: string;
-  vision?: string;
-  done: boolean;
-  version: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ContextData {
-  parent_chain: ActionMetadata[];
-  siblings: ActionMetadata[];
-  dependencies: ActionMetadata[];
-  dependents: ActionMetadata[];
-  relationship_flags: {
-    [action_id: string]: string[];
-  };
-}
-
 export default function QuickActionModal() {
   const { isOpen, closeModal } = useQuickAction();
   const [actionText, setActionText] = useState('');
@@ -59,8 +38,6 @@ export default function QuickActionModal() {
   const [aiPreview, setAIPreview] = useState<AIPreview | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [contextData, setContextData] = useState<ContextData | null>(null);
-  const [isLoadingContext, setIsLoadingContext] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -71,36 +48,8 @@ export default function QuickActionModal() {
       textareaRef.current.focus();
       setError(null);
       setAIPreview(null);
-      setContextData(null);
     }
   }, [isOpen]);
-
-  // Fetch context data for a given action
-  const fetchContextData = useCallback(async (actionId: string): Promise<ContextData | null> => {
-    try {
-      const response = await fetch(`/api/actions/${actionId}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch context data');
-        return null;
-      }
-
-      const data = await response.json();
-      return {
-        parent_chain: data.parent_chain || [],
-        siblings: data.siblings || [],
-        dependencies: data.dependencies || [],
-        dependents: data.dependents || [],
-        relationship_flags: data.relationship_flags || {},
-      };
-    } catch (error) {
-      console.error('Error fetching context data:', error);
-      return null;
-    }
-  }, []);
 
   // Generate AI preview from text
   const generateAIPreview = useCallback(async (text: string) => {
@@ -139,17 +88,6 @@ export default function QuickActionModal() {
         setError(`Similar action already exists: "${data.data.duplicate.title}"`);
       }
 
-      // Fetch context data if a parent is suggested
-      if (data.data.placement.parent?.id) {
-        setIsLoadingContext(true);
-        const context = await fetchContextData(data.data.placement.parent.id);
-        setContextData(context);
-        setIsLoadingContext(false);
-      } else {
-        setContextData(null);
-        setIsLoadingContext(false);
-      }
-
       console.log('AI Preview generated:', {
         fields: data.data.fields,
         placement: data.data.placement,
@@ -180,7 +118,7 @@ export default function QuickActionModal() {
     } finally {
       setIsGenerating(false);
     }
-  }, [fetchContextData]);
+  }, []);
 
   // Debounced text change handler
   const handleTextChange = useCallback((text: string) => {
@@ -311,8 +249,8 @@ export default function QuickActionModal() {
         >
       <div 
         ref={modalRef}
-        className="bg-white rounded-lg shadow-xl max-w-7xl w-full p-6 relative"
-        style={{ maxHeight: '85vh' }}
+        className="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 relative"
+        style={{ maxHeight: '80vh' }}
       >
         <button
           onClick={closeModal}
@@ -327,7 +265,7 @@ export default function QuickActionModal() {
         </h2>
 
         <form onSubmit={handleSubmit}>
-          <div className="flex gap-4">
+          <div className="flex gap-6">
             {/* Left side - Textarea */}
             <div className="flex-1">
               <textarea
@@ -346,7 +284,7 @@ export default function QuickActionModal() {
               )}
             </div>
 
-            {/* Middle - Generated fields */}
+            {/* Right side - Generated fields */}
             <div className="flex-1">
               <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -422,117 +360,6 @@ export default function QuickActionModal() {
                         </span>
                       )}
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right side - Context sidebar */}
-            <div className="w-80">
-              <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Related Context</h3>
-                  {isLoadingContext && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Loader size={14} className="animate-spin" />
-                      <span>Loading...</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4 max-h-[300px] overflow-y-auto">
-                  {/* Parent Goals */}
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-600 mb-2">Parent Goals</h4>
-                    {contextData?.parent_chain && contextData.parent_chain.length > 0 ? (
-                      <div className="space-y-2">
-                        {contextData.parent_chain.map((parent) => (
-                          <div key={parent.id} className="p-2 bg-white rounded border border-gray-200 text-sm">
-                            <div className="font-medium text-gray-900">{parent.title}</div>
-                            {parent.description && (
-                              <div className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                {parent.description}
-                              </div>
-                            )}
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className={`inline-block w-2 h-2 rounded-full ${parent.done ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                              <span className="text-xs text-gray-500">
-                                {parent.done ? 'Completed' : 'In Progress'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : aiPreview?.placement.parent ? (
-                      <div className="p-2 bg-white rounded border border-gray-200 text-sm">
-                        <div className="font-medium text-gray-900">{aiPreview.placement.parent.title}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {aiPreview.placement.parent.reasoning}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
-                        {aiPreview ? 'No parent context available' : 'Enter action text to analyze'}
-                        {aiPreview && !aiPreview.placement.parent && (
-                          <div className="text-xs mt-1">This will be created as a root-level action</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Recent Activity */}
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-600 mb-2">Recent Activity</h4>
-                    {contextData?.siblings && contextData.siblings.length > 0 ? (
-                      <div className="space-y-2">
-                        {contextData.siblings
-                          .filter((sibling) => {
-                            // Use relationship_flags to avoid duplicates
-                            const flags = contextData.relationship_flags[sibling.id] || [];
-                            return !flags.includes('ancestor');
-                          })
-                          .slice(0, 3)
-                          .map((sibling) => (
-                            <div key={sibling.id} className="p-2 bg-white rounded border border-gray-200 text-sm">
-                              <div className="font-medium text-gray-900">{sibling.title}</div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className={`inline-block w-2 h-2 rounded-full ${sibling.done ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                                <span className="text-xs text-gray-500">
-                                  {sibling.done ? 'Completed' : 'In Progress'}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
-                        No recent sibling activity
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dependencies */}
-                  <div>
-                    <h4 className="text-xs font-medium text-gray-600 mb-2">Dependencies</h4>
-                    {contextData?.dependencies && contextData.dependencies.length > 0 ? (
-                      <div className="space-y-2">
-                        {contextData.dependencies.slice(0, 3).map((dep) => (
-                          <div key={dep.id} className="p-2 bg-white rounded border border-gray-200 text-sm">
-                            <div className="font-medium text-gray-900">{dep.title}</div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className={`inline-block w-2 h-2 rounded-full ${dep.done ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                              <span className="text-xs text-gray-500">
-                                {dep.done ? 'Completed' : 'Blocking'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
-                        No dependencies
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
