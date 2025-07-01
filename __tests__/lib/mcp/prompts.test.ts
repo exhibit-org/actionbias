@@ -16,7 +16,7 @@ describe('MCP Prompts', () => {
   describe('registerPrompts', () => {
     it('should register prompts with the server', () => {
       registerPrompts(mockServer as any);
-      expect(mockServer.prompt).toHaveBeenCalledTimes(10);
+      expect(mockServer.prompt).toHaveBeenCalledTimes(11);
       expect(mockServer.prompt).toHaveBeenCalledWith(
         'claude-code-next-action',
         expect.any(String),
@@ -31,6 +31,11 @@ describe('MCP Prompts', () => {
       expect(promptCapabilities).toHaveProperty('claude-code-next-action');
       expect(promptCapabilities['claude-code-next-action'].description).toBe(
         'Structured prompt summarizing an action with context'
+      );
+      
+      expect(promptCapabilities).toHaveProperty('report-completed');
+      expect(promptCapabilities['report-completed'].description).toBe(
+        'Search for existing actions for completed work, then complete or create as needed'
       );
     });
   });

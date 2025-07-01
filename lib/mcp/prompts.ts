@@ -301,6 +301,59 @@ Only proceed with creation if you're confident about the placement. If unsure, s
       };
     }
   );
+
+  // Report completed work prompt
+  server.prompt(
+    'report-completed',
+    'Search for existing actions for completed work, then complete or create as needed',
+    { 
+      work_description: z.string().describe('Description of the work that was completed'),
+      details: z.string().optional().describe('Additional details about the implementation, impact, or learnings')
+    },
+    async ({ work_description, details }: { work_description: string; details?: string }) => {
+      const prompt = `I just completed some work: "${work_description}"
+${details ? `\nDetails: ${details}` : ''}
+
+Help me connect this completed work to our action tracking system:
+
+1. **Search for existing actions first:**
+   - Use search_actions tool with query="${work_description}" to find related actions
+   - Look for actions that match this completed work (even partially)
+   - Consider synonyms and related terms in your search
+
+2. **If you find a matching action:**
+   - Show me the best match(es) and ask for confirmation
+   - If confirmed, use complete_action tool to mark it as done with:
+     - Implementation story: How the work was completed
+     - Impact story: What was accomplished and its effect
+     - Learning story: Key insights and lessons learned
+     - Appropriate editorial content (headline, deck, pull_quotes)
+
+3. **If no existing action matches well:**
+   - Find the best placement in the hierarchy using work://tree
+   - Create a new action using create_action tool
+   - Immediately complete it with the completion context
+
+4. **Always provide:**
+   - Clear reasoning for your choice (complete existing vs create new)
+   - The action's location in the hierarchy
+   - How this work connects to the broader project goals
+
+Start with a thorough search - it's better to complete an existing forgotten action than create duplicate work tracking.`;
+
+      return {
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: prompt,
+            },
+          },
+        ],
+      };
+    }
+  );
 }
 
 export const promptCapabilities = {
@@ -333,5 +386,8 @@ export const promptCapabilities = {
   },
   'create-action': {
     description: 'Create a new action with intelligent placement in the hierarchy',
+  },
+  'report-completed': {
+    description: 'Search for existing actions for completed work, then complete or create as needed',
   },
 };
