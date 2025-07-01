@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ActionsService } from "../services/actions";
 import { VectorPlacementService } from "../services/vector-placement";
 import { ActionSearchService } from "../services/action-search";
+import { WorkLogService } from "../services/work-log";
 import { getDb } from "../db/adapter";
 import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -738,6 +739,158 @@ export function registerTools(server: any) {
     },
   );
 
+  // log_work - Add entry to work log
+  server.tool(
+    "log_work",
+    "Add an entry to the work log to track agent activity and collaboration",
+    {
+      content: z.string().min(1).describe("Rich narrative description of the work activity, including action IDs, blockers, discoveries, handoffs, etc."),
+      metadata: z.record(z.any()).optional().describe("Optional structured metadata like agent_id, action_ids, event_type, etc."),
+    },
+    async ({ content, metadata }: { content: string; metadata?: Record<string, any> }, extra: any) => {
+      try {
+        console.log(`Adding work log entry: ${content.substring(0, 100)}...`);
+        
+        const entry = await WorkLogService.addEntry({
+          content,
+          metadata,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Added work log entry\nID: ${entry.id}\nTimestamp: ${entry.timestamp}\nContent: ${content}`,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error adding work log entry:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error adding work log entry: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // get_work_log - Retrieve recent work log entries
+  server.tool(
+    "get_work_log",
+    "Get recent work log entries to understand current activity and context",
+    {
+      limit: z.number().min(1).max(100).optional().describe("Number of entries to retrieve (default: 20)"),
+      search: z.string().optional().describe("Search term to filter entries by content"),
+      agent_id: z.string().optional().describe("Filter entries by specific agent ID"),
+    },
+    async ({ limit = 20, search, agent_id }: { limit?: number; search?: string; agent_id?: string }, extra: any) => {
+      try {
+        console.log(`Retrieving work log entries: limit=${limit}, search=${search}, agent_id=${agent_id}`);
+        
+        let entries;
+        if (search) {
+          entries = await WorkLogService.searchEntries(search, limit);
+        } else if (agent_id) {
+          entries = await WorkLogService.getEntriesByAgent(agent_id, limit);
+        } else {
+          entries = await WorkLogService.getRecentEntries(limit);
+        }
+
+        let message = `📋 **Work Log Entries** (${entries.length} found)\n\n`;
+        
+        if (entries.length === 0) {
+          message += "No work log entries found.";
+        } else {
+          entries.forEach((entry, index) => {
+            const timeAgo = new Date(Date.now() - entry.timestamp.getTime()).toISOString().substring(11, 19);
+            message += `**${index + 1}.** ${entry.content}\n`;
+            message += `   Time: ${entry.timestamp.toISOString()}\n`;
+            message += `   ID: ${entry.id}\n`;
+            if (entry.metadata && Object.keys(entry.metadata).length > 0) {
+              message += `   Metadata: ${JSON.stringify(entry.metadata)}\n`;
+            }
+            message += `\n`;
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error retrieving work log entries:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error retrieving work log entries: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // get_action_work_log - Get work log entries for a specific action
+  server.tool(
+    "get_action_work_log",
+    "Get work log entries related to a specific action",
+    {
+      action_id: z.string().uuid().describe("ID of the action to get work log for"),
+      limit: z.number().min(1).max(50).optional().describe("Number of entries to retrieve (default: 10)"),
+    },
+    async ({ action_id, limit = 10 }: { action_id: string; limit?: number }, extra: any) => {
+      try {
+        console.log(`Getting work log for action: ${action_id}`);
+        
+        const entries = await WorkLogService.getEntriesForAction(action_id, limit);
+
+        let message = `📋 **Work Log for Action ${action_id}** (${entries.length} entries)\n\n`;
+        
+        if (entries.length === 0) {
+          message += "No work log entries found for this action.";
+        } else {
+          entries.forEach((entry, index) => {
+            message += `**${index + 1}.** ${entry.content}\n`;
+            message += `   Time: ${entry.timestamp.toISOString()}\n`;
+            message += `   ID: ${entry.id}\n`;
+            if (entry.metadata && Object.keys(entry.metadata).length > 0) {
+              message += `   Metadata: ${JSON.stringify(entry.metadata)}\n`;
+            }
+            message += `\n`;
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error getting action work log:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting action work log: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 
 }
 
@@ -768,5 +921,14 @@ export const toolCapabilities = {
   },
   search_actions: {
     description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+  },
+  log_work: {
+    description: "Add an entry to the work log to track agent activity and collaboration",
+  },
+  get_work_log: {
+    description: "Get recent work log entries to understand current activity and context",
+  },
+  get_action_work_log: {
+    description: "Get work log entries related to a specific action",
   },
 };

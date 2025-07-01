@@ -171,3 +171,11 @@ export const waitlist = pgTable('waitlist', {
   source: text('source').default('homepage').notNull(), // Track where signup came from
   metadata: jsonb('metadata'), // JSON for any additional data
 });
+
+// Work log for agent activity and collaboration tracking
+export const workLog = pgTable('work_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  content: text('content').notNull(), // Rich narrative: "Claimed action X, discovered it depends on Y and Z, moved X under parent P"
+  metadata: jsonb('metadata'), // Flexible data: action IDs, agent info, whatever makes sense
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
+});
