@@ -37,14 +37,13 @@ export function registerPrompts(server: any) {
 
 1. First, read the project vision using the context://vision MCP resource
 2. Check recent momentum using the context://momentum MCP resource  
-3. Get actions with no dependencies using the action://no-dependencies MCP resource
-4. Get blocking dependencies using the action://blockers MCP resource
-5. Get a count of total incomplete actions using action://list with limit=1
+3. Get all workable actions using the work://unblocked MCP resource
+4. Get a count of total incomplete actions using work://list with limit=1
 
-Then analyze and recommend the top 5 actions to work on based on:
+Then analyze the workable actions and recommend the top 5 to work on based on:
 - Strategic alignment with the DONE magazine vision
 - Building on recent momentum and completed work
-- Whether they will unblock other work (check blockers resource)
+- Unlocking future work through dependencies
 - Effort vs impact ratio
 - Addressing technical debt or critical issues
 
@@ -52,11 +51,10 @@ For each recommendation, provide:
 - The action title and description
 - A score (0-100) 
 - Clear reasoning for the score
-- Category (strategic, quick-win, momentum, technical-debt, unblocker)
+- Category (strategic, quick-win, momentum, technical-debt)
 - Estimated effort (low, medium, high)
-- If it's a blocker, list what it would unblock
 
-Be selective with scoring - most actions should score 20-80, with 80+ reserved for truly critical work. Prioritize actions that unblock the most other work.`;
+Be selective with scoring - most actions should score 20-80, with 80+ reserved for truly critical work.`;
 
       return {
         messages: [
@@ -78,7 +76,7 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     'Simple prompt to find the most important next action',
     {},
     async () => {
-      const prompt = `What's the most important thing I should work on next? Check both the action://no-dependencies resource for immediately available tasks and the action://blockers resource to see what would unblock the most work. Pick the top priority based on the project vision (context://vision).`;
+      const prompt = `What's the most important thing I should work on next? Use the work://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).`;
 
       return {
         messages: [
@@ -101,9 +99,9 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     {},
     async () => {
       const prompt = `Give me an overview of the current work state:
-1. Use action://tree to show the hierarchical structure of incomplete work
+1. Use work://tree to show the hierarchical structure of incomplete work
 2. Use context://momentum to show what's been recently completed
-3. Use action://no-dependencies to show what's ready to work on
+3. Use work://unblocked to show what's ready to work on
 4. Summarize the key insights`;
 
       return {
@@ -127,10 +125,9 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     {},
     async () => {
       const prompt = `I want to understand what's blocking progress. Please:
-1. Use action://blockers to see which incomplete actions are blocking the most work
-2. Use action://no-dependencies to see what's immediately available to work on
-3. Identify the top 3 blockers that would unlock the most work if completed
-4. For each blocker, list what specific actions it's preventing`;
+1. Use work://dependencies to see the dependency graph
+2. Use work://unblocked to see what's actually workable
+3. Identify the key blockers that would unlock the most work if completed`;
 
       return {
         messages: [
@@ -153,10 +150,10 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     { action_id: z.string().uuid().describe('ID of the action to analyze') },
     async ({ action_id }: { action_id: string }) => {
       const prompt = `I need full context on action ${action_id}. Please:
-1. Use action://item/${action_id} to get the action details
+1. Use work://${action_id} to get the action details
 2. Show me the full parent chain and context
 3. List all dependencies and dependents
-4. Check if it appears in action://no-dependencies or if it's listed in action://blockers
+4. Check if it appears in work://unblocked
 5. Give me your assessment of whether this is ready to work on`;
 
       return {
@@ -180,7 +177,7 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     {},
     async () => {
       const prompt = `Analyze our completed work patterns:
-1. Use action://log to get recent completion logs
+1. Use work://done to get recent completion logs
 2. Use context://momentum to see recent activity
 3. Identify patterns in:
    - What types of work we complete successfully
@@ -209,9 +206,9 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     {},
     async () => {
       const prompt = `I'm starting my work session. Please quickly check:
-- action://unblocked for actions ready to work on
+- work://next for the recommended next action
 - context://momentum for recent activity  
-- action://blockers to see what would unlock the most work
+- work://unblocked to see all options
 
 Give me a 3-line summary of what I should focus on.`;
 
@@ -236,7 +233,7 @@ Give me a 3-line summary of what I should focus on.`;
     { topic: z.string().describe('Topic to search for (e.g., "UI", "frontend", "API")') },
     async ({ topic }: { topic: string }) => {
       const prompt = `I want to find all actions related to "${topic}". Please:
-1. Get actions with no dependencies from action://no-dependencies
+1. Get all workable actions from work://unblocked
 2. Filter for ones that mention ${topic} or related terms in their title/description
 3. Check context://vision to see if ${topic} work aligns with current priorities
 4. Rank them by importance`;
@@ -275,7 +272,7 @@ Please help me:
    - If very similar actions exist (>70% match), suggest using those instead
 
 2. If creating new action, find the best placement:
-   - Use action://tree to understand the current hierarchy
+   - Use work://tree to understand the current hierarchy
    - Search for related actions to understand where similar work lives
    - Identify the most logical parent action
 

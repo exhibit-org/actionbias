@@ -19,7 +19,7 @@ export interface Edge {
   updatedAt: string;
 }
 
-// action://list
+// work://list
 export interface ActionListResource {
   actions: Action[];
   total: number;
@@ -28,7 +28,7 @@ export interface ActionListResource {
   filtered_by_done?: boolean;
 }
 
-// action://tree  
+// work://tree  
 export interface ActionTreeResource {
   rootActions: ActionNode[];
   rootAction?: string; // For scoped trees, the ID of the root action
@@ -44,7 +44,7 @@ export interface ActionNode {
   dependencies: string[]; // IDs of actions this depends on
 }
 
-// action://dependencies
+// work://dependencies
 export interface ActionDependenciesResource {
   dependencies: DependencyMapping[];
 }
@@ -65,7 +65,7 @@ export interface DependencyMapping {
   }>;
 }
 
-// action://{id}
+// work://{id} and work://context/{id}
 export interface ActionDetailResource {
   id: string;
   title: string;

@@ -13,10 +13,10 @@ import { getUnblockedActionsOptimized } from "../services/actions-optimized";
 import { getBlockingDependencies, getActionsWithNoDependencies } from "../services/blocking-dependencies";
 
 export function registerResources(server: any) {
-  // action://list - List all actions with pagination support
+  // work://list - List all work items with pagination support
   server.resource(
-    "List all actions with pagination support (excludes completed actions by default)", 
-    "action://list",
+    "List all work items with pagination support (excludes completed items by default)", 
+    "work://list",
     async (uri: any) => {
       try {
         // Parse URI parameters if present - default to reasonable limits
@@ -78,10 +78,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://tree - Hierarchical view of actions
+  // work://tree - Hierarchical view of work items
   server.resource(
-    "Hierarchical view of actions showing family relationships (excludes completed actions by default)",
-    "action://tree",
+    "Hierarchical view of work items showing family relationships (excludes completed items by default)",
+    "work://tree",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -150,10 +150,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://dependencies - Dependency graph view
+  // work://dependencies - Dependency graph view
   server.resource(
-    "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default)",
-    "action://dependencies",
+    "Dependency graph view showing all work item dependencies and dependents (excludes completed items by default)",
+    "work://dependencies",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -209,17 +209,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://item/{id} - Individual action details with relationships
+  // work://{id} - Individual work item core data
   server.resource(
-    "Individual action details with relationships",
-    new ResourceTemplate("action://item/{id}", { list: undefined }),
+    "Individual work item core data",
+    new ResourceTemplate("work://{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Action ID is required - URI should be like 'action://item/123'");
+          throw new Error("Work item ID is required - URI should be like 'work://123'");
         }
         
         // Check if database is available
@@ -243,16 +243,16 @@ export function registerResources(server: any) {
           };
         }
         
-        const result = await ActionsService.getActionDetailResource(actionId);
+        const result = await ActionsService.getWorkItemCoreData(actionId);
         
-        // Return result directly - let the client handle placeholder text
-        const enhancedResult = result;
+        // Return core data only - no relationships, no AI summaries
+        const coreData = result;
         
         return {
           contents: [
             {
               uri: uri.toString(),
-              text: JSON.stringify(enhancedResult, null, 2),
+              text: JSON.stringify(coreData, null, 2),
               mimeType: "application/json",
             },
           ],
@@ -264,17 +264,67 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://tree/{id} - Hierarchical view of actions scoped to a specific subtree
+  // work://context/{id} - Rich context for agents to begin work
   server.resource(
-    "Hierarchical view of actions showing family relationships within a specific subtree (excludes completed actions by default)",
-    new ResourceTemplate("action://tree/{id}", { list: undefined }),
+    "Rich relationship context for agents to begin work on a specific item",
+    new ResourceTemplate("work://context/{id}", { list: undefined }),
+    async (uri: any, { id }: { id: string | string[] }) => {
+      try {
+        // Handle id parameter which can be string or string[]
+        const actionId = Array.isArray(id) ? id[0] : id;
+        
+        if (!actionId || actionId === '{id}') {
+          throw new Error("Work item ID is required - URI should be like 'work://context/123'");
+        }
+        
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  id: actionId,
+                  context: null
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        // Use the full detail resource for agent context (all relationships and data)
+        const result = await ActionsService.getActionDetailResource(actionId);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(result, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching work context:', error);
+        throw new Error(`Failed to fetch work context: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // work://tree/{id} - Hierarchical view of work items scoped to a specific subtree
+  server.resource(
+    "Hierarchical view of work items showing family relationships within a specific subtree (excludes completed items by default)",
+    new ResourceTemplate("work://tree/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const rootActionId = Array.isArray(id) ? id[0] : id;
         
         if (!rootActionId || rootActionId === '{id}') {
-          throw new Error("Root action ID is required - URI should be like 'action://tree/123'");
+          throw new Error("Root work item ID is required - URI should be like 'work://tree/123'");
         }
         
         // Parse URI parameters
@@ -344,10 +394,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://log - Recent completion logs with pagination
+  // work://done - Recent completion logs with pagination
   server.resource(
-    "Recent completion logs showing how actions were implemented, their impact, and learnings",
-    "action://log",
+    "Recent completion logs showing how work items were implemented, their impact, and learnings",
+    "work://done",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -443,17 +493,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://log/{id} - Individual action's completion log
+  // work://done/{id} - Individual work item's completion log
   server.resource(
-    "Completion log for a specific action showing implementation details, impact, and learnings",
-    new ResourceTemplate("action://log/{id}", { list: undefined }),
+    "Completion log for a specific work item showing implementation details, impact, and learnings",
+    new ResourceTemplate("work://done/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Action ID is required - URI should be like 'action://log/123'");
+          throw new Error("Work item ID is required - URI should be like 'work://done/123'");
         }
         
         // Check if database is available
@@ -634,10 +684,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://unblocked - Get all unblocked actions (leaf nodes with dependencies met)
+  // work://unblocked - Get all unblocked work items (leaf nodes with dependencies met)
   server.resource(
-    "Get all unblocked actions (leaf nodes with all dependencies completed)",
-    "action://unblocked",
+    "Get all unblocked work items (leaf nodes with all dependencies completed)",
+    "work://unblocked",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -688,10 +738,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://blockers - Get blocking dependencies
+  // work://blockers - Get blocking dependencies
   server.resource(
     "Get incomplete dependencies that are blocking other work",
-    "action://blockers",
+    "work://blockers",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -738,10 +788,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // action://no-dependencies - Get actions with no dependencies
+  // work://no-dependencies - Get work items with no dependencies
   server.resource(
-    "Get incomplete actions that have no dependencies blocking them",
-    "action://no-dependencies",
+    "Get incomplete work items that have no dependencies blocking them",
+    "work://no-dependencies",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -795,43 +845,149 @@ export function registerResources(server: any) {
       }
     }
   );
+
+  // work://next - Get the next recommended action to work on
+  server.resource(
+    "Get the next recommended action to work on based on dependencies and priority",
+    "work://next",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  next_action: null
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const nextAction = await ActionsService.getNextAction();
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                next_action: nextAction,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching next action:', error);
+        throw new Error(`Failed to fetch next action: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
+  // work://next/{id} - Get the next recommended action within a specific subtree
+  server.resource(
+    "Get the next recommended action to work on within a specific subtree or project scope",
+    new ResourceTemplate("work://next/{id}", { list: undefined }),
+    async (uri: any, { id }: { id: string | string[] }) => {
+      try {
+        // Handle id parameter which can be string or string[]
+        const scopeActionId = Array.isArray(id) ? id[0] : id;
+        
+        if (!scopeActionId || scopeActionId === '{id}') {
+          throw new Error("Scope action ID is required - URI should be like 'work://next/123'");
+        }
+        
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  scope_id: scopeActionId,
+                  next_action: null
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const nextAction = await ActionsService.getNextActionScoped(scopeActionId);
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify({
+                scope_id: scopeActionId,
+                next_action: nextAction,
+                generatedAt: new Date().toISOString()
+              }, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching scoped next action:', error);
+        throw new Error(`Failed to fetch scoped next action: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
 }
 
 export const resourceCapabilities = {
-  "action://list": {
-    description: "List all actions with pagination support (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  "work://list": {
+    description: "List all work items with pagination support (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "action://unblocked": {
-    description: "Get all unblocked actions (leaf nodes with all dependencies completed)",
+  "work://unblocked": {
+    description: "Get all unblocked work items (leaf nodes with all dependencies completed)",
   },
-  "action://blockers": {
+  "work://blockers": {
     description: "Get incomplete dependencies that are blocking other work",
   },
-  "action://no-dependencies": {
-    description: "Get incomplete actions that have no dependencies blocking them",
+  "work://no-dependencies": {
+    description: "Get incomplete work items that have no dependencies blocking them",
   },
-  "action://tree": {
-    description: "Hierarchical view of actions showing family relationships (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  "work://tree": {
+    description: "Hierarchical view of work items showing family relationships (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "action://tree/{id}": {
-    description: "Hierarchical view of actions within a specific subtree, scoped to the given action ID and its descendants (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  "work://tree/{id}": {
+    description: "Hierarchical view of work items within a specific subtree, scoped to the given work item ID and its descendants (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "action://dependencies": {
-    description: "Dependency graph view showing all action dependencies and dependents (excludes completed actions by default, use ?includeCompleted=true to include them)",
+  "work://dependencies": {
+    description: "Dependency graph view showing all work item dependencies and dependents (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "action://item/{id}": {
-    description: "Individual action details with relationships",
+  "work://{id}": {
+    description: "Individual work item core data",
   },
-  "action://log": {
-    description: "Recent completion logs showing how actions were implemented, their impact, and learnings. Supports pagination (?limit=20&offset=0) and visibility filtering (?visibility=public|team|private)",
+  "work://context/{id}": {
+    description: "Rich relationship context for agents to begin work on a specific item",
   },
-  "action://log/{id}": {
-    description: "Completion log for a specific action showing implementation details, impact, and learnings",
+  "work://done": {
+    description: "Recent completion logs showing how work items were implemented, their impact, and learnings. Supports pagination (?limit=20&offset=0) and visibility filtering (?visibility=public|team|private)",
+  },
+  "work://done/{id}": {
+    description: "Completion log for a specific work item showing implementation details, impact, and learnings",
   },
   "context://vision": {
     description: "Project vision and strategic documents (VISION.md, CLAUDE.md) that guide development priorities",
   },
   "context://momentum": {
     description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
+  },
+  "work://next": {
+    description: "Get the next recommended action to work on based on dependencies and priority",
+  },
+  "work://next/{id}": {
+    description: "Get the next recommended action to work on within a specific subtree or project scope",
   },
 };

@@ -1826,6 +1826,66 @@ export class ActionsService {
     };
   }
 
+  // Core data only - no relationships, no AI summaries
+  static async getWorkItemCoreData(actionId: string): Promise<{
+    id: string;
+    title: string;
+    description?: string;
+    vision?: string;
+    done: boolean;
+    version: number | null;
+    created_at: string;
+    updated_at: string;
+    completion_context?: DependencyCompletionContext;
+  }> {
+    // Get the basic action data
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    if (actionResult.length === 0) {
+      throw new Error(`Action with ID ${actionId} not found`);
+    }
+    
+    const action = actionResult[0];
+    
+    // Get completion context if action is completed
+    let completionContext: DependencyCompletionContext | undefined;
+    if (action.done) {
+      const completionResult = await getDb()
+        .select()
+        .from(completionContexts)
+        .where(eq(completionContexts.actionId, actionId))
+        .limit(1);
+      
+      if (completionResult.length > 0) {
+        const context = completionResult[0];
+        completionContext = {
+          action_id: context.actionId,
+          action_title: action.title || action.data?.title || 'untitled',
+          completion_timestamp: context.completionTimestamp?.toISOString() || new Date().toISOString(),
+          implementation_story: context.implementationStory || undefined,
+          impact_story: context.impactStory || undefined,
+          learning_story: context.learningStory || undefined,
+          changelog_visibility: context.changelogVisibility,
+          headline: context.headline || undefined,
+          deck: context.deck || undefined,
+          pull_quotes: context.pullQuotes as string[] || undefined,
+          git_context: context.gitContext || undefined,
+        };
+      }
+    }
+
+    return {
+      id: action.id,
+      title: action.title || action.data?.title || 'untitled',
+      description: action.description || action.data?.description,
+      vision: action.vision || action.data?.vision,
+      done: action.done,
+      version: action.version,
+      created_at: action.createdAt.toISOString(),
+      updated_at: action.updatedAt.toISOString(),
+      completion_context: completionContext,
+    };
+  }
+
   static async getNextAction(): Promise<Action | null> {
     // Find the earliest created action that is not done and has all dependencies completed
     const openActions = await getDb()
