@@ -40,8 +40,16 @@ async function runMigrations() {
       `;
       console.log(`📋 Found ${existingMigrations.rows.length} migrations in drizzle schema:`);
       existingMigrations.rows.forEach((row, i) => {
-        console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
+        console.log(`  ${i + 1}. ${row.hash.substring(0, 16)}... - created_at: ${row.created_at} (${new Date(parseInt(row.created_at)).toISOString()})`);
       });
+      
+      // Get the latest migration timestamp
+      const latestMigration = existingMigrations.rows[0]; // Should be the latest due to ORDER BY created_at DESC
+      if (latestMigration) {
+        console.log(`📋 Latest migration timestamp: ${latestMigration.created_at}`);
+        console.log(`📋 Our journal work_log timestamp: 1751100000000`);
+        console.log(`📋 Comparison: ${parseInt(latestMigration.created_at)} >= 1751100000000 ? ${parseInt(latestMigration.created_at) >= 1751100000000 ? 'YES (SKIP)' : 'NO (APPLY)'}`);
+      }
       
       // Check specifically for work_log migration
       const workLogMigration = await sql`
@@ -50,7 +58,7 @@ async function runMigrations() {
       `;
       console.log(`📋 work_log migration status: ${workLogMigration.rows.length > 0 ? 'RECORDED' : 'NOT FOUND'}`);
       if (workLogMigration.rows.length > 0) {
-        console.log(`  Details: ${workLogMigration.rows[0].hash} - ${new Date(workLogMigration.rows[0].created_at).toISOString()}`);
+        console.log(`  Details: ${workLogMigration.rows[0].hash.substring(0, 16)}... - ${new Date(parseInt(workLogMigration.rows[0].created_at)).toISOString()}`);
       }
     } catch (e) {
       console.log('📋 No drizzle.__drizzle_migrations table found');
