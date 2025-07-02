@@ -36,12 +36,22 @@ async function runMigrations() {
       const existingMigrations = await sql`
         SELECT * FROM drizzle.__drizzle_migrations 
         ORDER BY created_at DESC 
-        LIMIT 5;
+        LIMIT 10;
       `;
-      console.log('📋 Recent migrations in drizzle schema:');
+      console.log(`📋 Found ${existingMigrations.rows.length} migrations in drizzle schema:`);
       existingMigrations.rows.forEach((row, i) => {
         console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
       });
+      
+      // Check specifically for work_log migration
+      const workLogMigration = await sql`
+        SELECT * FROM drizzle.__drizzle_migrations 
+        WHERE hash LIKE '%0018%' OR hash LIKE '%work_log%';
+      `;
+      console.log(`📋 work_log migration status: ${workLogMigration.rows.length > 0 ? 'RECORDED' : 'NOT FOUND'}`);
+      if (workLogMigration.rows.length > 0) {
+        console.log(`  Details: ${workLogMigration.rows[0].hash} - ${new Date(workLogMigration.rows[0].created_at).toISOString()}`);
+      }
     } catch (e) {
       console.log('📋 No drizzle.__drizzle_migrations table found');
       // Try public schema as fallback
@@ -103,7 +113,14 @@ async function runMigrations() {
     }
 
     console.log('🔄 Running Drizzle migrations...');
-    await migrate(db, { migrationsFolder: './db/migrations' });
+    try {
+      console.log('📝 About to call migrate() function...');
+      const result = await migrate(db, { migrationsFolder: './db/migrations' });
+      console.log('📝 migrate() function completed, result:', result);
+    } catch (error) {
+      console.log('❌ migrate() function threw an error:', error);
+      throw error;
+    }
     
     // Check migration status after
     console.log('🔍 Checking migration status after migration...');
