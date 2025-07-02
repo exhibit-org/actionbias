@@ -66,6 +66,27 @@
       "breakpoints": true
     },
     {
+      "idx": 9,
+      "version": "7",
+      "when": 1750750000000,
+      "tag": "0009_lush_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1750800000000,
+      "tag": "0010_add_editorial_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1750850000000,
+      "tag": "0011_add_parent_child_dependencies",
+      "breakpoints": true
+    },
+    {
       "idx": 12,
       "version": "7",
       "when": 1751100000000,
