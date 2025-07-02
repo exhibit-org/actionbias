@@ -19,6 +19,13 @@ async function runMigrations() {
   }
   
   console.log('📦 Using database URL:', dbUrl.split('@')[1]?.split('/')[0] || 'URL hidden');
+  console.log('📦 Full database connection info:');
+  console.log('  - Host:', dbUrl.split('@')[1]?.split('/')[0]);
+  console.log('  - Database name:', dbUrl.split('/').pop()?.split('?')[0]);
+  console.log('  - Environment variables:');
+  console.log('    - POSTGRES_URL exists:', !!process.env.POSTGRES_URL);
+  console.log('    - DATABASE_URL exists:', !!process.env.DATABASE_URL);
+  console.log('    - Using:', process.env.POSTGRES_URL ? 'POSTGRES_URL' : 'DATABASE_URL');
   
   try {
     const db = drizzle(sql);
@@ -27,16 +34,30 @@ async function runMigrations() {
     console.log('🔍 Checking current migration status...');
     try {
       const existingMigrations = await sql`
-        SELECT * FROM __drizzle_migrations 
+        SELECT * FROM drizzle.__drizzle_migrations 
         ORDER BY created_at DESC 
         LIMIT 5;
       `;
-      console.log('📋 Recent migrations in database:');
+      console.log('📋 Recent migrations in drizzle schema:');
       existingMigrations.rows.forEach((row, i) => {
         console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
       });
     } catch (e) {
-      console.log('📋 No __drizzle_migrations table found (first migration)');
+      console.log('📋 No drizzle.__drizzle_migrations table found');
+      // Try public schema as fallback
+      try {
+        const publicMigrations = await sql`
+          SELECT * FROM __drizzle_migrations 
+          ORDER BY created_at DESC 
+          LIMIT 5;
+        `;
+        console.log('📋 Recent migrations in public schema:');
+        publicMigrations.rows.forEach((row, i) => {
+          console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
+        });
+      } catch (e2) {
+        console.log('📋 No __drizzle_migrations table found in either schema (first migration)');
+      }
     }
     
     // Check if work_log table exists
@@ -55,15 +76,19 @@ async function runMigrations() {
     
     // Check migration status after
     console.log('🔍 Checking migration status after migration...');
-    const migrationsAfter = await sql`
-      SELECT * FROM __drizzle_migrations 
-      ORDER BY created_at DESC 
-      LIMIT 10;
-    `;
-    console.log('📋 Migrations after running migrate:');
-    migrationsAfter.rows.forEach((row, i) => {
-      console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
-    });
+    try {
+      const migrationsAfter = await sql`
+        SELECT * FROM drizzle.__drizzle_migrations 
+        ORDER BY created_at DESC 
+        LIMIT 10;
+      `;
+      console.log('📋 Migrations after running migrate (drizzle schema):');
+      migrationsAfter.rows.forEach((row, i) => {
+        console.log(`  ${i + 1}. ${row.hash} - ${new Date(row.created_at).toISOString()}`);
+      });
+    } catch (e) {
+      console.log('📋 Could not find drizzle.__drizzle_migrations after migration');
+    }
     
     // Check if work_log table exists after
     const workLogExistsAfter = await sql`
