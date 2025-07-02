@@ -5,8 +5,18 @@ import { WorkLogService } from '@/lib/services/work-log';
 // Returns immediately, stores data asynchronously
 export async function POST(request: NextRequest) {
   try {
+    // Debug logging
+    console.log('Hook request received:');
+    console.log('Content-Type:', request.headers.get('content-type'));
+    console.log('Content-Length:', request.headers.get('content-length'));
+    
+    // Get raw body first for debugging
+    const text = await request.text();
+    console.log('Raw body:', text);
+    console.log('Body length:', text.length);
+    
     // Parse the hook payload from Claude Code
-    const hookData = await request.json();
+    const hookData = text ? JSON.parse(text) : {};
     
     // Fire-and-forget storage - don't await
     storeHookDataAsync(hookData).catch(error => {
@@ -29,8 +39,8 @@ async function storeHookDataAsync(hookData: any) {
   // Determine hook type from the payload
   const hookType = determineHookType(hookData);
   
-  // Store raw hook data using optimized fire-and-forget method
-  await WorkLogService.addHookEntryAsync({
+  // Store raw hook data using work log service
+  await WorkLogService.addEntry({
     content: `claude_code_hook:${hookType}`,
     metadata: {
       hook_type: hookType,
