@@ -5,15 +5,36 @@ import { WorkLogService } from '@/lib/services/work-log';
 // Returns immediately, stores data asynchronously
 export async function POST(request: NextRequest) {
   try {
-    // Debug logging
-    console.log('Hook request received:');
-    console.log('Content-Type:', request.headers.get('content-type'));
-    console.log('Content-Length:', request.headers.get('content-length'));
+    // Comprehensive debug logging
+    console.log('=== HOOK REQUEST DEBUG ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('URL:', request.url);
+    console.log('Method:', request.method);
+    
+    // Log all headers
+    console.log('Headers:');
+    request.headers.forEach((value, key) => {
+      console.log(`  ${key}: ${value}`);
+    });
     
     // Get raw body first for debugging
     const text = await request.text();
-    console.log('Raw body:', text);
+    console.log('Raw body:', JSON.stringify(text));
     console.log('Body length:', text.length);
+    console.log('Body type:', typeof text);
+    
+    // Try to determine if body is valid JSON
+    let isValidJson = false;
+    try {
+      if (text) {
+        JSON.parse(text);
+        isValidJson = true;
+      }
+    } catch (e) {
+      console.log('Body is not valid JSON:', e);
+    }
+    console.log('Is valid JSON:', isValidJson);
+    console.log('=== END DEBUG ===');
     
     // Parse the hook payload from Claude Code
     const hookData = text ? JSON.parse(text) : {};
