@@ -124,4 +124,83 @@ export class WorkLogService {
       timestamp: entry.timestamp,
     }));
   }
+
+  /**
+   * Get Claude Code hook entries by type
+   */
+  static async getHookEntries(hookType?: string, limit: number = 50): Promise<WorkLogEntry[]> {
+    const db = getDb();
+    let query = db
+      .select()
+      .from(workLog)
+      .where(ilike(workLog.content, 'claude_code_hook:%'));
+
+    if (hookType) {
+      query = query.where(
+        and(
+          ilike(workLog.content, 'claude_code_hook:%'),
+          ilike(workLog.content, `%${hookType}%`)
+        )
+      );
+    }
+
+    const entries = await query
+      .orderBy(desc(workLog.timestamp))
+      .limit(limit);
+
+    return entries.map((entry: WorkLogSelect) => ({
+      id: entry.id,
+      content: entry.content,
+      metadata: entry.metadata || {},
+      timestamp: entry.timestamp,
+    }));
+  }
+
+  /**
+   * Get hook entries by tool name (for analyzing specific tool usage)
+   */
+  static async getHookEntriesByTool(toolName: string, limit: number = 50): Promise<WorkLogEntry[]> {
+    const db = getDb();
+    const entries = await db
+      .select()
+      .from(workLog)
+      .where(
+        and(
+          ilike(workLog.content, 'claude_code_hook:%'),
+          // Use JSON path query to check metadata.tool_name
+          // This is PostgreSQL specific - may need adjustment for other DBs
+          eq(workLog.metadata, { tool_name: toolName })
+        )
+      )
+      .orderBy(desc(workLog.timestamp))
+      .limit(limit);
+
+    return entries.map((entry: WorkLogSelect) => ({
+      id: entry.id,
+      content: entry.content,
+      metadata: entry.metadata || {},
+      timestamp: entry.timestamp,
+    }));
+  }
+
+  /**
+   * Optimized method for high-volume hook data insertion
+   * Returns immediately without waiting for DB response
+   */
+  static async addHookEntryAsync(params: CreateWorkLogEntryParams): Promise<void> {
+    const db = getDb();
+    
+    // Fire-and-forget insertion for maximum performance
+    db.insert(workLog)
+      .values({
+        content: params.content,
+        metadata: params.metadata || {},
+      })
+      .catch((error: any) => {
+        console.error('Hook entry insertion failed:', error);
+      });
+    
+    // Return immediately - don't wait for DB
+    return Promise.resolve();
+  }
 }
