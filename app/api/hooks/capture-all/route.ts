@@ -60,23 +60,39 @@ async function storeHookDataAsync(hookData: any) {
   // Determine hook type from the payload
   const hookType = determineHookType(hookData);
   
-  // Store raw hook data using work log service
+  // Extract agent/session information from the actual structure
+  const sessionId = hookData?.session_id;
+  const toolName = hookData?.tool_name;
+  const command = hookData?.tool_input?.command;
+  const description = hookData?.tool_input?.description;
+  
+  // Create rich content description for agent identification
+  const content = sessionId 
+    ? `agent:${sessionId}:${hookType}:${toolName || 'unknown'}`
+    : `claude_code_hook:${hookType}`;
+  
+  // Store comprehensive hook data using work log service
   await WorkLogService.addEntry({
-    content: `claude_code_hook:${hookType}`,
+    content,
     metadata: {
       hook_type: hookType,
+      session_id: sessionId,
+      tool_name: toolName,
+      command,
+      description,
+      transcript_path: hookData?.transcript_path,
       raw_payload: hookData,
-      captured_at: new Date().toISOString(),
-      tool_name: hookData?.tool?.name,
-      session_id: hookData?.sessionId,
-      user_id: hookData?.userId
+      captured_at: new Date().toISOString()
     }
   });
 }
 
 // Extract hook type from Claude Code payload
 function determineHookType(hookData: any): string {
-  // Based on Claude Code hooks documentation structure
+  // Use the hook_event_name field from the actual structure
+  if (hookData?.hook_event_name) return hookData.hook_event_name.toLowerCase();
+  
+  // Legacy fallbacks
   if (hookData?.event === 'pre_tool_use') return 'pre_tool_use';
   if (hookData?.event === 'post_tool_use') return 'post_tool_use';
   if (hookData?.event === 'notification') return 'notification';
