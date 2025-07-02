@@ -120,33 +120,6 @@ async function runMigrations() {
       console.log('❌ Could not read journal file:', e.message);
     }
 
-    // Record all missing migrations that were manually applied
-    console.log('🔧 Recording missing migrations as applied...');
-    const missingMigrations = [
-      { hash: '0009_lush_wolverine_manual', timestamp: 1751466490000 },
-      { hash: '0010_add_editorial_fields_manual', timestamp: 1751466491000 },
-      { hash: '0011_add_parent_child_dependencies_manual', timestamp: 1751466492000 },
-      { hash: '0012_add_git_commit_fields_manual', timestamp: 1751466493000 },
-      { hash: '0013_tiny_adam_warlock_manual', timestamp: 1751466494000 },
-      { hash: '0014_refactor_git_context_manual', timestamp: 1751466495000 },
-      { hash: '0015_fix_git_context_migration_manual', timestamp: 1751466496000 },
-      { hash: '0016_git_context_final_manual', timestamp: 1751466497000 },
-      { hash: '0017_remove_structured_data_manual', timestamp: 1751466498000 }
-    ];
-    
-    for (const migration of missingMigrations) {
-      try {
-        await sql`
-          INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at") 
-          VALUES (${migration.hash}, ${migration.timestamp})
-          ON CONFLICT DO NOTHING;
-        `;
-        console.log(`✅ Recorded migration ${migration.hash} as applied`);
-      } catch (error) {
-        console.log(`❌ Failed to record migration ${migration.hash}:`, error);
-      }
-    }
-
     console.log('🔄 Running Drizzle migrations...');
     try {
       console.log('📝 About to call migrate() function...');
@@ -154,30 +127,7 @@ async function runMigrations() {
       console.log('📝 migrate() function completed, result:', result);
     } catch (error) {
       console.log('❌ migrate() function threw an error:', error);
-      // If it fails, try to manually create just the work_log table
-      console.log('🔧 Attempting to manually create work_log table...');
-      try {
-        await sql`
-          CREATE TABLE IF NOT EXISTS "work_log" (
-            "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-            "content" text NOT NULL,
-            "metadata" jsonb,
-            "timestamp" timestamp DEFAULT now() NOT NULL
-          );
-        `;
-        console.log('✅ Manually created work_log table');
-        
-        // Record the work_log migration as applied
-        await sql`
-          INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at") 
-          VALUES ('migration_0018_add_work_log_table_manual', 1751466499000)
-          ON CONFLICT DO NOTHING;
-        `;
-        console.log('✅ Recorded work_log migration as applied');
-      } catch (manualError) {
-        console.log('❌ Failed to manually create work_log table:', manualError);
-        throw error; // Re-throw original error
-      }
+      throw error;
     }
     
     // Check migration status after
