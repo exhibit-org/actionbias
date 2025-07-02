@@ -71,6 +71,37 @@ async function runMigrations() {
     `;
     console.log('📋 work_log table exists:', workLogExists.rows[0]?.exists || false);
     
+    // Check what migration files Drizzle can find
+    console.log('🔍 Checking migration files in ./db/migrations...');
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    try {
+      const migrationFiles = fs.readdirSync('./db/migrations').filter(f => f.endsWith('.sql'));
+      console.log(`📁 Found ${migrationFiles.length} migration files:`);
+      migrationFiles.slice(0, 10).forEach(file => console.log(`  - ${file}`));
+      if (migrationFiles.length > 10) {
+        console.log(`  ... and ${migrationFiles.length - 10} more`);
+      }
+    } catch (e) {
+      console.log('❌ Could not read migration files:', e.message);
+    }
+    
+    // Check journal file
+    console.log('🔍 Checking migration journal...');
+    try {
+      const journalPath = './db/migrations/meta/_journal.json';
+      const journalContent = fs.readFileSync(journalPath, 'utf8');
+      const journal = JSON.parse(journalContent);
+      console.log(`📋 Journal contains ${journal.entries?.length || 0} migration entries`);
+      console.log('📋 Last 5 journal entries:');
+      (journal.entries || []).slice(-5).forEach(entry => {
+        console.log(`  - idx ${entry.idx}: ${entry.tag} (${entry.when})`);
+      });
+    } catch (e) {
+      console.log('❌ Could not read journal file:', e.message);
+    }
+
     console.log('🔄 Running Drizzle migrations...');
     await migrate(db, { migrationsFolder: './db/migrations' });
     
