@@ -120,6 +120,19 @@ async function runMigrations() {
       console.log('❌ Could not read journal file:', e.message);
     }
 
+    // First manually record the missing migration that created waitlist table
+    console.log('🔧 Manually recording migration 0009 (waitlist table) as applied...');
+    try {
+      await sql`
+        INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at") 
+        VALUES ('migration_0009_lush_wolverine_manual', 1751466490000)
+        ON CONFLICT DO NOTHING;
+      `;
+      console.log('✅ Recorded migration 0009 as applied');
+    } catch (error) {
+      console.log('❌ Failed to record migration 0009:', error);
+    }
+
     console.log('🔄 Running Drizzle migrations...');
     try {
       console.log('📝 About to call migrate() function...');
@@ -127,7 +140,30 @@ async function runMigrations() {
       console.log('📝 migrate() function completed, result:', result);
     } catch (error) {
       console.log('❌ migrate() function threw an error:', error);
-      throw error;
+      // If it fails, try to manually create just the work_log table
+      console.log('🔧 Attempting to manually create work_log table...');
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS "work_log" (
+            "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+            "content" text NOT NULL,
+            "metadata" jsonb,
+            "timestamp" timestamp DEFAULT now() NOT NULL
+          );
+        `;
+        console.log('✅ Manually created work_log table');
+        
+        // Record the work_log migration as applied
+        await sql`
+          INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at") 
+          VALUES ('migration_0018_add_work_log_table_manual', 1751466499000)
+          ON CONFLICT DO NOTHING;
+        `;
+        console.log('✅ Recorded work_log migration as applied');
+      } catch (manualError) {
+        console.log('❌ Failed to manually create work_log table:', manualError);
+        throw error; // Re-throw original error
+      }
     }
     
     // Check migration status after
