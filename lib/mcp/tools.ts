@@ -386,6 +386,15 @@ export function registerTools(server: any) {
         approaches_tried: z.array(z.string()).default([]).describe("List of different approaches attempted (e.g., ['Tried Redis first, switched to PGlite'])"),
         discoveries: z.array(z.string()).default([]).describe("List of insights or discoveries made (e.g., ['Found existing util function for validation'])"),
       }).describe("Objective challenges and problem-solving information"),
+      
+      // Alignment reflection - agent's understanding of purpose fulfillment
+      alignment_reflection: z.object({
+        purpose_interpretation: z.string().describe("How the agent interpreted the action's goal/vision/description - what did you understand the purpose to be?"),
+        goal_achievement_assessment: z.string().describe("Agent's assessment of how well the intended goal was achieved - did you accomplish what was asked?"),
+        context_influence: z.string().describe("How family/dependency/project context influenced your approach - what context shaped your decisions?"),
+        assumptions_made: z.array(z.string()).default([]).describe("Key assumptions made during implementation that weren't explicitly specified"),
+      }).describe("REQUIRED: Agent reflection on purpose understanding and goal alignment for feedback loop"),
+      
       // Optional git context information
       git_context: z.object({
         commits: z.array(z.object({
@@ -431,7 +440,7 @@ export function registerTools(server: any) {
         })).optional().describe("Repositories involved in this work")
       }).optional().describe("Flexible git context including commits, pull requests, and repository information. Provide whatever information you have available."),
     },
-    async ({ action_id, changelog_visibility, technical_changes, outcomes, challenges, git_context }: { 
+    async ({ action_id, changelog_visibility, technical_changes, outcomes, challenges, alignment_reflection, git_context }: { 
       action_id: string; 
       changelog_visibility: "private" | "team" | "public";
       technical_changes: {
@@ -454,6 +463,12 @@ export function registerTools(server: any) {
         blockers_resolved: string[];
         approaches_tried: string[];
         discoveries: string[];
+      };
+      alignment_reflection: {
+        purpose_interpretation: string;
+        goal_achievement_assessment: string;
+        context_influence: string;
+        assumptions_made: string[];
       };
       git_context?: {
         commits?: Array<{
@@ -511,6 +526,7 @@ export function registerTools(server: any) {
             technical_changes,
             outcomes,
             challenges,
+            alignment_reflection,
             git_context
           }
         });
@@ -547,6 +563,12 @@ export function registerTools(server: any) {
         if (challenges.discoveries.length > 0) message += ` (${challenges.discoveries.length} discoveries)`;
         
         message += `\n• Visibility: ${changelog_visibility}`;
+        
+        // Alignment reflection summary
+        message += `\n\n🎯 Alignment Reflection:`;
+        message += `\n• Purpose: ${alignment_reflection.purpose_interpretation.substring(0, 80)}${alignment_reflection.purpose_interpretation.length > 80 ? '...' : ''}`;
+        message += `\n• Achievement: ${alignment_reflection.goal_achievement_assessment.substring(0, 80)}${alignment_reflection.goal_achievement_assessment.length > 80 ? '...' : ''}`;
+        if (alignment_reflection.assumptions_made.length > 0) message += `\n• Assumptions: ${alignment_reflection.assumptions_made.length} documented`;
         
         if (git_context?.commits && git_context.commits.length > 0) {
           message += `\n\n🔗 Git Information:`;

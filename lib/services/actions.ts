@@ -416,6 +416,13 @@ export interface UpdateActionParams {
       approaches_tried?: string[];
       discoveries?: string[];
     };
+    // Alignment reflection fields (Phase 3)
+    alignment_reflection?: {
+      purpose_interpretation?: string;
+      goal_achievement_assessment?: string;
+      context_influence?: string;
+      assumptions_made?: string[];
+    };
     // Common fields
     changelog_visibility?: string;
     git_context?: {

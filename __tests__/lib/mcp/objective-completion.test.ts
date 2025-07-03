@@ -38,6 +38,14 @@ describe('Objective Completion Schema', () => {
       discoveries: z.array(z.string()).default([]),
     }),
     
+    // Alignment reflection - agent's understanding of purpose fulfillment
+    alignment_reflection: z.object({
+      purpose_interpretation: z.string().describe("How the agent interpreted the action's goal/vision"),
+      goal_achievement_assessment: z.string().describe("Agent's assessment of how well the goal was achieved"),
+      context_influence: z.string().describe("How family/dependency context influenced the approach"),
+      assumptions_made: z.array(z.string()).default([]).describe("Key assumptions made during implementation"),
+    }),
+    
     // Keep git_context as-is (already objective)
     git_context: z.object({
       commits: z.array(z.object({
@@ -111,6 +119,12 @@ describe('Objective Completion Schema', () => {
         approaches_tried: ["Tried Redis first, switched to PGlite"],
         discoveries: ["Found existing util function for validation"],
       },
+      alignment_reflection: {
+        purpose_interpretation: "Understood this as implementing secure user authentication with file upload capabilities to enable multi-user functionality",
+        goal_achievement_assessment: "Successfully implemented both authentication and file upload features. All requirements met with good security practices.",
+        context_influence: "Family context indicated this was part of user management system. Dependencies on database schema guided the authentication approach.",
+        assumptions_made: ["Assumed JWT-based authentication was preferred", "Assumed file uploads needed virus scanning", "Assumed integration with existing database schema"],
+      },
       git_context: {
         commits: [{
           message: "feat: implement new authentication system",
@@ -145,6 +159,12 @@ describe('Objective Completion Schema', () => {
         blockers_resolved: [],
         approaches_tried: [],
         discoveries: [],
+      },
+      alignment_reflection: {
+        purpose_interpretation: "Basic task completion",
+        goal_achievement_assessment: "Task completed as requested",
+        context_influence: "No specific context influenced the approach",
+        assumptions_made: [],
       },
     };
 
