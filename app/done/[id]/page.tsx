@@ -67,14 +67,68 @@ async function getCompletionData(id: string) {
       );
     } else {
       // Use existing editorial content (backward compatibility)
-      editorialContent = {
-        implementation_story: context.implementation_story || '',
-        impact_story: context.impact_story || '',
-        learning_story: context.learning_story || '',
-        headline: context.headline || actionDetail.title,
-        deck: context.deck || '',
-        pull_quotes: context.pull_quotes || []
-      };
+      const hasStoryContent = context.implementation_story || context.impact_story || context.learning_story;
+      
+      if (!hasStoryContent && (context.headline || context.deck || context.pull_quotes)) {
+        // Generate missing story content from available editorial fields
+        console.log(`Generating story content for action ${id} with existing editorial fields`);
+        
+        // Create minimal objective data structure for content generation
+        const minimalObjectiveData = {
+          technical_changes: {
+            files_modified: [],
+            files_created: [],
+            functions_added: [],
+            apis_modified: [],
+            dependencies_added: [],
+            config_changes: []
+          },
+          outcomes: {
+            features_implemented: [actionDetail.title],
+            bugs_fixed: [],
+            performance_improvements: [],
+            tests_passing: undefined,
+            build_status: undefined
+          },
+          challenges: {
+            blockers_encountered: [],
+            blockers_resolved: [],
+            approaches_tried: [],
+            discoveries: []
+          },
+          alignment_reflection: {
+            purpose_interpretation: context.deck || actionDetail.description || "Implementation completed successfully",
+            goal_achievement_assessment: "Goal achieved as indicated by completion",
+            context_influence: "Work completed within project context",
+            assumptions_made: []
+          }
+        };
+        
+        // Generate missing story content
+        const generatedContent = await ObjectiveEditorialService.generateEditorialContent(
+          actionDetail.title,
+          minimalObjectiveData
+        );
+        
+        editorialContent = {
+          implementation_story: generatedContent.implementation_story,
+          impact_story: generatedContent.impact_story,
+          learning_story: generatedContent.learning_story,
+          headline: context.headline || generatedContent.headline,
+          deck: context.deck || generatedContent.deck,
+          pull_quotes: context.pull_quotes || generatedContent.pull_quotes
+        };
+      } else {
+        // Use existing editorial content as-is
+        editorialContent = {
+          implementation_story: context.implementation_story || '',
+          impact_story: context.impact_story || '',
+          learning_story: context.learning_story || '',
+          headline: context.headline || actionDetail.title,
+          deck: context.deck || '',
+          pull_quotes: context.pull_quotes || []
+        };
+      }
     }
 
     return {
