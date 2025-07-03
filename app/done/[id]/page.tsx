@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ActionsService } from '@/lib/services/actions';
 import { ObjectiveEditorialService } from '@/lib/services/objective-editorial';
+import { CompletionContextService } from '@/lib/services/completion-context';
 import MagazineArticle from '@/components/MagazineArticle';
 
 interface PageProps {
@@ -118,6 +119,19 @@ async function getCompletionData(id: string) {
           deck: context.deck || generatedContent.deck,
           pull_quotes: context.pull_quotes || generatedContent.pull_quotes
         };
+        
+        // Persist the generated stories to the database
+        try {
+          await CompletionContextService.updateCompletionContext(id, {
+            implementationStory: generatedContent.implementation_story,
+            impactStory: generatedContent.impact_story,
+            learningStory: generatedContent.learning_story,
+          });
+          console.log(`Persisted generated story content for action ${id}`);
+        } catch (error) {
+          console.error(`Failed to persist generated content for action ${id}:`, error);
+          // Continue with rendering even if persistence fails
+        }
       } else {
         // Use existing editorial content as-is
         editorialContent = {

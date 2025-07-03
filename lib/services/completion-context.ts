@@ -204,6 +204,30 @@ export class CompletionContextService {
   }
 
   /**
+   * Update completion context for an action
+   */
+  static async updateCompletionContext(actionId: string, updates: Partial<CreateCompletionContextParams>) {
+    const { implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = updates;
+    
+    const updatedContext = await getDb()
+      .update(completionContexts)
+      .set({
+        ...(implementationStory !== undefined && { implementationStory }),
+        ...(impactStory !== undefined && { impactStory }),
+        ...(learningStory !== undefined && { learningStory }),
+        ...(headline !== undefined && { headline }),
+        ...(deck !== undefined && { deck }),
+        ...(pullQuotes !== undefined && { pullQuotes }),
+        ...(changelogVisibility !== undefined && { changelogVisibility }),
+        ...(gitContext !== undefined && { gitContext }),
+      })
+      .where(eq(completionContexts.actionId, actionId))
+      .returning();
+
+    return updatedContext.length > 0 ? updatedContext[0] : null;
+  }
+
+  /**
    * Delete completion context for an action
    */
   static async deleteCompletionContext(actionId: string) {
