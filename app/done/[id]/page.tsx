@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ActionsService } from '@/lib/services/actions';
+import { ObjectiveEditorialService } from '@/lib/services/objective-editorial';
 import MagazineArticle from '@/components/MagazineArticle';
 
 interface PageProps {
@@ -18,24 +19,84 @@ async function getCompletionData(id: string) {
       return null;
     }
 
+    const context = actionDetail.completion_context;
+    
+    // Check if this action has objective completion data (Phase 3)
+    const hasObjectiveData = context.technical_changes || context.outcomes || context.challenges || context.alignment_reflection;
+    
+    let editorialContent;
+    if (hasObjectiveData) {
+      // Generate editorial content from objective data using ObjectiveEditorialService
+      console.log(`Generating editorial content from objective data for action ${id}`);
+      
+      const objectiveData = {
+        technical_changes: {
+          files_modified: context.technical_changes?.files_modified || [],
+          files_created: context.technical_changes?.files_created || [],
+          functions_added: context.technical_changes?.functions_added || [],
+          apis_modified: context.technical_changes?.apis_modified || [],
+          dependencies_added: context.technical_changes?.dependencies_added || [],
+          config_changes: context.technical_changes?.config_changes || []
+        },
+        outcomes: {
+          features_implemented: context.outcomes?.features_implemented || [],
+          bugs_fixed: context.outcomes?.bugs_fixed || [],
+          performance_improvements: context.outcomes?.performance_improvements || [],
+          tests_passing: context.outcomes?.tests_passing,
+          build_status: context.outcomes?.build_status
+        },
+        challenges: {
+          blockers_encountered: context.challenges?.blockers_encountered || [],
+          blockers_resolved: context.challenges?.blockers_resolved || [],
+          approaches_tried: context.challenges?.approaches_tried || [],
+          discoveries: context.challenges?.discoveries || []
+        },
+        alignment_reflection: {
+          purpose_interpretation: context.alignment_reflection?.purpose_interpretation || "No purpose interpretation provided",
+          goal_achievement_assessment: context.alignment_reflection?.goal_achievement_assessment || "No goal achievement assessment provided",
+          context_influence: context.alignment_reflection?.context_influence || "No context influence documented",
+          assumptions_made: context.alignment_reflection?.assumptions_made || []
+        },
+        git_context: context.git_context
+      };
+      
+      // Generate editorial content from objective data
+      editorialContent = await ObjectiveEditorialService.generateEditorialContent(
+        actionDetail.title,
+        objectiveData
+      );
+    } else {
+      // Use existing editorial content (backward compatibility)
+      editorialContent = {
+        implementation_story: context.implementation_story || '',
+        impact_story: context.impact_story || '',
+        learning_story: context.learning_story || '',
+        headline: context.headline || actionDetail.title,
+        deck: context.deck || '',
+        pull_quotes: context.pull_quotes || []
+      };
+    }
+
     return {
       id: actionDetail.id,
       actionId: actionDetail.id,
-      implementationStory: actionDetail.completion_context.implementation_story,
-      impactStory: actionDetail.completion_context.impact_story,
-      learningStory: actionDetail.completion_context.learning_story,
-      headline: actionDetail.completion_context.headline,
-      deck: actionDetail.completion_context.deck,
-      pullQuotes: actionDetail.completion_context.pull_quotes,
-      changelogVisibility: actionDetail.completion_context.changelog_visibility,
-      completionTimestamp: actionDetail.completion_context.completion_timestamp,
+      implementationStory: editorialContent.implementation_story,
+      impactStory: editorialContent.impact_story,
+      learningStory: editorialContent.learning_story,
+      headline: editorialContent.headline,
+      deck: editorialContent.deck,
+      pullQuotes: editorialContent.pull_quotes,
+      changelogVisibility: context.changelog_visibility,
+      completionTimestamp: context.completion_timestamp,
       actionTitle: actionDetail.title,
       actionDescription: actionDetail.description,
       actionVision: actionDetail.vision,
       actionDone: actionDetail.done,
       actionCreatedAt: actionDetail.created_at,
       // Git context information
-      gitContext: actionDetail.completion_context.git_context,
+      gitContext: context.git_context,
+      // Flag to indicate if content was generated from objective data
+      generatedFromObjectiveData: hasObjectiveData,
     };
   } catch (error) {
     console.error('Error fetching completion data:', error);

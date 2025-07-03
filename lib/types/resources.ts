@@ -106,6 +106,34 @@ export interface DependencyCompletionContext {
   headline?: string;
   deck?: string;
   pull_quotes?: string[];
+  // Phase 3: Objective completion data
+  technical_changes?: {
+    files_modified?: string[];
+    files_created?: string[];
+    functions_added?: string[];
+    apis_modified?: string[];
+    dependencies_added?: string[];
+    config_changes?: string[];
+  };
+  outcomes?: {
+    features_implemented?: string[];
+    bugs_fixed?: string[];
+    performance_improvements?: string[];
+    tests_passing?: boolean;
+    build_status?: "success" | "failed" | "unknown";
+  };
+  challenges?: {
+    blockers_encountered?: string[];
+    blockers_resolved?: string[];
+    approaches_tried?: string[];
+    discoveries?: string[];
+  };
+  alignment_reflection?: {
+    purpose_interpretation?: string;
+    goal_achievement_assessment?: string;
+    context_influence?: string;
+    assumptions_made?: string[];
+  };
   // Git context information
   git_context?: {
     commits?: Array<{
