@@ -387,12 +387,36 @@ export interface UpdateActionParams {
   vision?: string;
   done?: boolean;
   completion_context?: {
+    // Legacy editorial fields (Phase 2)
     implementation_story?: string;
     impact_story?: string;
     learning_story?: string;
     headline?: string;
     deck?: string;
     pull_quotes?: string[];
+    // New objective fields (Phase 3)
+    technical_changes?: {
+      files_modified?: string[];
+      files_created?: string[];
+      functions_added?: string[];
+      apis_modified?: string[];
+      dependencies_added?: string[];
+      config_changes?: string[];
+    };
+    outcomes?: {
+      features_implemented?: string[];
+      bugs_fixed?: string[];
+      performance_improvements?: string[];
+      tests_passing?: boolean;
+      build_status?: "success" | "failed" | "unknown";
+    };
+    challenges?: {
+      blockers_encountered?: string[];
+      blockers_resolved?: string[];
+      approaches_tried?: string[];
+      discoveries?: string[];
+    };
+    // Common fields
     changelog_visibility?: string;
     git_context?: {
       commits?: Array<{

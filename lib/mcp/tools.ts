@@ -352,20 +352,40 @@ export function registerTools(server: any) {
     },
   );
 
-  // complete_action - Mark an action as completed with required completion context
+  // complete_action - Mark an action as completed with objective completion data for server-side editorial generation
   server.tool(
     "complete_action",
-    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering. Adopt a measured, analytical tone similar to The Economist or scientific journals. Optionally include git commit information to link completed work with code changes.",
+    "Mark an action as completed with REQUIRED objective completion data. Provide concrete, factual information about what was changed, accomplished, and challenges encountered. The server will generate editorial content from this objective data combined with hook activity logs.",
     {
       action_id: z.string().uuid().describe("The ID of the action to complete"),
-      implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting. IMPORTANT: Use backticks (`) around ALL technical terms including file paths (e.g., `/api/actions`), function names (e.g., `generateText()`), APIs, libraries, commands, and code-related terms."),
-      impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical terms like metrics, API endpoints, database fields, etc."),
-      learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical concepts, tools, and code-related terms."),
-      changelog_visibility: z.enum(["private", "team", "public"]).describe("REQUIRED: Who should see this completion context in changelog generation (default: 'team')"),
-      // Required editorial content for magazine-style display
-      headline: z.string().describe("REQUIRED: AI-generated headline in the style of The Economist or Nature (e.g., 'Search latency reduced by 70% through architectural improvements', 'New caching strategy improves database performance')"),
-      deck: z.string().describe("REQUIRED: AI-generated standfirst in the style of The Economist - a measured 2-3 sentence summary that provides context and key findings without hyperbole"),
-      pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted notable quotes from the completion stories that highlight key findings, technical insights, or lessons learned - avoid superlatives"),
+      changelog_visibility: z.enum(["private", "team", "public"]).describe("REQUIRED: Who should see this completion context in changelog generation"),
+      
+      // Objective technical data (replaces implementation_story)
+      technical_changes: z.object({
+        files_modified: z.array(z.string()).default([]).describe("List of file paths that were modified (e.g., ['/lib/services/actions.ts', '/db/schema.ts'])"),
+        files_created: z.array(z.string()).default([]).describe("List of new file paths that were created (e.g., ['/api/new-endpoint/route.ts'])"),
+        functions_added: z.array(z.string()).default([]).describe("List of new function names added (e.g., ['createAction', 'updateMetadata'])"),
+        apis_modified: z.array(z.string()).default([]).describe("List of API endpoints modified (e.g., ['/api/actions', '/mcp/tools'])"),
+        dependencies_added: z.array(z.string()).default([]).describe("List of new dependencies added with versions (e.g., ['zod@3.22.0', '@vercel/ai@2.1.0'])"),
+        config_changes: z.array(z.string()).default([]).describe("List of configuration changes made (e.g., ['Updated eslint.config.js', 'Added DATABASE_URL env var'])"),
+      }).describe("Objective technical changes made during implementation"),
+      
+      // Objective outcomes (replaces impact_story)
+      outcomes: z.object({
+        features_implemented: z.array(z.string()).default([]).describe("List of user-facing features implemented (e.g., ['User authentication', 'File upload'])"),
+        bugs_fixed: z.array(z.string()).default([]).describe("List of specific bugs fixed (e.g., ['Memory leak in upload handler'])"),
+        performance_improvements: z.array(z.string()).default([]).describe("List of measurable performance improvements (e.g., ['Query speed improved 40%'])"),
+        tests_passing: z.boolean().optional().describe("Whether all tests are passing after completion"),
+        build_status: z.enum(["success", "failed", "unknown"]).optional().describe("Final build status"),
+      }).describe("Objective outcomes and results achieved"),
+      
+      // Objective challenges (replaces learning_story)
+      challenges: z.object({
+        blockers_encountered: z.array(z.string()).default([]).describe("List of blockers encountered (e.g., ['TypeScript compilation errors'])"),
+        blockers_resolved: z.array(z.string()).default([]).describe("List of how blockers were resolved (e.g., ['Fixed import path issues'])"),
+        approaches_tried: z.array(z.string()).default([]).describe("List of different approaches attempted (e.g., ['Tried Redis first, switched to PGlite'])"),
+        discoveries: z.array(z.string()).default([]).describe("List of insights or discoveries made (e.g., ['Found existing util function for validation'])"),
+      }).describe("Objective challenges and problem-solving information"),
       // Optional git context information
       git_context: z.object({
         commits: z.array(z.object({
@@ -411,15 +431,30 @@ export function registerTools(server: any) {
         })).optional().describe("Repositories involved in this work")
       }).optional().describe("Flexible git context including commits, pull requests, and repository information. Provide whatever information you have available."),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_context }: { 
+    async ({ action_id, changelog_visibility, technical_changes, outcomes, challenges, git_context }: { 
       action_id: string; 
-      implementation_story: string;
-      impact_story: string;
-      learning_story: string;
       changelog_visibility: "private" | "team" | "public";
-      headline: string;
-      deck: string;
-      pull_quotes: string[];
+      technical_changes: {
+        files_modified: string[];
+        files_created: string[];
+        functions_added: string[];
+        apis_modified: string[];
+        dependencies_added: string[];
+        config_changes: string[];
+      };
+      outcomes: {
+        features_implemented: string[];
+        bugs_fixed: string[];
+        performance_improvements: string[];
+        tests_passing?: boolean;
+        build_status?: "success" | "failed" | "unknown";
+      };
+      challenges: {
+        blockers_encountered: string[];
+        blockers_resolved: string[];
+        approaches_tried: string[];
+        discoveries: string[];
+      };
       git_context?: {
         commits?: Array<{
           hash?: string;
@@ -472,22 +507,45 @@ export function registerTools(server: any) {
           action_id,
           done: true,
           completion_context: {
-            implementation_story,
-            impact_story,
-            learning_story,
             changelog_visibility,
-            headline,
-            deck,
-            pull_quotes,
+            technical_changes,
+            outcomes,
+            challenges,
             git_context
           }
         });
         
         let message = `✅ Completed action: ${action.data?.title}\nID: ${action.id}\nCompleted: ${action.updatedAt}`;
-        message += `\n\n📋 Completion Context Captured:`;
-        message += `\n• Implementation: ${implementation_story.substring(0, 100)}${implementation_story.length > 100 ? '...' : ''}`;
-        message += `\n• Impact: ${impact_story.substring(0, 100)}${impact_story.length > 100 ? '...' : ''}`;
-        message += `\n• Learning: ${learning_story.substring(0, 100)}${learning_story.length > 100 ? '...' : ''}`;
+        message += `\n\n📋 Objective Completion Data Captured:`;
+        
+        // Technical changes summary
+        const totalTechnicalChanges = technical_changes.files_modified.length + 
+                                    technical_changes.files_created.length + 
+                                    technical_changes.functions_added.length + 
+                                    technical_changes.apis_modified.length + 
+                                    technical_changes.dependencies_added.length + 
+                                    technical_changes.config_changes.length;
+        message += `\n• Technical Changes: ${totalTechnicalChanges} items`;
+        if (technical_changes.files_modified.length > 0) message += ` (${technical_changes.files_modified.length} files modified)`;
+        if (technical_changes.files_created.length > 0) message += ` (${technical_changes.files_created.length} files created)`;
+        
+        // Outcomes summary
+        const totalOutcomes = outcomes.features_implemented.length + 
+                            outcomes.bugs_fixed.length + 
+                            outcomes.performance_improvements.length;
+        message += `\n• Outcomes: ${totalOutcomes} achievements`;
+        if (outcomes.features_implemented.length > 0) message += ` (${outcomes.features_implemented.length} features)`;
+        if (outcomes.bugs_fixed.length > 0) message += ` (${outcomes.bugs_fixed.length} bugs fixed)`;
+        if (outcomes.tests_passing !== undefined) message += ` (tests: ${outcomes.tests_passing ? 'passing' : 'failing'})`;
+        
+        // Challenges summary
+        const totalChallenges = challenges.blockers_encountered.length + 
+                              challenges.approaches_tried.length + 
+                              challenges.discoveries.length;
+        message += `\n• Challenges: ${totalChallenges} items documented`;
+        if (challenges.blockers_encountered.length > 0) message += ` (${challenges.blockers_encountered.length} blockers)`;
+        if (challenges.discoveries.length > 0) message += ` (${challenges.discoveries.length} discoveries)`;
+        
         message += `\n• Visibility: ${changelog_visibility}`;
         
         if (git_context?.commits && git_context.commits.length > 0) {
@@ -507,6 +565,8 @@ export function registerTools(server: any) {
             message += `\n• Pull Requests: ${git_context.pullRequests.length}`;
           }
         }
+        
+        message += `\n\n🤖 Server will generate editorial content from this objective data combined with hook activity logs.`;
 
         return {
           content: [
