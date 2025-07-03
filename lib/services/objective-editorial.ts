@@ -100,28 +100,39 @@ export class ObjectiveEditorialService {
     const hookContext = hookActivity ? this.formatHookActivity(hookActivity) : '';
 
     const prompt = `
-Transform this objective completion data into a clear, technical implementation story in markdown format:
+Transform this objective completion data into a comprehensive technical implementation story in markdown format:
 
-Action: ${actionTitle}
+## Action: ${actionTitle}
 
-Technical Changes:
+### Technical Changes Made:
 ${technicalChangesText}
 
-Challenges & Problem-Solving:
+### Challenges Encountered & Solutions:
 ${challengesText}
 
-${hookContext ? `Tool Usage Context:\n${hookContext}\n` : ''}
+${hookContext ? `### Development Process:\n${hookContext}\n` : ''}
 
-Agent's Understanding:
+### Agent's Approach:
 ${data.alignment_reflection.purpose_interpretation}
 
-Write a clear implementation story that explains:
-1. The technical approach taken
-2. Key implementation decisions 
-3. How challenges were overcome
-4. Tools and methods used
+### Context & Decision Making:
+${data.alignment_reflection.context_influence}
 
-Use markdown formatting with backticks around technical terms. Keep it factual and technical, around 150-200 words.
+Write a detailed implementation story (300-400 words) that covers:
+
+1. **Technical Approach**: What was built and how
+2. **Implementation Details**: Key files, functions, and architectural decisions
+3. **Problem-Solving Process**: How challenges were identified and resolved
+4. **Development Methodology**: Tools, approaches, and workflow used
+5. **Design Rationale**: Why specific technical choices were made
+
+Use markdown formatting with:
+- Backticks around technical terms (\`filename.ts\`, \`functionName()\`)
+- Code blocks for any code snippets
+- Headers for organization
+- Bullet points for technical details
+
+Be comprehensive but factual. Explain the technical work in detail for an engineering audience.
 `;
 
     const { text } = await generateText({
@@ -218,7 +229,7 @@ Use markdown formatting. Keep it reflective and educational, around 100-150 word
   }
 
   /**
-   * Generate compelling headline from action and outcomes
+   * Generate factual headline from action and outcomes
    */
   static async generateHeadline(
     actionTitle: string,
@@ -231,30 +242,32 @@ Use markdown formatting. Keep it reflective and educational, around 100-150 word
       ...data.outcomes.bugs_fixed
     ].slice(0, 3);
 
+    // For Phase 3 completion data, use actual purpose interpretation as context
+    const purposeContext = data.alignment_reflection?.purpose_interpretation || actionTitle;
+
     const prompt = `
-Generate a compelling, technical headline for this software development completion:
+Generate a factual, technical headline for this software development completion:
 
-Action: ${actionTitle}
-Key Outcomes: ${keyOutcomes.join(', ')}
-Status: ${data.outcomes.build_status || 'completed'}
+Action Title: ${actionTitle}
+Purpose: ${purposeContext}
+Key Outcomes Achieved: ${keyOutcomes.length > 0 ? keyOutcomes.join(', ') : 'Implementation completed'}
+Build Status: ${data.outcomes.build_status || 'completed'}
 
-Write a headline in the style of technical publications like InfoQ or The Economist technology section:
-- Factual and measured tone
-- Focus on the main technical achievement
-- No hyperbole or marketing language
+Requirements:
+- Be completely factual - NO made-up statistics or metrics
+- Focus on what was actually accomplished
+- Reference the strategic purpose or larger goal when relevant
+- Use measured, professional tone
 - 8-12 words maximum
-- Highlight concrete results
+- NO performance percentages unless explicitly provided in the data
 
-Examples:
-"Query performance improved 40% through caching optimization"
-"Authentication system deployed with zero-downtime migration"
-"Memory leak eliminated in file upload handler"
+Only use information that was explicitly provided. Do not invent any numbers, metrics, or claims.
 `;
 
     const { text } = await generateText({
       model: openai('gpt-4o-mini'),
       prompt,
-      temperature: 0.2,
+      temperature: 0.1, // Lower temperature for more factual output
     });
 
     return text.replace(/[""]/g, '').trim();
