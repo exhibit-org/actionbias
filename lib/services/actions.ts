@@ -21,6 +21,7 @@ import { FamilySummaryService } from './family-summary';
 import { CompletionContextService } from './completion-context';
 import { ActionSearchService } from './action-search';
 import { EditorialAIService } from './editorial-ai';
+import { EnhancedContextService } from './enhanced-context';
 import { ContextService } from './context';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
@@ -913,38 +914,11 @@ export class ActionsService {
             !completion_context.deck && 
             !completion_context.pull_quotes) {
           
-          // Fetch dependency completions and generate editorial content asynchronously (don't wait)
+          // Fetch enhanced context and generate editorial content asynchronously (don't wait)
           (async () => {
             try {
-              // Get dependency completions for context
-              const dependencyEdges = await getDb()
-                .select()
-                .from(edges)
-                .where(and(
-                  eq(edges.dst, action_id),
-                  eq(edges.kind, 'depends_on')
-                ));
-              
-              let dependencyCompletions = [];
-              if (dependencyEdges.length > 0) {
-                const depIds = dependencyEdges.map((e: any) => e.src).filter(Boolean);
-                const deps = await getDb()
-                  .select({
-                    action: actions,
-                    context: completionContexts
-                  })
-                  .from(actions)
-                  .leftJoin(completionContexts, eq(completionContexts.actionId, actions.id))
-                  .where(and(
-                    inArray(actions.id, depIds),
-                    eq(actions.done, true)
-                  ));
-                
-                dependencyCompletions = deps.map((d: any) => ({
-                  title: d.action.title || '',
-                  impactStory: d.context?.impactStory || undefined
-                }));
-              }
+              // Get enhanced dependency and sibling context
+              const enhancedContext = await EnhancedContextService.getEnhancedEditorialContext(action_id);
 
               const generatedContent = await EditorialAIService.generateEditorialContent({
                 actionTitle: updatedAction[0].title || existingAction[0].title || 'Untitled Action',
@@ -958,8 +932,9 @@ export class ActionsService {
                 subtreeSummary: updatedAction[0].subtreeSummary || existingAction[0].subtreeSummary,
                 familyContextSummary: updatedAction[0].familyContextSummary || existingAction[0].familyContextSummary,
                 familyVisionSummary: updatedAction[0].familyVisionSummary || existingAction[0].familyVisionSummary,
-                // Include dependency completions
-                dependencyCompletions: dependencyCompletions.length > 0 ? dependencyCompletions : undefined
+                // Include enhanced dependency and sibling context
+                dependencyCompletions: enhancedContext.dependencyCompletions,
+                siblingContext: enhancedContext.siblingContext
               });
               // Update with generated content if available
               if (generatedContent.headline || generatedContent.deck || generatedContent.pullQuotes) {

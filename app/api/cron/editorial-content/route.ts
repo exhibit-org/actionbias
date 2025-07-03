@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db/adapter';
 import { actions, completionContexts, edges } from '@/db/schema';
 import { eq, and, isNull, or, inArray } from 'drizzle-orm';
 import { EditorialAIService } from '@/lib/services/editorial-ai';
+import { EnhancedContextService } from '@/lib/services/enhanced-context';
 
 export const maxDuration = 300; // 5 minutes max
 
@@ -47,37 +48,10 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // Fetch dependency completions for richer context
-        const dependencyEdges = await db
-          .select()
-          .from(edges)
-          .where(and(
-            eq(edges.dst, action.id),
-            eq(edges.kind, 'depends_on')
-          ));
-        
-        let dependencyCompletions = [];
-        if (dependencyEdges.length > 0) {
-          const depIds = dependencyEdges.map((e: any) => e.src).filter(Boolean);
-          const deps = await db
-            .select({
-              action: actions,
-              context: completionContexts
-            })
-            .from(actions)
-            .leftJoin(completionContexts, eq(completionContexts.actionId, actions.id))
-            .where(and(
-              inArray(actions.id, depIds),
-              eq(actions.done, true)
-            ));
-          
-          dependencyCompletions = deps.map((d: any) => ({
-            title: d.action.title || '',
-            impactStory: d.context?.impactStory || undefined
-          }));
-        }
+        // Get enhanced dependency and sibling context
+        const enhancedContext = await EnhancedContextService.getEnhancedEditorialContext(action.id);
 
-        // Generate editorial content with rich context
+        // Generate editorial content with enhanced context
         const editorial = await EditorialAIService.generateEditorialContent({
           actionTitle: action.title || 'Untitled Action',
           actionDescription: action.description || undefined,
@@ -90,8 +64,9 @@ export async function GET(request: Request) {
           subtreeSummary: action.subtreeSummary || undefined,
           familyContextSummary: action.familyContextSummary || undefined,
           familyVisionSummary: action.familyVisionSummary || undefined,
-          // Add dependency completions
-          dependencyCompletions: dependencyCompletions.length > 0 ? dependencyCompletions : undefined
+          // Add enhanced dependency and sibling context
+          dependencyCompletions: enhancedContext.dependencyCompletions,
+          siblingContext: enhancedContext.siblingContext
         });
 
         // Update only missing fields
