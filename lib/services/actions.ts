@@ -48,7 +48,7 @@ async function hasIncompleteDependencies(actionId: string): Promise<{ hasIncompl
   
   const incompleteDeps = dependencyActions
     .filter((action: any) => !action.done)
-    .map((action: any) => action.title || action.id);
+    .map((action: any) => `"${action.title || action.id}" (${action.id})`);
   
   return {
     hasIncomplete: incompleteDeps.length > 0,
