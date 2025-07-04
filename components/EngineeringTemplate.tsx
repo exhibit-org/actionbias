@@ -403,14 +403,18 @@ export default function EngineeringTemplate({
                         {commit.author && (
                           <p className="text-gray-500 pl-4">
                             by{' '}
-                            <a 
-                              href={`https://github.com/${commit.author.username || 'bbn'}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-400 hover:text-green-300"
-                            >
-                              {commit.author.name}
-                            </a>
+                            {commit.author.username ? (
+                              <a 
+                                href={`https://github.com/${commit.author.username}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-green-400 hover:text-green-300"
+                              >
+                                {commit.author.name}
+                              </a>
+                            ) : (
+                              <span className="text-green-400">{commit.author.name}</span>
+                            )}
                           </p>
                         )}
                         {commit.stats && (
