@@ -194,6 +194,12 @@ describe('Objective Completion Schema', () => {
         approaches_tried: [],
         discoveries: [],
       },
+      alignment_reflection: {
+        purpose_interpretation: "Basic task completion",
+        goal_achievement_assessment: "Task completed as requested",
+        context_influence: "No specific context influenced the approach",
+        assumptions_made: [],
+      },
     };
 
     expect(() => ObjectiveCompletionSchema.parse(invalidCompletion)).toThrow();
@@ -222,6 +228,12 @@ describe('Objective Completion Schema', () => {
         blockers_resolved: [],
         approaches_tried: [],
         discoveries: [],
+      },
+      alignment_reflection: {
+        purpose_interpretation: "Understood this as implementing a new feature with proper testing",
+        goal_achievement_assessment: "Successfully implemented the requested feature",
+        context_influence: "No specific context influenced the approach",
+        assumptions_made: [],
       },
     };
 

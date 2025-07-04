@@ -6,7 +6,7 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/jest.setup.pglite.cjs', '<rootDir>/jest.setup.web.cjs'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/jest.setup.web.cjs'],
   globalTeardown: '<rootDir>/scripts/cleanup-test-dbs.mjs',
   testEnvironment: 'jest-environment-jsdom',
   maxWorkers: 2, // Limit workers to prevent crashes
@@ -15,6 +15,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/$1',
     '^next/server$': '<rootDir>/__tests__/__mocks__/next/server.ts',
     '^lib/(.*)$': '<rootDir>/lib/$1',
+    '^../../lib/(.*)$': '<rootDir>/lib/$1',
     '^../lib/(.*)$': '<rootDir>/lib/$1',
   },
   testPathIgnorePatterns: [

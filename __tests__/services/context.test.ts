@@ -2,17 +2,13 @@ import { ContextService } from "../../lib/services/context";
 import { getDb } from "../../lib/db/adapter";
 import { actions, edges } from "../../db/schema";
 
-// Mock the database
-jest.mock("../../lib/db/adapter");
-
 describe("ContextService", () => {
-  const mockDb = {
-    select: jest.fn(),
-  };
+  let mockDb: any;
 
   beforeEach(() => {
+    // Get the mocked database from the global setup
+    mockDb = getDb();
     jest.clearAllMocks();
-    (getDb as jest.Mock).mockReturnValue(mockDb);
   });
 
   describe("getActionContext", () => {

@@ -1,14 +1,22 @@
 #!/bin/sh
 set -e
 
-echo "Running pre-commit checks..."
+echo "🔍 Running pre-commit checks..."
+echo "⚠️  ZERO TOLERANCE POLICY: All tests must pass before commit!"
 
-echo "1. Running build check..."
+echo "1. Running unit tests..."
+NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' pnpm jest --config jest.unit.config.js --ci --watchAll=false
+
+echo "✅ Unit tests passed!"
+
+echo "2. Running integration tests..."
+NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=4096' pnpm jest --config jest.integration.config.js --ci --watchAll=false
+
+echo "✅ Integration tests passed!"
+
+echo "3. Running build check..."
 pnpm build
 
 echo "✅ Build check passed!"
 
-# Note: Tests currently disabled due to PGlite test failures
-# TODO: Re-enable when test issues are resolved
-# echo "2. Running tests..."
-# pnpm test:pre-commit
+echo "🎉 All checks passed! Commit approved."

@@ -107,10 +107,10 @@ describe('ObjectiveEditorialService', () => {
 
       const { generateText } = require('ai');
       expect(generateText).toHaveBeenCalledWith(expect.objectContaining({
-        prompt: expect.stringContaining('Technical Changes:'),
+        prompt: expect.stringContaining('Technical Changes Made:'),
       }));
       expect(generateText).toHaveBeenCalledWith(expect.objectContaining({
-        prompt: expect.stringContaining('Challenges & Problem-Solving:'),
+        prompt: expect.stringContaining('Challenges Encountered & Solutions:'),
       }));
     });
 
@@ -123,7 +123,7 @@ describe('ObjectiveEditorialService', () => {
 
       const { generateText } = require('ai');
       expect(generateText).toHaveBeenCalledWith(expect.objectContaining({
-        prompt: expect.stringContaining('Tool Usage Context:'),
+        prompt: expect.stringContaining('Development Process:'),
       }));
     });
   });
@@ -137,7 +137,7 @@ describe('ObjectiveEditorialService', () => {
         prompt: expect.stringContaining('Outcomes Achieved:'),
       }));
       expect(generateText).toHaveBeenCalledWith(expect.objectContaining({
-        prompt: expect.stringContaining('goal_achievement_assessment'),
+        prompt: expect.stringContaining('Agent\'s Assessment:'),
       }));
     });
   });
@@ -165,7 +165,7 @@ describe('ObjectiveEditorialService', () => {
         prompt: expect.stringContaining('Server-side editorial generation'),
       }));
       expect(generateText).toHaveBeenCalledWith(expect.objectContaining({
-        temperature: 0.2, // Should use low temperature for consistency
+        temperature: 0.1, // Should use low temperature for consistency
       }));
     });
   });
