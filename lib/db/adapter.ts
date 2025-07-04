@@ -33,6 +33,7 @@ function getDb() {
 // Store reference to the raw PGlite instance for cleanup
 let rawPgliteInstance: any = null;
 let initializationPromise: Promise<any> | null = null;
+let currentDbPath: string | null = null;
 
 // Initialize PGlite if needed (called during setup)
 export async function initializePGlite() {
@@ -63,6 +64,7 @@ export async function initializePGlite() {
       
       const pglite = new PGlite(dbPath);
       rawPgliteInstance = pglite; // Store for cleanup
+      currentDbPath = dbPath; // Store path for cleanup
       pgliteDb = drizzlePGlite(pglite);
       
       // Run migrations for PGlite databases only if SKIP_MIGRATIONS is not set
@@ -202,6 +204,19 @@ export async function cleanupPGlite() {
     if (rawPgliteInstance) {
       await rawPgliteInstance.close();
     }
+
+    // Remove database directory for non-memory databases
+    if (currentDbPath && currentDbPath !== 'memory') {
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(currentDbPath)) {
+          fs.rmSync(currentDbPath, { recursive: true, force: true });
+        }
+      } catch (error) {
+        // Silently ignore directory cleanup errors
+        console.warn('Error removing PGlite directory:', error);
+      }
+    }
   } catch (error) {
     // Silently handle cleanup errors in tests
     console.warn('Error during PGlite cleanup:', error);
@@ -209,6 +224,7 @@ export async function cleanupPGlite() {
     rawPgliteInstance = null;
     pgliteDb = null;
     initializationPromise = null;
+    currentDbPath = null;
   }
 }
 
@@ -218,6 +234,7 @@ export function resetCache() {
   pgliteDb = null;
   rawPgliteInstance = null;
   initializationPromise = null;
+  currentDbPath = null;
 }
 
 export { getDb };

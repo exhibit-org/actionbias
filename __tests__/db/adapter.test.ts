@@ -24,21 +24,31 @@ describe('Database Adapter', () => {
     await cleanupPGlite();
   });
 
+  afterEach(async () => {
+    // Clean up after each test to prevent accumulation
+    await cleanupPGlite();
+  });
+
   afterAll(async () => {
     // Clean up any PGlite instances created during tests
     await cleanupPGlite();
     
     // Clean up test database directories
     const fs = require('fs');
-    const testDirs = ['.pglite-adapter-test', '.pglite-adapter-test-2', 'custom-adapter-test'];
+    const allEntries = fs.readdirSync('.', { withFileTypes: true });
+    const testDirPatterns = [
+      /^\.pglite-adapter-test/,
+      /^custom-adapter-test/,
+      /^\.pglite-.*-test/
+    ];
     
-    for (const dir of testDirs) {
-      try {
-        if (fs.existsSync(dir)) {
-          fs.rmSync(dir, { recursive: true, force: true });
+    for (const entry of allEntries) {
+      if (entry.isDirectory() && testDirPatterns.some(pattern => pattern.test(entry.name))) {
+        try {
+          fs.rmSync(entry.name, { recursive: true, force: true });
+        } catch (error) {
+          // Silently ignore cleanup errors in tests
         }
-      } catch (error) {
-        // Silently ignore cleanup errors in tests
       }
     }
     

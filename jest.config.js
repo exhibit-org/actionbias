@@ -7,6 +7,7 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/jest.setup.pglite.cjs', '<rootDir>/jest.setup.web.cjs'],
+  globalTeardown: '<rootDir>/scripts/cleanup-test-dbs.mjs',
   testEnvironment: 'jest-environment-jsdom',
   maxWorkers: 2, // Limit workers to prevent crashes
   workerIdleMemoryLimit: '1GB', // Set memory limit for workers
