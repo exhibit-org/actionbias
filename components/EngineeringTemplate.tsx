@@ -112,8 +112,8 @@ export default function EngineeringTemplate({
     
     const processedText = paragraphs.map(paragraph => {
       const processed = paragraph
-        // Code blocks - Terminal style with green accent
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-900 border border-green-500 text-green-400 p-4 overflow-x-auto my-4 font-mono text-sm rounded"><code>$2</code></pre><p class="mb-4 font-mono">')
+        // Code blocks - Terminal style with better contrast
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-800 border border-green-500 text-green-300 p-4 overflow-x-auto my-4 font-mono text-sm rounded"><code>$2</code></pre><p class="mb-4 font-mono">')
         // Inline code - Terminal style with better contrast
         .replace(/`([^`]+)`/g, '<code class="bg-gray-800 border border-gray-600 text-green-300 px-2 py-1 rounded font-mono text-sm">$1</code>')
         // Bold
@@ -347,7 +347,7 @@ export default function EngineeringTemplate({
                 </h3>
                 <dl className="space-y-3 font-mono text-xs">
                   <div className="pb-2 border-b border-gray-800">
-                    <dt className="text-gray-500 mb-1">task_id</dt>
+                    <dt className="text-gray-500 mb-1">action_id</dt>
                     <dd className="text-gray-300 break-all">{item.actionId}</dd>
                   </div>
                   <div className="pb-2 border-b border-gray-800">
