@@ -1743,6 +1743,11 @@ export class ActionsService {
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
           gitContext: completionContexts.gitContext,
+          templateContent: completionContexts.templateContent,
+          technicalChanges: completionContexts.technicalChanges,
+          outcomes: completionContexts.outcomes,
+          challenges: completionContexts.challenges,
+          alignmentReflection: completionContexts.alignmentReflection,
         })
         .from(completionContexts)
         .where(eq(completionContexts.actionId, actionId))
@@ -1762,6 +1767,11 @@ export class ActionsService {
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
           git_context: context.gitContext || undefined,
+          templateContent: context.templateContent || undefined,
+          technical_changes: context.technicalChanges || undefined,
+          outcomes: context.outcomes || undefined,
+          challenges: context.challenges || undefined,
+          alignment_reflection: context.alignmentReflection || undefined,
         };
       }
     }
