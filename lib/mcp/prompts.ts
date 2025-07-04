@@ -47,12 +47,22 @@ Then analyze the workable actions and recommend the top 5 to work on based on:
 - Effort vs impact ratio
 - Addressing technical debt or critical issues
 
+CRITICAL: Only recommend actions from the work://unblocked resource. 
+- Use the momentum data ONLY to understand context and recent progress
+- NEVER recommend any action that appears in the recent completions list
+- Before finalizing recommendations, verify each action has "done": false status
+
 For each recommendation, provide:
 - The action title, description, and ID
 - A score (0-100) 
 - Clear reasoning for the score
 - Category (strategic, quick-win, momentum, technical-debt)
 - Estimated effort (low, medium, high)
+
+VALIDATION: Before submitting your top 5, double-check that:
+1. Each recommended action appears in work://unblocked
+2. None appear in context://momentum recent completions
+3. All have incomplete status
 
 Be selective with scoring - most actions should score 20-80, with 80+ reserved for truly critical work.`;
 
