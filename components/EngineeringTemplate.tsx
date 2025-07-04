@@ -114,8 +114,8 @@ export default function EngineeringTemplate({
       const processed = paragraph
         // Code blocks - Terminal style with green accent
         .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-900 border border-green-500 text-green-400 p-4 overflow-x-auto my-4 font-mono text-sm rounded"><code>$2</code></pre><p class="mb-4 font-mono">')
-        // Inline code - Terminal style
-        .replace(/`([^`]+)`/g, '<code class="bg-gray-900 border border-gray-700 text-green-400 px-2 py-1 rounded font-mono text-sm">$1</code>')
+        // Inline code - Terminal style with better contrast
+        .replace(/`([^`]+)`/g, '<code class="bg-gray-800 border border-gray-600 text-green-300 px-2 py-1 rounded font-mono text-sm">$1</code>')
         // Bold
         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
         // Italic  
@@ -213,7 +213,7 @@ export default function EngineeringTemplate({
           <span className="font-mono text-green-500">$</span>
           <span className="font-mono text-gray-500 ml-2">done</span>
           <span className="font-mono text-gray-600 ml-2">show</span>
-          <span className="font-mono text-gray-600 ml-2">{item.actionId.substring(0, 8)}</span>
+          <span className="font-mono text-gray-600 ml-2">"{item.actionTitle}"</span>
         </div>
         
         {/* Status and metadata */}
@@ -458,7 +458,7 @@ export default function EngineeringTemplate({
       <footer className="max-w-6xl mx-auto px-6 py-8 mt-12 border-t border-gray-800">
         <div className="flex justify-between items-center font-mono text-xs text-gray-600">
           <div>
-            <p>ref: {item.actionId.substring(0, 8)}...{item.actionId.slice(-8)}</p>
+            <p className="break-all">ref: {item.actionId}</p>
             <p className="mt-1">© {new Date().getFullYear()} done.engineering</p>
           </div>
           <div className="text-right">

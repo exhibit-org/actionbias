@@ -215,6 +215,10 @@ Requirements:
 - Emphasize architecture, code quality, and system design
 - Use backticks around technical terms and \`code\`
 - Be factual and precise, avoid marketing language
+- NEVER include made-up metrics, percentages, or statistics
+- NEVER mention "measurable improvements" unless explicitly provided in the data
+- If no metrics are available, say "No metrics available" or omit metrics sections entirely
+- Only state facts that can be verified from the provided technical data
 `;
 
     const { text } = await generateText({
