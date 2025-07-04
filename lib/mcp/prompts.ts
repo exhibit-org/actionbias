@@ -48,7 +48,7 @@ Then analyze the workable actions and recommend the top 5 to work on based on:
 - Addressing technical debt or critical issues
 
 For each recommendation, provide:
-- The action title and description
+- The action title, description, and ID
 - A score (0-100) 
 - Clear reasoning for the score
 - Category (strategic, quick-win, momentum, technical-debt)
