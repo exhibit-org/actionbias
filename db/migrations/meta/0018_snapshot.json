@@ -158,50 +158,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "git_commit_hash": {
-          "name": "git_commit_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_message": {
-          "name": "git_commit_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_branch": {
-          "name": "git_branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_author": {
-          "name": "git_commit_author",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_author_username": {
-          "name": "git_commit_author_username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_timestamp": {
-          "name": "git_commit_timestamp",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_diff_stats": {
-          "name": "git_diff_stats",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_related_commits": {
-          "name": "git_related_commits",
+        "git_context": {
+          "name": "git_context",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -233,12 +191,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "structured_data": {
-          "name": "structured_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},

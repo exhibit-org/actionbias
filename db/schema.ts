@@ -10,6 +10,34 @@ export const actionDataSchema = z.object({
 
 export type ActionData = z.infer<typeof actionDataSchema>;
 
+// Template content types for multiple audience views
+export type TemplateContent = {
+  engineering?: {
+    headline?: string;
+    deck?: string;
+    implementation_story?: string;
+    impact_story?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+  business?: {
+    headline?: string;
+    deck?: string;
+    impact_story?: string;
+    strategic_implications?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+  customer?: {
+    headline?: string;
+    announcement?: string;
+    feature_highlights?: string;
+    user_benefits?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+};
+
 export const actions = pgTable('actions', {
   id: uuid('id').primaryKey(),
   data: jsonb('data').$type<ActionData>(),
@@ -154,6 +182,9 @@ export const completionContexts = pgTable('completion_contexts', {
       platform?: 'github' | 'gitlab' | 'other';
     }>;
   }>(),
+  
+  // Template-specific content storage for multiple audience views
+  templateContent: jsonb('template_content').$type<TemplateContent>(),
   
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),
