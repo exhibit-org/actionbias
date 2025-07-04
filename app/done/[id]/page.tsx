@@ -230,7 +230,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       authors: ['done.engineering'],
       images: [
         {
-          url: `${baseUrl}/api/og/log/${id}`,
+          url: `${baseUrl}/api/og/done/${id}`,
           width: 1200,
           height: 630,
           alt: title,
@@ -241,7 +241,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image',
       title,
       description,
-      images: [`${baseUrl}/api/og/log/${id}`],
+      images: [`${baseUrl}/api/og/done/${id}`],
       creator: '@doneengineering',
     },
     alternates: {
