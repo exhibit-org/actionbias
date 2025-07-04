@@ -1153,6 +1153,26 @@ export class ActionsService {
     };
   }
 
+  static async getActionCounts(): Promise<{ total: number; incomplete: number; completed: number; generatedAt: string }> {
+    // Get total count
+    const totalResult = await getDb().select({ count: count() }).from(actions);
+    const total = totalResult[0].count;
+    
+    // Get completed count
+    const completedResult = await getDb().select({ count: count() }).from(actions).where(eq(actions.done, true));
+    const completed = completedResult[0].count;
+    
+    // Calculate incomplete
+    const incomplete = total - completed;
+    
+    return {
+      total,
+      incomplete,
+      completed,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
   static async getActionTreeResource(includeCompleted: boolean = false): Promise<ActionTreeResource> {
     console.log('[SERVICE] Starting optimized database queries for tree resource');
     

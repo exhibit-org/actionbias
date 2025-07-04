@@ -684,6 +684,49 @@ export function registerResources(server: any) {
     }
   );
 
+  // work://count - Get counts of work items by status
+  server.resource(
+    "Get counts of work items by status (total, incomplete, completed)",
+    "work://count",
+    async (uri: any) => {
+      try {
+        // Check if database is available
+        if (!process.env.DATABASE_URL) {
+          return {
+            contents: [
+              {
+                uri: uri.toString(),
+                text: JSON.stringify({
+                  error: "Database not configured",
+                  message: "DATABASE_URL environment variable is not set",
+                  total: 0,
+                  incomplete: 0,
+                  completed: 0
+                }, null, 2),
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+        
+        const result = await ActionsService.getActionCounts();
+        
+        return {
+          contents: [
+            {
+              uri: uri.toString(),
+              text: JSON.stringify(result, null, 2),
+              mimeType: "application/json",
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error fetching action counts:', error);
+        throw new Error(`Failed to fetch action counts: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    }
+  );
+
   // work://unblocked - Get all unblocked work items (leaf nodes with dependencies met)
   server.resource(
     "Get all unblocked work items (leaf nodes with all dependencies completed)",
@@ -947,6 +990,9 @@ export function registerResources(server: any) {
 export const resourceCapabilities = {
   "work://list": {
     description: "List all work items with pagination support (excludes completed items by default, use ?includeCompleted=true to include them)",
+  },
+  "work://count": {
+    description: "Get counts of work items by status (total, incomplete, completed)",
   },
   "work://unblocked": {
     description: "Get all unblocked work items (leaf nodes with all dependencies completed)",

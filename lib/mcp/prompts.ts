@@ -38,7 +38,7 @@ export function registerPrompts(server: any) {
 1. First, read the project vision using the context://vision MCP resource
 2. Check recent momentum using the context://momentum MCP resource  
 3. Get all workable actions using the work://unblocked MCP resource
-4. Get a count of total incomplete actions using work://list with limit=1
+4. Get a count of total incomplete actions using work://count
 
 Then analyze the workable actions and recommend the top 5 to work on based on:
 - Strategic alignment with the DONE magazine vision
