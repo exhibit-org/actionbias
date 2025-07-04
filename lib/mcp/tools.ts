@@ -705,7 +705,7 @@ export function registerTools(server: any) {
   // search_actions - Search for actions using vector embeddings and keyword matching
   server.tool(
     "search_actions",
-    "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+    "Search for actions using vector embeddings, keyword matching, or ID-based relationship search. When query is a UUID, returns the target action plus all related actions (dependencies, dependents, family members). For text queries, uses semantic similarity and keyword matching.",
     {
       query: z.string().min(1).describe("Search query - can be keywords, phrases, or natural language description of what you're looking for"),
       limit: z.number().min(1).max(50).default(10).optional().describe("Maximum number of results to return (default: 10)"),
@@ -734,67 +734,110 @@ export function registerTools(server: any) {
         });
 
         let message = `🔍 **Search Results for:** "${query}"\n`;
-        message += `🎯 **Mode:** ${search_mode} search\n`;
-        message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total`;
         
-        if (searchResult.metadata.embeddingTimeMs) {
-          message += ` (${searchResult.metadata.embeddingTimeMs.toFixed(1)}ms embedding, ${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
-        } else {
-          message += ` (${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
-        }
-        message += `\n`;
-        
-        message += `📊 **Found:** ${searchResult.totalMatches} result${searchResult.totalMatches !== 1 ? 's' : ''}`;
-        if (searchResult.metadata.vectorMatches > 0 || searchResult.metadata.keywordMatches > 0) {
-          message += ` (${searchResult.metadata.vectorMatches} vector, ${searchResult.metadata.keywordMatches} keyword, ${searchResult.metadata.hybridMatches} hybrid)`;
-        }
-        message += `\n\n`;
-        
-        if (searchResult.results.length > 0) {
-          message += `✅ **Results:**\n\n`;
-          
-          searchResult.results.forEach((result, index) => {
-            const matchIcon = result.matchType === 'vector' ? '🧠' : result.matchType === 'keyword' ? '🔤' : '🎯';
-            const scoreDisplay = result.matchType === 'vector' ? 
-              `${(result.similarity! * 100).toFixed(1)}% similarity` : 
-              `score: ${result.score.toFixed(2)}`;
-            
-            message += `${index + 1}. ${matchIcon} **${result.title}** (${scoreDisplay})${result.done ? ' ✅' : ''}\n`;
-            message += `   ID: ${result.id}\n`;
-            
-            if (result.description) {
-              message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
-            }
-            
-            if (result.keywordMatches && result.keywordMatches.length > 0) {
-              message += `   Keywords: ${result.keywordMatches.join(', ')}\n`;
-            }
-            
-            if (result.hierarchyPath && result.hierarchyPath.length > 1) {
-              message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
-            }
-            
-            message += `   ${result.matchType} match\n`;
-            message += `\n`;
-          });
+        // Special handling for ID-based searches
+        if (searchResult.searchMode === 'id-based') {
+          message += `🎯 **Mode:** ID-based relationship search\n`;
+          message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total\n`;
           
           if (searchResult.results.length > 0) {
-            const topResult = searchResult.results[0];
-            message += `🏆 **Top Result:** "${topResult.title}" (ID: ${topResult.id})\n`;
-            message += `📈 **Best Match:** ${topResult.matchType} search with `;
-            if (topResult.matchType === 'vector') {
-              message += `${(topResult.similarity! * 100).toFixed(1)}% semantic similarity`;
-            } else {
-              message += `score ${topResult.score.toFixed(2)}`;
-            }
+            message += `📊 **Found:** Action and ${searchResult.totalMatches - 1} related actions\n\n`;
+            message += `✅ **Action and Relationships:**\n\n`;
+            
+            searchResult.results.forEach((result, index) => {
+              const isTarget = result.keywordMatches?.includes('TARGET ACTION');
+              const relationship = result.keywordMatches?.[0] || 'RELATED';
+              
+              let relationshipIcon = '🔗';
+              if (isTarget) relationshipIcon = '🎯';
+              else if (relationship === 'PARENT') relationshipIcon = '⬆️';
+              else if (relationship === 'CHILD') relationshipIcon = '⬇️';
+              else if (relationship === 'SIBLING') relationshipIcon = '↔️';
+              else if (relationship === 'DEPENDS ON TARGET') relationshipIcon = '📨';
+              else if (relationship === 'TARGET DEPENDS ON') relationshipIcon = '📩';
+              
+              message += `${index + 1}. ${relationshipIcon} **${result.title}**${result.done ? ' ✅' : ''}\n`;
+              message += `   ID: ${result.id}\n`;
+              message += `   Relationship: ${relationship}\n`;
+              
+              if (result.description) {
+                message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
+              }
+              
+              if (result.hierarchyPath && result.hierarchyPath.length > 1) {
+                message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
+              }
+              
+              message += `\n`;
+            });
+          } else {
+            message += `❌ **Action not found** - ID "${query}" does not exist\n`;
           }
         } else {
-          message += `❌ **No results found**\n`;
-          message += `   Try:\n`;
-          message += `   • Different keywords or phrases\n`;
-          message += `   • Lower similarity threshold (current: ${similarity_threshold})\n`;
-          message += `   • Including completed actions (--include_completed=true)\n`;
-          message += `   • Different search mode (vector, keyword, or hybrid)\n`;
+          // Regular search mode formatting
+          message += `🎯 **Mode:** ${search_mode} search\n`;
+          message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total`;
+          
+          if (searchResult.metadata.embeddingTimeMs) {
+            message += ` (${searchResult.metadata.embeddingTimeMs.toFixed(1)}ms embedding, ${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+          } else {
+            message += ` (${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+          }
+          message += `\n`;
+          
+          message += `📊 **Found:** ${searchResult.totalMatches} result${searchResult.totalMatches !== 1 ? 's' : ''}`;
+          if (searchResult.metadata.vectorMatches > 0 || searchResult.metadata.keywordMatches > 0) {
+            message += ` (${searchResult.metadata.vectorMatches} vector, ${searchResult.metadata.keywordMatches} keyword, ${searchResult.metadata.hybridMatches} hybrid)`;
+          }
+          message += `\n\n`;
+          
+          if (searchResult.results.length > 0) {
+            message += `✅ **Results:**\n\n`;
+            
+            searchResult.results.forEach((result, index) => {
+              const matchIcon = result.matchType === 'vector' ? '🧠' : result.matchType === 'keyword' ? '🔤' : '🎯';
+              const scoreDisplay = result.matchType === 'vector' ? 
+                `${(result.similarity! * 100).toFixed(1)}% similarity` : 
+                `score: ${result.score.toFixed(2)}`;
+              
+              message += `${index + 1}. ${matchIcon} **${result.title}** (${scoreDisplay})${result.done ? ' ✅' : ''}\n`;
+              message += `   ID: ${result.id}\n`;
+              
+              if (result.description) {
+                message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
+              }
+              
+              if (result.keywordMatches && result.keywordMatches.length > 0) {
+                message += `   Keywords: ${result.keywordMatches.join(', ')}\n`;
+              }
+              
+              if (result.hierarchyPath && result.hierarchyPath.length > 1) {
+                message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
+              }
+              
+              message += `   ${result.matchType} match\n`;
+              message += `\n`;
+            });
+          } else {
+            message += `❌ **No results found**\n`;
+            message += `   Try:\n`;
+            message += `   • Different keywords or phrases\n`;
+            message += `   • Lower similarity threshold (current: ${similarity_threshold})\n`;
+            message += `   • Including completed actions (--include_completed=true)\n`;
+            message += `   • Different search mode (vector, keyword, or hybrid)\n`;
+          }
+        }
+        
+        // Add top result summary for regular searches
+        if (searchResult.searchMode !== 'id-based' && searchResult.results.length > 0) {
+          const topResult = searchResult.results[0];
+          message += `🏆 **Top Result:** "${topResult.title}" (ID: ${topResult.id})\n`;
+          message += `📈 **Best Match:** ${topResult.matchType} search with `;
+          if (topResult.matchType === 'vector') {
+            message += `${(topResult.similarity! * 100).toFixed(1)}% semantic similarity`;
+          } else {
+            message += `score ${topResult.score.toFixed(2)}`;
+          }
         }
         
         message += `\n\n🧠 **Powered by:** OpenAI embeddings + PostgreSQL pgvector + fuzzy text matching`;
@@ -1002,7 +1045,7 @@ export const toolCapabilities = {
     description: "Update an action's family relationship by having it join a new family or making it independent",
   },
   search_actions: {
-    description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+    description: "Search for actions using vector embeddings, keyword matching, or ID-based relationship search. When query is a UUID, returns the target action plus all related actions (dependencies, dependents, family members). For text queries, uses semantic similarity and keyword matching.",
   },
   log_work: {
     description: "Add an entry to the work log to track agent activity and collaboration",

@@ -1,5 +1,5 @@
 import { eq, or, and, ilike, inArray, sql, desc } from "drizzle-orm";
-import { actions } from "../../db/schema";
+import { actions, edges } from "../../db/schema";
 import { getDb } from "../db/adapter";
 import { EmbeddingsService } from "./embeddings";
 import { VectorService } from "./vector";
@@ -66,6 +66,13 @@ export class ActionSearchService {
     } = options;
 
     console.log(`[ActionSearchService] Starting ${searchMode} search for: "${query}"`);
+
+    // Check if query is a UUID (action ID)
+    const isUuidQuery = this.isValidUuid(query);
+    if (isUuidQuery) {
+      console.log(`[ActionSearchService] Detected UUID query, performing ID-based search for: ${query}`);
+      return await this.performIdBasedSearch(query, limit);
+    }
 
     let vectorResults: SearchResult[] = [];
     let keywordResults: SearchResult[] = [];
@@ -471,5 +478,305 @@ export class ActionSearchService {
     }
 
     return Array.from(suggestions).slice(0, limit);
+  }
+
+  /**
+   * Check if a string is a valid UUID format
+   */
+  private static isValidUuid(str: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  }
+
+  /**
+   * Perform ID-based search that returns the target action and its relationship context
+   */
+  private static async performIdBasedSearch(
+    actionId: string,
+    limit: number
+  ): Promise<SearchResponse> {
+    const startTime = performance.now();
+    
+    try {
+      const db = getDb();
+      
+      // Get the target action (including completed actions)
+      const targetAction = await db
+        .select({
+          id: actions.id,
+          title: actions.title,
+          description: actions.description,
+          vision: actions.vision,
+          done: actions.done,
+          createdAt: actions.createdAt,
+          updatedAt: actions.updatedAt,
+          data: actions.data
+        })
+        .from(actions)
+        .where(eq(actions.id, actionId))
+        .limit(1);
+
+      if (targetAction.length === 0) {
+        return {
+          results: [],
+          totalMatches: 0,
+          searchQuery: actionId,
+          searchMode: 'id-based',
+          metadata: {
+            vectorMatches: 0,
+            keywordMatches: 0,
+            hybridMatches: 0,
+            processingTimeMs: performance.now() - startTime,
+            searchTimeMs: 0
+          }
+        };
+      }
+
+      const target = targetAction[0];
+      const results: SearchResult[] = [];
+
+      // Add the target action first
+      results.push({
+        id: target.id,
+        title: target.data?.title || target.title || 'Untitled',
+        description: target.data?.description || target.description,
+        vision: target.data?.vision || target.vision,
+        score: 1.0,
+        matchType: 'keyword',
+        keywordMatches: ['TARGET ACTION'],
+        done: target.done || false,
+        createdAt: target.createdAt?.toISOString(),
+        updatedAt: target.updatedAt?.toISOString()
+      });
+
+      // Get actions that depend on this action (dependents)
+      const dependentEdges = await db
+        .select()
+        .from(edges)
+        .where(and(eq(edges.src, actionId), eq(edges.kind, "depends_on")));
+
+      if (dependentEdges.length > 0) {
+        const dependentIds = dependentEdges.map((edge: any) => edge.dst).filter(Boolean);
+        const dependents = await db
+          .select({
+            id: actions.id,
+            title: actions.title,
+            description: actions.description,
+            vision: actions.vision,
+            done: actions.done,
+            createdAt: actions.createdAt,
+            updatedAt: actions.updatedAt,
+            data: actions.data
+          })
+          .from(actions)
+          .where(inArray(actions.id, dependentIds));
+
+        for (const dependent of dependents) {
+          results.push({
+            id: dependent.id,
+            title: dependent.data?.title || dependent.title || 'Untitled',
+            description: dependent.data?.description || dependent.description,
+            vision: dependent.data?.vision || dependent.vision,
+            score: 0.9,
+            matchType: 'keyword',
+            keywordMatches: ['DEPENDS ON TARGET'],
+            done: dependent.done || false,
+            createdAt: dependent.createdAt?.toISOString(),
+            updatedAt: dependent.updatedAt?.toISOString()
+          });
+        }
+      }
+
+      // Get actions this action depends on (dependencies)
+      const dependencyEdges = await db
+        .select()
+        .from(edges)
+        .where(and(eq(edges.dst, actionId), eq(edges.kind, "depends_on")));
+
+      if (dependencyEdges.length > 0) {
+        const dependencyIds = dependencyEdges.map((edge: any) => edge.src).filter(Boolean);
+        const dependencies = await db
+          .select({
+            id: actions.id,
+            title: actions.title,
+            description: actions.description,
+            vision: actions.vision,
+            done: actions.done,
+            createdAt: actions.createdAt,
+            updatedAt: actions.updatedAt,
+            data: actions.data
+          })
+          .from(actions)
+          .where(inArray(actions.id, dependencyIds));
+
+        for (const dependency of dependencies) {
+          results.push({
+            id: dependency.id,
+            title: dependency.data?.title || dependency.title || 'Untitled',
+            description: dependency.data?.description || dependency.description,
+            vision: dependency.data?.vision || dependency.vision,
+            score: 0.8,
+            matchType: 'keyword',
+            keywordMatches: ['TARGET DEPENDS ON'],
+            done: dependency.done || false,
+            createdAt: dependency.createdAt?.toISOString(),
+            updatedAt: dependency.updatedAt?.toISOString()
+          });
+        }
+      }
+
+      // Get family members (parent and siblings)
+      const familyEdges = await db
+        .select()
+        .from(edges)
+        .where(and(eq(edges.dst, actionId), eq(edges.kind, "family")));
+
+      if (familyEdges.length > 0) {
+        const parentId = familyEdges[0].src;
+        if (parentId) {
+          // Add parent
+          const parentActions = await db
+            .select({
+              id: actions.id,
+              title: actions.title,
+              description: actions.description,
+              vision: actions.vision,
+              done: actions.done,
+              createdAt: actions.createdAt,
+              updatedAt: actions.updatedAt,
+              data: actions.data
+            })
+            .from(actions)
+            .where(eq(actions.id, parentId));
+
+          if (parentActions.length > 0) {
+            const parent = parentActions[0];
+            results.push({
+              id: parent.id,
+              title: parent.data?.title || parent.title || 'Untitled',
+              description: parent.data?.description || parent.description,
+              vision: parent.data?.vision || parent.vision,
+              score: 0.7,
+              matchType: 'keyword',
+              keywordMatches: ['PARENT'],
+              done: parent.done || false,
+              createdAt: parent.createdAt?.toISOString(),
+              updatedAt: parent.updatedAt?.toISOString()
+            });
+          }
+
+          // Add siblings
+          const siblingEdges = await db
+            .select()
+            .from(edges)
+            .where(and(eq(edges.src, parentId), eq(edges.kind, "family")));
+
+          const siblingIds = siblingEdges
+            .map((edge: any) => edge.dst)
+            .filter((id: any) => id && id !== actionId);
+
+          if (siblingIds.length > 0) {
+            const siblings = await db
+              .select({
+                id: actions.id,
+                title: actions.title,
+                description: actions.description,
+                vision: actions.vision,
+                done: actions.done,
+                createdAt: actions.createdAt,
+                updatedAt: actions.updatedAt,
+                data: actions.data
+              })
+              .from(actions)
+              .where(inArray(actions.id, siblingIds))
+              .limit(5); // Limit siblings to avoid too many results
+
+            for (const sibling of siblings) {
+              results.push({
+                id: sibling.id,
+                title: sibling.data?.title || sibling.title || 'Untitled',
+                description: sibling.data?.description || sibling.description,
+                vision: sibling.data?.vision || sibling.vision,
+                score: 0.6,
+                matchType: 'keyword',
+                keywordMatches: ['SIBLING'],
+                done: sibling.done || false,
+                createdAt: sibling.createdAt?.toISOString(),
+                updatedAt: sibling.updatedAt?.toISOString()
+              });
+            }
+          }
+        }
+      }
+
+      // Get children
+      const childEdges = await db
+        .select()
+        .from(edges)
+        .where(and(eq(edges.src, actionId), eq(edges.kind, "family")));
+
+      if (childEdges.length > 0) {
+        const childIds = childEdges.map((edge: any) => edge.dst).filter(Boolean);
+        const children = await db
+          .select({
+            id: actions.id,
+            title: actions.title,
+            description: actions.description,
+            vision: actions.vision,
+            done: actions.done,
+            createdAt: actions.createdAt,
+            updatedAt: actions.updatedAt,
+            data: actions.data
+          })
+          .from(actions)
+          .where(inArray(actions.id, childIds))
+          .limit(5); // Limit children to avoid too many results
+
+        for (const child of children) {
+          results.push({
+            id: child.id,
+            title: child.data?.title || child.title || 'Untitled',
+            description: child.data?.description || child.description,
+            vision: child.data?.vision || child.vision,
+            score: 0.5,
+            matchType: 'keyword',
+            keywordMatches: ['CHILD'],
+            done: child.done || false,
+            createdAt: child.createdAt?.toISOString(),
+            updatedAt: child.updatedAt?.toISOString()
+          });
+        }
+      }
+
+      // Limit total results and add hierarchy paths
+      const limitedResults = results.slice(0, limit);
+      const resultsWithPaths = await this.addHierarchyPaths(limitedResults);
+
+      const totalProcessingTimeMs = performance.now() - startTime;
+
+      console.log(`[ActionSearchService] ID-based search completed in ${totalProcessingTimeMs.toFixed(1)}ms`, {
+        actionId,
+        totalResults: resultsWithPaths.length,
+        targetFound: resultsWithPaths.length > 0
+      });
+
+      return {
+        results: resultsWithPaths,
+        totalMatches: resultsWithPaths.length,
+        searchQuery: actionId,
+        searchMode: 'id-based',
+        metadata: {
+          vectorMatches: 0,
+          keywordMatches: resultsWithPaths.length,
+          hybridMatches: 0,
+          processingTimeMs: totalProcessingTimeMs,
+          searchTimeMs: totalProcessingTimeMs
+        }
+      };
+
+    } catch (error) {
+      console.error('[ActionSearchService] ID-based search failed:', error);
+      throw new Error(`ID-based search failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
