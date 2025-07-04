@@ -7,6 +7,7 @@ import { CompletionContextService } from '@/lib/services/completion-context';
 import MagazineArticle from '@/components/MagazineArticle';
 import EngineeringTemplate from '@/components/EngineeringTemplate';
 import BusinessTemplate from '@/components/BusinessTemplate';
+import CustomerTemplate from '@/components/CustomerTemplate';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -279,9 +280,8 @@ export default async function DonePage({ params, searchParams }: PageProps) {
       );
     
     case 'customer':
-      // For now, fall back to business template until customer template is implemented
       return (
-        <BusinessTemplate 
+        <CustomerTemplate 
           item={completionData}
           showShare={true}
         />
