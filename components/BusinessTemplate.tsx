@@ -163,6 +163,10 @@ export default function BusinessTemplate({ item, showShare = false }: BusinessTe
   // Get business content from template content
   const businessContent = item.templateContent?.business;
   
+  // Debug logging
+  console.log('BusinessTemplate - item.templateContent:', item.templateContent);
+  console.log('BusinessTemplate - businessContent:', businessContent);
+  
   // Fallback to action details if no business template content
   const displayHeadline = businessContent?.headline || item.actionTitle;
   const displayDeck = businessContent?.deck || item.actionDescription || item.actionVision;
