@@ -98,9 +98,9 @@ async function getCompletionData(id: string) {
       // Fallback for actions without objective data
       const hasStoryContent = context.implementation_story || context.impact_story || context.learning_story;
       
-      if (!hasStoryContent && (context.headline || context.deck || context.pull_quotes)) {
-        // Generate missing content from available editorial fields
-        console.log(`Generating content for action ${id} with existing editorial fields`);
+      if (!templateContent && (hasStoryContent || context.headline || context.deck || context.pull_quotes)) {
+        // Generate template content from available Phase 2 editorial fields
+        console.log(`Generating template content for action ${id} from Phase 2 editorial content`);
         
         const minimalObjectiveData = {
           technical_changes: {
@@ -132,31 +132,26 @@ async function getCompletionData(id: string) {
           }
         };
         
-        // Generate both template content and editorial content
-        if (!templateContent) {
-          templateContent = await TemplateContentService.generateAllTemplateContent({
-            actionTitle: actionDetail.title,
-            actionDescription: actionDetail.description,
-            objectiveData: minimalObjectiveData
-          });
-        }
+        // Generate template content from Phase 2 editorial data
+        templateContent = await TemplateContentService.generateAllTemplateContent({
+          actionTitle: actionDetail.title,
+          actionDescription: actionDetail.description,
+          objectiveData: minimalObjectiveData
+        });
 
         editorialContent = await ObjectiveEditorialService.generateEditorialContent(
           actionDetail.title,
           minimalObjectiveData
         );
         
-        // Persist both types of content
+        // Persist template content to database
         try {
           await CompletionContextService.updateCompletionContext(id, {
-            implementationStory: editorialContent.implementation_story,
-            impactStory: editorialContent.impact_story,
-            learningStory: editorialContent.learning_story,
             templateContent
           });
-          console.log(`Persisted generated content for action ${id}`);
+          console.log(`Persisted generated template content for action ${id}`);
         } catch (error) {
-          console.error(`Failed to persist content for action ${id}:`, error);
+          console.error(`Failed to persist template content for action ${id}:`, error);
         }
       } else {
         // Use existing content as-is
