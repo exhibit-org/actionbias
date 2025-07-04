@@ -14,6 +14,13 @@ interface CustomerTemplateProps {
     actionCreatedAt: string;
     completionTimestamp: string;
     changelogVisibility: string;
+    // Fallback content fields for when customer content isn't available
+    implementationStory?: string;
+    impactStory?: string;
+    learningStory?: string;
+    headline?: string;
+    deck?: string;
+    pullQuotes?: string[] | null;
     templateContent?: {
       customer?: {
         headline?: string;
@@ -168,11 +175,11 @@ export default function CustomerTemplate({ item, showShare = false }: CustomerTe
   console.log('CustomerTemplate - customerContent:', customerContent);
   
   // Fallback to action details if no customer template content
-  const displayHeadline = customerContent?.headline || item.actionTitle;
-  const displayAnnouncement = customerContent?.announcement || item.actionDescription || item.actionVision;
-  const featureHighlights = customerContent?.feature_highlights || '';
-  const userBenefits = customerContent?.user_benefits || '';
-  const pullQuotes = customerContent?.pull_quotes || [];
+  const displayHeadline = customerContent?.headline || item.headline || item.actionTitle;
+  const displayAnnouncement = customerContent?.announcement || item.deck || item.actionDescription || item.actionVision;
+  const featureHighlights = customerContent?.feature_highlights || item.impactStory || '';
+  const userBenefits = customerContent?.user_benefits || item.learningStory || '';
+  const pullQuotes = customerContent?.pull_quotes || item.pullQuotes || [];
 
   // Calculate simplified customer metrics
   const totalChanges = item.gitContext?.commits?.reduce((total, commit) => {
@@ -207,28 +214,17 @@ export default function CustomerTemplate({ item, showShare = false }: CustomerTe
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Category/Section */}
         <div className="mb-6">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-            item.changelogVisibility === 'public' 
-              ? 'bg-green-100 text-green-800'
-              : item.changelogVisibility === 'team'
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
             <Users className="w-4 h-4 mr-1" />
-            {item.changelogVisibility === 'public' ? 'Public Release' : 
-             item.changelogVisibility === 'team' ? 'Team Update' : 
-             'Internal Update'}
+            Feature Release
           </span>
-          {customerContent?.importance && (
+          {customerContent?.importance && customerContent.importance !== 'low' && (
             <span className={`ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               customerContent.importance === 'high' ? 'bg-red-100 text-red-800' :
-              customerContent.importance === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-              'bg-gray-100 text-gray-800'
+              'bg-yellow-100 text-yellow-800'
             }`}>
               <Zap className="w-4 h-4 mr-1" />
-              {customerContent.importance === 'high' ? 'Major Update' :
-               customerContent.importance === 'medium' ? 'Enhancement' :
-               'Minor Update'}
+              {customerContent.importance === 'high' ? 'Major Update' : 'Enhancement'}
             </span>
           )}
         </div>
@@ -258,8 +254,8 @@ export default function CustomerTemplate({ item, showShare = false }: CustomerTe
             <span>{readTime} min read</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-700">Release:</span>
-            <span className="capitalize font-medium">{item.changelogVisibility}</span>
+            <span className="font-medium text-gray-700">Type:</span>
+            <span className="capitalize font-medium">Feature Update</span>
           </div>
           {showShare && (
             <button
