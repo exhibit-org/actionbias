@@ -25,6 +25,10 @@ async function getCompletionData(id: string) {
 
     const context = actionDetail.completion_context;
     
+    // Debug: Check what's actually in the completion context
+    console.log('getCompletionData - context:', context);
+    console.log('getCompletionData - context.templateContent:', context.templateContent);
+    
     // Check if this action has objective completion data (Phase 3)
     const hasObjectiveData = context.technical_changes || context.outcomes || context.challenges || context.alignment_reflection;
     
