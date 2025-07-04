@@ -76,7 +76,16 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     'Simple prompt to find the most important next action',
     {},
     async () => {
-      const prompt = `What's the most important thing I should work on next? Use the work://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).`;
+      const prompt = `What's the most important thing I should work on next? Use the work://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).
+
+IMPORTANT: Once you start working on a task, you must complete it fully before moving to anything else. This includes:
+- Running pnpm build and ensuring it succeeds
+- Running pnpm test and ensuring all tests pass  
+- Pushing to main branch and verifying deployment
+- Getting user validation of the implementation
+- Using the complete_action tool to mark it done
+
+No task switching until current work is fully complete and verified.`;
 
       return {
         messages: [
@@ -210,7 +219,15 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
 - context://momentum for recent activity  
 - work://unblocked to see all options
 
-Give me a 3-line summary of what I should focus on.`;
+Give me a 3-line summary of what I should focus on.
+
+WORKFLOW REMINDER: Whatever task you recommend, I will work on it with full lifecycle discipline:
+1. Start and focus completely on the chosen task
+2. Verify with build/test/deploy before completion  
+3. Use complete_action tool when done
+4. Only then consider the next task
+
+This disciplined approach ensures quality and prevents half-finished work.`;
 
       return {
         messages: [
