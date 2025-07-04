@@ -35,6 +35,12 @@ async function getCompletionData(id: string) {
     
     let templateContent = context.templateContent;
     let editorialContent;
+    
+    // Debug: Log current template content state
+    console.log(`Action ${id}: templateContent exists:`, !!templateContent);
+    if (templateContent) {
+      console.log(`Action ${id}: templateContent keys:`, Object.keys(templateContent));
+    }
 
     if (hasObjectiveData) {
       // Generate template content from objective data using TemplateContentService
@@ -73,22 +79,27 @@ async function getCompletionData(id: string) {
 
       // Generate template content if not already present
       if (!templateContent) {
-        templateContent = await TemplateContentService.generateAllTemplateContent({
-          actionTitle: actionDetail.title,
-          actionDescription: actionDetail.description,
-          objectiveData
-        });
-
-        // Persist template content to database
+        console.log(`Template content missing for action ${id}, generating...`);
         try {
+          templateContent = await TemplateContentService.generateAllTemplateContent({
+            actionTitle: actionDetail.title,
+            actionDescription: actionDetail.description,
+            objectiveData
+          });
+
+          // Persist template content to database immediately
           await CompletionContextService.upsertCompletionContext({
             actionId: id,
             templateContent
           });
-          console.log(`Persisted generated template content for action ${id}`);
+          console.log(`Generated and persisted template content for action ${id}`);
         } catch (error) {
-          console.error(`Failed to persist template content for action ${id}:`, error);
+          console.error(`Failed to generate/persist template content for action ${id}:`, error);
+          // Continue with fallback to editorial content
+          templateContent = null;
         }
+      } else {
+        console.log(`Using cached template content for action ${id}`);
       }
       
       // Also generate editorial content for backward compatibility
@@ -102,9 +113,9 @@ async function getCompletionData(id: string) {
       
       if (!templateContent && (hasStoryContent || context.headline || context.deck || context.pull_quotes)) {
         // Generate template content from available Phase 2 editorial fields
-        console.log(`Generating template content for action ${id} from Phase 2 editorial content`);
-        
-        const minimalObjectiveData = {
+        console.log(`Template content missing for action ${id}, generating from Phase 2 editorial content...`);
+        try {
+          const minimalObjectiveData = {
           technical_changes: {
             files_modified: [],
             files_created: [],
@@ -132,29 +143,29 @@ async function getCompletionData(id: string) {
             context_influence: "Work completed within project context",
             assumptions_made: []
           }
-        };
-        
-        // Generate template content from Phase 2 editorial data
-        templateContent = await TemplateContentService.generateAllTemplateContent({
-          actionTitle: actionDetail.title,
-          actionDescription: actionDetail.description,
-          objectiveData: minimalObjectiveData
-        });
+          };
+          
+          // Generate template content from Phase 2 editorial data
+          templateContent = await TemplateContentService.generateAllTemplateContent({
+            actionTitle: actionDetail.title,
+            actionDescription: actionDetail.description,
+            objectiveData: minimalObjectiveData
+          });
 
-        editorialContent = await ObjectiveEditorialService.generateEditorialContent(
-          actionDetail.title,
-          minimalObjectiveData
-        );
-        
-        // Persist template content to database
-        try {
+          editorialContent = await ObjectiveEditorialService.generateEditorialContent(
+            actionDetail.title,
+            minimalObjectiveData
+          );
+          
+          // Persist template content to database
           await CompletionContextService.upsertCompletionContext({
             actionId: id,
             templateContent
           });
-          console.log(`Persisted generated template content for action ${id}`);
+          console.log(`Generated and persisted template content for action ${id} from Phase 2 content`);
         } catch (error) {
-          console.error(`Failed to persist template content for action ${id}:`, error);
+          console.error(`Failed to generate/persist template content for action ${id}:`, error);
+          templateContent = null;
         }
       } else {
         // Use existing content as-is
