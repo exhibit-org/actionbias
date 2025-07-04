@@ -1,5 +1,5 @@
 import { eq, desc } from "drizzle-orm";
-import { completionContexts, completionContextSchema, type CompletionContext } from "../../db/schema";
+import { completionContexts, completionContextSchema, type CompletionContext, type TemplateContent } from "../../db/schema";
 import { getDb } from "../db/adapter";
 
 export interface CreateCompletionContextParams {
@@ -11,6 +11,7 @@ export interface CreateCompletionContextParams {
   deck?: string; // AI-generated standfirst/subtitle
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
+  templateContent?: TemplateContent; // Multi-template content
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -66,6 +67,7 @@ export interface UpdateCompletionContextParams {
   deck?: string; // AI-generated standfirst/subtitle
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
+  templateContent?: TemplateContent; // Multi-template content
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -117,7 +119,7 @@ export class CompletionContextService {
    * Create a new completion context for an action
    */
   static async createCompletionContext(params: CreateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, templateContent, gitContext } = params;
     
     // Check if completion context already exists for this action
     const existing = await getDb()
@@ -142,6 +144,7 @@ export class CompletionContextService {
         deck,
         pullQuotes,
         changelogVisibility: changelogVisibility || 'team',
+        templateContent,
         gitContext,
       })
       .returning();
@@ -153,7 +156,7 @@ export class CompletionContextService {
    * Update or create completion context for an action
    */
   static async upsertCompletionContext(params: UpdateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = params;
+    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, templateContent, gitContext } = params;
     
     // Check if completion context already exists
     const existing = await getDb()
@@ -175,6 +178,7 @@ export class CompletionContextService {
       if (deck !== undefined) updateData.deck = deck;
       if (pullQuotes !== undefined) updateData.pullQuotes = pullQuotes;
       if (changelogVisibility !== undefined) updateData.changelogVisibility = changelogVisibility;
+      if (templateContent !== undefined) updateData.templateContent = templateContent;
       if (gitContext !== undefined) updateData.gitContext = gitContext;
       
       const updatedContext = await getDb()
@@ -207,7 +211,7 @@ export class CompletionContextService {
    * Update completion context for an action
    */
   static async updateCompletionContext(actionId: string, updates: Partial<CreateCompletionContextParams>) {
-    const { implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, gitContext } = updates;
+    const { implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, templateContent, gitContext } = updates;
     
     const updatedContext = await getDb()
       .update(completionContexts)
@@ -219,6 +223,7 @@ export class CompletionContextService {
         ...(deck !== undefined && { deck }),
         ...(pullQuotes !== undefined && { pullQuotes }),
         ...(changelogVisibility !== undefined && { changelogVisibility }),
+        ...(templateContent !== undefined && { templateContent }),
         ...(gitContext !== undefined && { gitContext }),
       })
       .where(eq(completionContexts.actionId, actionId))

@@ -2,12 +2,14 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ActionsService } from '@/lib/services/actions';
 import { ObjectiveEditorialService } from '@/lib/services/objective-editorial';
+import { TemplateContentService } from '@/lib/services/template-content';
 import { CompletionContextService } from '@/lib/services/completion-context';
 import MagazineArticle from '@/components/MagazineArticle';
+import EngineeringTemplate from '@/components/EngineeringTemplate';
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ template?: 'engineering' | 'business' | 'customer'; view?: string }>;
 }
 
 async function getCompletionData(id: string) {
@@ -25,10 +27,12 @@ async function getCompletionData(id: string) {
     // Check if this action has objective completion data (Phase 3)
     const hasObjectiveData = context.technical_changes || context.outcomes || context.challenges || context.alignment_reflection;
     
+    let templateContent = context.templateContent;
     let editorialContent;
+
     if (hasObjectiveData) {
-      // Generate editorial content from objective data using ObjectiveEditorialService
-      console.log(`Generating editorial content from objective data for action ${id}`);
+      // Generate template content from objective data using TemplateContentService
+      console.log(`Generating template content from objective data for action ${id}`);
       
       const objectiveData = {
         technical_changes: {
@@ -60,21 +64,39 @@ async function getCompletionData(id: string) {
         },
         git_context: context.git_context
       };
+
+      // Generate template content if not already present
+      if (!templateContent) {
+        templateContent = await TemplateContentService.generateAllTemplateContent({
+          actionTitle: actionDetail.title,
+          actionDescription: actionDetail.description,
+          objectiveData
+        });
+
+        // Persist template content to database
+        try {
+          await CompletionContextService.updateCompletionContext(id, {
+            templateContent
+          });
+          console.log(`Persisted generated template content for action ${id}`);
+        } catch (error) {
+          console.error(`Failed to persist template content for action ${id}:`, error);
+        }
+      }
       
-      // Generate editorial content from objective data
+      // Also generate editorial content for backward compatibility
       editorialContent = await ObjectiveEditorialService.generateEditorialContent(
         actionDetail.title,
         objectiveData
       );
     } else {
-      // Use existing editorial content (backward compatibility)
+      // Fallback for actions without objective data
       const hasStoryContent = context.implementation_story || context.impact_story || context.learning_story;
       
       if (!hasStoryContent && (context.headline || context.deck || context.pull_quotes)) {
-        // Generate missing story content from available editorial fields
-        console.log(`Generating story content for action ${id} with existing editorial fields`);
+        // Generate missing content from available editorial fields
+        console.log(`Generating content for action ${id} with existing editorial fields`);
         
-        // Create minimal objective data structure for content generation
         const minimalObjectiveData = {
           technical_changes: {
             files_modified: [],
@@ -105,35 +127,34 @@ async function getCompletionData(id: string) {
           }
         };
         
-        // Generate missing story content
-        const generatedContent = await ObjectiveEditorialService.generateEditorialContent(
+        // Generate both template content and editorial content
+        if (!templateContent) {
+          templateContent = await TemplateContentService.generateAllTemplateContent({
+            actionTitle: actionDetail.title,
+            actionDescription: actionDetail.description,
+            objectiveData: minimalObjectiveData
+          });
+        }
+
+        editorialContent = await ObjectiveEditorialService.generateEditorialContent(
           actionDetail.title,
           minimalObjectiveData
         );
         
-        editorialContent = {
-          implementation_story: generatedContent.implementation_story,
-          impact_story: generatedContent.impact_story,
-          learning_story: generatedContent.learning_story,
-          headline: context.headline || generatedContent.headline,
-          deck: context.deck || generatedContent.deck,
-          pull_quotes: context.pull_quotes || generatedContent.pull_quotes
-        };
-        
-        // Persist the generated stories to the database
+        // Persist both types of content
         try {
           await CompletionContextService.updateCompletionContext(id, {
-            implementationStory: generatedContent.implementation_story,
-            impactStory: generatedContent.impact_story,
-            learningStory: generatedContent.learning_story,
+            implementationStory: editorialContent.implementation_story,
+            impactStory: editorialContent.impact_story,
+            learningStory: editorialContent.learning_story,
+            templateContent
           });
-          console.log(`Persisted generated story content for action ${id}`);
+          console.log(`Persisted generated content for action ${id}`);
         } catch (error) {
-          console.error(`Failed to persist generated content for action ${id}:`, error);
-          // Continue with rendering even if persistence fails
+          console.error(`Failed to persist content for action ${id}:`, error);
         }
       } else {
-        // Use existing editorial content as-is
+        // Use existing content as-is
         editorialContent = {
           implementation_story: context.implementation_story || '',
           impact_story: context.impact_story || '',
@@ -148,12 +169,15 @@ async function getCompletionData(id: string) {
     return {
       id: actionDetail.id,
       actionId: actionDetail.id,
-      implementationStory: editorialContent.implementation_story,
-      impactStory: editorialContent.impact_story,
-      learningStory: editorialContent.learning_story,
-      headline: editorialContent.headline,
-      deck: editorialContent.deck,
-      pullQuotes: editorialContent.pull_quotes,
+      // Traditional editorial content for backward compatibility
+      implementationStory: editorialContent?.implementation_story || '',
+      impactStory: editorialContent?.impact_story || '',
+      learningStory: editorialContent?.learning_story || '',
+      headline: editorialContent?.headline || actionDetail.title,
+      deck: editorialContent?.deck || '',
+      pullQuotes: editorialContent?.pull_quotes || [],
+      // New template content
+      templateContent,
       changelogVisibility: context.changelog_visibility,
       completionTimestamp: context.completion_timestamp,
       actionTitle: actionDetail.title,
@@ -161,9 +185,7 @@ async function getCompletionData(id: string) {
       actionVision: actionDetail.vision,
       actionDone: actionDetail.done,
       actionCreatedAt: actionDetail.created_at,
-      // Git context information
       gitContext: context.git_context,
-      // Flag to indicate if content was generated from objective data
       generatedFromObjectiveData: hasObjectiveData,
     };
   } catch (error) {
@@ -227,7 +249,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function DonePage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { view } = await searchParams;
+  const { template, view } = await searchParams;
   
   const completionData = await getCompletionData(id);
   
@@ -235,13 +257,43 @@ export default async function DonePage({ params, searchParams }: PageProps) {
     notFound();
   }
 
-  // For prototype: always show internal template regardless of view parameter
-  // In future: will respect view parameter for different templates
+  // Default to engineering template, with business as fallback for view=economist
+  const selectedTemplate = template || (view === 'economist' ? 'business' : 'engineering');
   
-  return (
-    <MagazineArticle 
-      item={completionData}
-      showShare={true}
-    />
-  );
+  // Render appropriate template component based on selection
+  switch (selectedTemplate) {
+    case 'engineering':
+      return (
+        <EngineeringTemplate 
+          item={completionData}
+          showShare={true}
+        />
+      );
+    
+    case 'business':
+      return (
+        <MagazineArticle 
+          item={completionData}
+          showShare={true}
+        />
+      );
+    
+    case 'customer':
+      // For now, fall back to business template until customer template is implemented
+      return (
+        <MagazineArticle 
+          item={completionData}
+          showShare={true}
+        />
+      );
+    
+    default:
+      // Default to engineering template
+      return (
+        <EngineeringTemplate 
+          item={completionData}
+          showShare={true}
+        />
+      );
+  }
 }

@@ -106,6 +106,33 @@ export interface DependencyCompletionContext {
   headline?: string;
   deck?: string;
   pull_quotes?: string[];
+  // Multi-template content
+  templateContent?: {
+    engineering?: {
+      headline?: string;
+      deck?: string;
+      implementation_story?: string;
+      impact_story?: string;
+      pull_quotes?: string[];
+      importance?: 'high' | 'medium' | 'low';
+    };
+    business?: {
+      headline?: string;
+      deck?: string;
+      impact_story?: string;
+      strategic_implications?: string;
+      pull_quotes?: string[];
+      importance?: 'high' | 'medium' | 'low';
+    };
+    customer?: {
+      headline?: string;
+      announcement?: string;
+      feature_highlights?: string;
+      user_benefits?: string;
+      pull_quotes?: string[];
+      importance?: 'high' | 'medium' | 'low';
+    };
+  };
   // Phase 3: Objective completion data
   technical_changes?: {
     files_modified?: string[];
