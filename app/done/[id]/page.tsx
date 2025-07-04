@@ -81,7 +81,8 @@ async function getCompletionData(id: string) {
 
         // Persist template content to database
         try {
-          await CompletionContextService.updateCompletionContext(id, {
+          await CompletionContextService.upsertCompletionContext({
+            actionId: id,
             templateContent
           });
           console.log(`Persisted generated template content for action ${id}`);
@@ -147,7 +148,8 @@ async function getCompletionData(id: string) {
         
         // Persist template content to database
         try {
-          await CompletionContextService.updateCompletionContext(id, {
+          await CompletionContextService.upsertCompletionContext({
+            actionId: id,
             templateContent
           });
           console.log(`Persisted generated template content for action ${id}`);
