@@ -88,11 +88,12 @@ async function getCompletionData(id: string) {
           });
 
           // Persist template content to database immediately
-          await CompletionContextService.upsertCompletionContext({
+          console.log(`About to persist template content for action ${id}:`, !!templateContent);
+          const result = await CompletionContextService.upsertCompletionContext({
             actionId: id,
             templateContent
           });
-          console.log(`Generated and persisted template content for action ${id}`);
+          console.log(`Generated and persisted template content for action ${id}:`, !!result);
         } catch (error) {
           console.error(`Failed to generate/persist template content for action ${id}:`, error);
           // Continue with fallback to editorial content
@@ -158,11 +159,12 @@ async function getCompletionData(id: string) {
           );
           
           // Persist template content to database
-          await CompletionContextService.upsertCompletionContext({
+          console.log(`About to persist template content for action ${id}:`, !!templateContent);
+          const result = await CompletionContextService.upsertCompletionContext({
             actionId: id,
             templateContent
           });
-          console.log(`Generated and persisted template content for action ${id} from Phase 2 content`);
+          console.log(`Generated and persisted template content for action ${id} from Phase 2 content:`, !!result);
         } catch (error) {
           console.error(`Failed to generate/persist template content for action ${id}:`, error);
           templateContent = undefined;

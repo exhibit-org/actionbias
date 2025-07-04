@@ -228,7 +228,9 @@ Requirements:
     });
 
     try {
-      return JSON.parse(text);
+      // Clean the response - remove markdown code blocks if present
+      const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+      return JSON.parse(cleanedText);
     } catch (error) {
       console.error('Failed to parse engineering content JSON:', error);
       console.error('Raw AI response:', text);
@@ -305,9 +307,12 @@ Requirements:
     });
 
     try {
-      return JSON.parse(text);
+      // Clean the response - remove markdown code blocks if present
+      const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+      return JSON.parse(cleanedText);
     } catch (error) {
       console.error('Failed to parse business content JSON:', error);
+      console.error('Raw AI response:', text);
       return {
         headline: actionTitle,
         deck: objectiveData.alignment_reflection.goal_achievement_assessment,
@@ -370,9 +375,12 @@ Requirements:
     });
 
     try {
-      return JSON.parse(text);
+      // Clean the response - remove markdown code blocks if present
+      const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+      return JSON.parse(cleanedText);
     } catch (error) {
       console.error('Failed to parse customer content JSON:', error);
+      console.error('Raw AI response:', text);
       return {
         headline: actionTitle,
         announcement: "Improvements made to enhance your experience.",
