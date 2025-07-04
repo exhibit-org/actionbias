@@ -6,6 +6,7 @@ import { TemplateContentService } from '@/lib/services/template-content';
 import { CompletionContextService } from '@/lib/services/completion-context';
 import MagazineArticle from '@/components/MagazineArticle';
 import EngineeringTemplate from '@/components/EngineeringTemplate';
+import BusinessTemplate from '@/components/BusinessTemplate';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -272,7 +273,7 @@ export default async function DonePage({ params, searchParams }: PageProps) {
     
     case 'business':
       return (
-        <MagazineArticle 
+        <BusinessTemplate 
           item={completionData}
           showShare={true}
         />
@@ -281,7 +282,7 @@ export default async function DonePage({ params, searchParams }: PageProps) {
     case 'customer':
       // For now, fall back to business template until customer template is implemented
       return (
-        <MagazineArticle 
+        <BusinessTemplate 
           item={completionData}
           showShare={true}
         />
