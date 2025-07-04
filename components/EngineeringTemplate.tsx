@@ -113,9 +113,9 @@ export default function EngineeringTemplate({
     const processedText = paragraphs.map(paragraph => {
       const processed = paragraph
         // Code blocks - Terminal style with better contrast
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-800 border border-green-500 text-green-300 p-4 overflow-x-auto my-4 font-mono text-sm rounded"><code class="text-green-300">$2</code></pre><p class="mb-4 font-mono">')
+        .replace(/```(\w+)?\n([\s\S]*?)```/g, '</p><pre class="bg-gray-800 border border-green-500 p-4 overflow-x-auto my-4 font-mono text-sm rounded"><code class="text-green-300 font-mono" style="color: #86efac !important;">$2</code></pre><p class="mb-4 font-mono">')
         // Inline code - Terminal style with better contrast
-        .replace(/`([^`]+)`/g, '<code class="bg-gray-800 border border-gray-600 text-green-300 px-2 py-1 rounded font-mono text-sm">$1</code>')
+        .replace(/`([^`]+)`/g, '<code class="bg-gray-800 border border-gray-600 px-2 py-1 rounded font-mono text-sm" style="color: #86efac !important;">$1</code>')
         // Bold
         .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
         // Italic  
