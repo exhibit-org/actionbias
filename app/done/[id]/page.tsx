@@ -96,7 +96,7 @@ async function getCompletionData(id: string) {
         } catch (error) {
           console.error(`Failed to generate/persist template content for action ${id}:`, error);
           // Continue with fallback to editorial content
-          templateContent = null;
+          templateContent = undefined;
         }
       } else {
         console.log(`Using cached template content for action ${id}`);
@@ -165,7 +165,7 @@ async function getCompletionData(id: string) {
           console.log(`Generated and persisted template content for action ${id} from Phase 2 content`);
         } catch (error) {
           console.error(`Failed to generate/persist template content for action ${id}:`, error);
-          templateContent = null;
+          templateContent = undefined;
         }
       } else {
         // Use existing content as-is
