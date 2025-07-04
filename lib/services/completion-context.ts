@@ -12,6 +12,34 @@ export interface CreateCompletionContextParams {
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   templateContent?: TemplateContent; // Multi-template content
+  // Phase 3: Objective completion data
+  technicalChanges?: {
+    files_modified?: string[];
+    files_created?: string[];
+    functions_added?: string[];
+    apis_modified?: string[];
+    dependencies_added?: string[];
+    config_changes?: string[];
+  };
+  outcomes?: {
+    features_implemented?: string[];
+    bugs_fixed?: string[];
+    performance_improvements?: string[];
+    tests_passing?: boolean;
+    build_status?: 'success' | 'failed' | 'unknown';
+  };
+  challenges?: {
+    blockers_encountered?: string[];
+    blockers_resolved?: string[];
+    approaches_tried?: string[];
+    discoveries?: string[];
+  };
+  alignmentReflection?: {
+    purpose_interpretation?: string;
+    goal_achievement_assessment?: string;
+    context_influence?: string;
+    assumptions_made?: string[];
+  };
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -68,6 +96,34 @@ export interface UpdateCompletionContextParams {
   pullQuotes?: string[]; // AI-extracted key quotes
   changelogVisibility?: string;
   templateContent?: TemplateContent; // Multi-template content
+  // Phase 3: Objective completion data
+  technicalChanges?: {
+    files_modified?: string[];
+    files_created?: string[];
+    functions_added?: string[];
+    apis_modified?: string[];
+    dependencies_added?: string[];
+    config_changes?: string[];
+  };
+  outcomes?: {
+    features_implemented?: string[];
+    bugs_fixed?: string[];
+    performance_improvements?: string[];
+    tests_passing?: boolean;
+    build_status?: 'success' | 'failed' | 'unknown';
+  };
+  challenges?: {
+    blockers_encountered?: string[];
+    blockers_resolved?: string[];
+    approaches_tried?: string[];
+    discoveries?: string[];
+  };
+  alignmentReflection?: {
+    purpose_interpretation?: string;
+    goal_achievement_assessment?: string;
+    context_influence?: string;
+    assumptions_made?: string[];
+  };
   // Git context information
   gitContext?: {
     commits?: Array<{
@@ -119,7 +175,11 @@ export class CompletionContextService {
    * Create a new completion context for an action
    */
   static async createCompletionContext(params: CreateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, templateContent, gitContext } = params;
+    const { 
+      actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, 
+      changelogVisibility, templateContent, gitContext,
+      technicalChanges, outcomes, challenges, alignmentReflection 
+    } = params;
     
     // Check if completion context already exists for this action
     const existing = await getDb()
@@ -146,6 +206,10 @@ export class CompletionContextService {
         changelogVisibility: changelogVisibility || 'team',
         templateContent,
         gitContext,
+        technicalChanges,
+        outcomes,
+        challenges,
+        alignmentReflection,
       })
       .returning();
 
@@ -156,7 +220,11 @@ export class CompletionContextService {
    * Update or create completion context for an action
    */
   static async upsertCompletionContext(params: UpdateCompletionContextParams) {
-    const { actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, changelogVisibility, templateContent, gitContext } = params;
+    const { 
+      actionId, implementationStory, impactStory, learningStory, headline, deck, pullQuotes, 
+      changelogVisibility, templateContent, gitContext,
+      technicalChanges, outcomes, challenges, alignmentReflection 
+    } = params;
     
     // Check if completion context already exists
     const existing = await getDb()
@@ -180,6 +248,10 @@ export class CompletionContextService {
       if (changelogVisibility !== undefined) updateData.changelogVisibility = changelogVisibility;
       if (templateContent !== undefined) updateData.templateContent = templateContent;
       if (gitContext !== undefined) updateData.gitContext = gitContext;
+      if (technicalChanges !== undefined) updateData.technicalChanges = technicalChanges;
+      if (outcomes !== undefined) updateData.outcomes = outcomes;
+      if (challenges !== undefined) updateData.challenges = challenges;
+      if (alignmentReflection !== undefined) updateData.alignmentReflection = alignmentReflection;
       
       const updatedContext = await getDb()
         .update(completionContexts)

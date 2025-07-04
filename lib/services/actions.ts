@@ -992,6 +992,11 @@ export class ActionsService {
           pullQuotes: completion_context.pull_quotes,
           changelogVisibility: completion_context.changelog_visibility,
           gitContext: completion_context.git_context,
+          // Phase 3: Objective completion data
+          technicalChanges: completion_context.technical_changes,
+          outcomes: completion_context.outcomes,
+          challenges: completion_context.challenges,
+          alignmentReflection: completion_context.alignment_reflection,
         });
       } catch (error) {
         console.error(`Failed to update completion context for action ${action_id}:`, error);

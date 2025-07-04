@@ -186,6 +186,38 @@ export const completionContexts = pgTable('completion_contexts', {
   // Template-specific content storage for multiple audience views
   templateContent: jsonb('template_content').$type<TemplateContent>(),
   
+  // Phase 3: Objective completion data
+  technicalChanges: jsonb('technical_changes').$type<{
+    files_modified?: string[];
+    files_created?: string[];
+    functions_added?: string[];
+    apis_modified?: string[];
+    dependencies_added?: string[];
+    config_changes?: string[];
+  }>(),
+
+  outcomes: jsonb('outcomes').$type<{
+    features_implemented?: string[];
+    bugs_fixed?: string[];
+    performance_improvements?: string[];
+    tests_passing?: boolean;
+    build_status?: 'success' | 'failed' | 'unknown';
+  }>(),
+
+  challenges: jsonb('challenges').$type<{
+    blockers_encountered?: string[];
+    blockers_resolved?: string[];
+    approaches_tried?: string[];
+    discoveries?: string[];
+  }>(),
+
+  alignmentReflection: jsonb('alignment_reflection').$type<{
+    purpose_interpretation?: string;
+    goal_achievement_assessment?: string;
+    context_influence?: string;
+    assumptions_made?: string[];
+  }>(),
+  
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),
   changelogVisibility: text('changelog_visibility').default('team').notNull(),
