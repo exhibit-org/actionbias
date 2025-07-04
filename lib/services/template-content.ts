@@ -227,13 +227,27 @@ Requirements:
       return JSON.parse(text);
     } catch (error) {
       console.error('Failed to parse engineering content JSON:', error);
-      // Fallback to basic content
+      console.error('Raw AI response:', text);
+      
+      // Better fallback using actual objective data
+      const implementationFeatures = objectiveData.outcomes.features_implemented.length > 0 
+        ? objectiveData.outcomes.features_implemented.join(', ')
+        : 'Technical implementation completed';
+      
+      const impactSummary = objectiveData.alignment_reflection.goal_achievement_assessment || 
+        'System improvements delivered';
+      
+      const technicalInsights = [
+        objectiveData.alignment_reflection.purpose_interpretation,
+        ...objectiveData.challenges.discoveries.slice(0, 2)
+      ].filter(Boolean);
+      
       return {
         headline: actionTitle,
-        deck: objectiveData.alignment_reflection.purpose_interpretation,
-        implementation_story: "Technical implementation completed.",
-        impact_story: "System improvements delivered.",
-        pull_quotes: ["Technical work completed successfully."]
+        deck: objectiveData.alignment_reflection.purpose_interpretation || `Technical implementation: ${actionTitle}`,
+        implementation_story: `## Technical Implementation\n\n${objectiveData.alignment_reflection.purpose_interpretation}\n\n### Features Implemented\n${implementationFeatures}\n\n### Technical Approach\n${objectiveData.alignment_reflection.context_influence || 'Implementation completed successfully.'}`,
+        impact_story: `## Technical Impact\n\n${impactSummary}\n\n### System Changes\n- Files modified: ${objectiveData.technical_changes.files_modified.length}\n- Functions added: ${objectiveData.technical_changes.functions_added.length}\n- Features implemented: ${objectiveData.outcomes.features_implemented.length}`,
+        pull_quotes: technicalInsights.length > 0 ? technicalInsights : [objectiveData.alignment_reflection.purpose_interpretation || "Technical implementation completed successfully"]
       };
     }
   }

@@ -16,6 +16,13 @@ interface EngineeringTemplateProps {
       importance?: 'high' | 'medium' | 'low';
     };
   };
+  // Fallback content from existing editorial system
+  implementationStory?: string;
+  impactStory?: string;
+  learningStory?: string;
+  headline?: string;
+  deck?: string;
+  pullQuotes?: string[];
   changelogVisibility: string;
   completionTimestamp: string;
   actionTitle: string;
@@ -133,10 +140,16 @@ export default function EngineeringTemplate({
     );
   };
 
-  // Get engineering-specific content
+  // Get engineering-specific content with smart fallbacks
   const engineering = item.templateContent?.engineering;
-  const displayHeadline = engineering?.headline || item.actionTitle;
-  const displayDeck = engineering?.deck || item.actionDescription || item.actionVision;
+  
+  // Use rich existing content as fallback when template content is poor
+  const hasRichEngineeringContent = engineering?.implementation_story && 
+    engineering.implementation_story !== "Technical implementation completed." &&
+    engineering.implementation_story.length > 50;
+  
+  const displayHeadline = engineering?.headline || item.headline || item.actionTitle;
+  const displayDeck = engineering?.deck || item.deck || item.actionDescription || item.actionVision;
 
   // Calculate read time based on content length
   const totalWords = [
@@ -256,45 +269,61 @@ export default function EngineeringTemplate({
           {/* Main Content */}
           <div className="lg:col-span-8">
             {/* Impact Summary */}
-            {engineering?.impact_story && (
+            {(engineering?.impact_story || item.impactStory) && (
               <div className="mb-10">
                 <h2 className="font-mono text-lg text-green-500 mb-4">
                   <span className="text-green-500">## </span>Impact Summary
                 </h2>
                 <div className="bg-gray-900 border border-gray-800 rounded p-6">
-                  {renderTerminalContent(engineering.impact_story)}
+                  {renderTerminalContent(
+                    (hasRichEngineeringContent ? engineering!.impact_story : item.impactStory || engineering?.impact_story) || ''
+                  )}
                 </div>
               </div>
             )}
 
             {/* Key Insight */}
-            {engineering?.pull_quotes && engineering.pull_quotes.length > 0 && (
+            {((engineering?.pull_quotes && engineering.pull_quotes.length > 0) || item.pullQuotes) && (
               <div className="my-10 bg-gray-900 border-l-4 border-green-500 pl-6 pr-6 py-4">
                 <p className="font-mono text-xs text-green-500 mb-2 uppercase tracking-wider">
                   key insight
                 </p>
                 <p className="font-mono text-lg text-white leading-relaxed">
-                  "{engineering.pull_quotes[0]}"
+                  "{
+                    (hasRichEngineeringContent && engineering?.pull_quotes?.[0]) || 
+                    (item.pullQuotes && item.pullQuotes[0]) || 
+                    engineering?.pull_quotes?.[0] || 
+                    'Technical implementation completed successfully'
+                  }"
                 </p>
               </div>
             )}
 
             {/* Technical Implementation */}
-            {engineering?.implementation_story && (
+            {(engineering?.implementation_story || item.implementationStory) && (
               <section className="mb-10">
                 <h2 className="font-mono text-lg text-green-500 mb-4">
                   <span className="text-green-500">## </span>Technical Implementation
                 </h2>
                 <div className="bg-gray-900 border border-gray-800 rounded p-6">
-                  {renderTerminalContent(engineering.implementation_story)}
+                  {renderTerminalContent(
+                    (hasRichEngineeringContent ? engineering!.implementation_story : item.implementationStory || engineering?.implementation_story) || ''
+                  )}
                 </div>
               </section>
             )}
 
             {/* Additional Insights */}
-            {engineering?.pull_quotes && engineering.pull_quotes.length > 1 && (
+            {(
+              (hasRichEngineeringContent && engineering?.pull_quotes && engineering.pull_quotes.length > 1) || 
+              (item.pullQuotes && item.pullQuotes.length > 1)
+            ) && (
               <div className="space-y-4">
-                {engineering.pull_quotes.slice(1).map((quote, index) => (
+                {(
+                  hasRichEngineeringContent 
+                    ? engineering!.pull_quotes!.slice(1) 
+                    : item.pullQuotes!.slice(1)
+                ).map((quote, index) => (
                   <div key={index} className="bg-gray-900 border border-gray-700 rounded p-4">
                     <p className="font-mono text-xs text-gray-500 mb-2 uppercase tracking-wider">
                       insight {index + 2}
