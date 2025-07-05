@@ -7,17 +7,38 @@ import ReactFlow, {
   Background, 
   Node, 
   Edge,
-  ConnectionMode
+  ConnectionMode,
+  MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-type ActionNode = {
+type ActionMetadata = {
   id: string;
   title: string;
+  description?: string | null;
+  vision?: string | null;
   done: boolean;
+  version: number;
   created_at: string;
-  children: ActionNode[];
-  dependencies: string[];
+  updated_at: string;
+};
+
+type ActionRelationships = {
+  ancestors: ActionMetadata[];
+  children: ActionMetadata[];
+  dependencies: ActionMetadata[];
+  dependents: ActionMetadata[];
+  siblings: ActionMetadata[];
+};
+
+type RelationshipFlags = {
+  [actionId: string]: string[];
+};
+
+type ContextResponse = {
+  action: ActionMetadata;
+  relationships: ActionRelationships;
+  relationship_flags: RelationshipFlags;
 };
 
 // Define node types outside component
@@ -28,28 +49,24 @@ export default function FlowIdPage() {
   const router = useRouter();
   const actionId = params.id as string;
   
-  const [rootAction, setRootAction] = useState<ActionNode | null>(null);
+  const [context, setContext] = useState<ContextResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchActionTree = async () => {
+    const fetchActionContext = async () => {
       try {
-        const response = await fetch(`/api/actions/tree/${actionId}?includeCompleted=false`);
+        const response = await fetch(`/api/actions/${actionId}/context`);
         if (!response.ok) {
-          throw new Error('Failed to fetch action tree');
+          throw new Error('Failed to fetch action context');
         }
         const result = await response.json();
         
         if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch action tree');
+          throw new Error(result.error || 'Failed to fetch action context');
         }
         
-        // Extract the first root action from the response
-        const rootActions = result.data.rootActions || [];
-        const actionData = rootActions.length > 0 ? rootActions[0] : null;
-        
-        setRootAction(actionData);
+        setContext(result.data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -58,67 +75,189 @@ export default function FlowIdPage() {
     };
 
     if (actionId) {
-      fetchActionTree();
+      fetchActionContext();
     }
   }, [actionId]);
 
   // Create nodes and edges using useMemo
   const { nodes, edges } = useMemo(() => {
-    if (!rootAction) {
+    if (!context) {
       return { nodes: [], edges: [] };
     }
 
     const flowNodes: Node[] = [];
     const flowEdges: Edge[] = [];
     
-    // Ensure root action has valid ID
-    if (!rootAction.id) {
-      console.error('Root action missing ID:', rootAction);
-      return { nodes: [], edges: [] };
-    }
+    const { action, relationships } = context;
     
-    // Add the root node
+    // Center the focal action in the middle
     flowNodes.push({
-      id: String(rootAction.id),
-      position: { x: 400, y: 50 },
+      id: action.id,
+      position: { x: 400, y: 300 },
       data: { 
-        label: rootAction.title || 'Untitled'
+        label: action.title,
+        type: 'focal'
+      },
+      style: { 
+        background: '#4f46e5', 
+        color: 'white',
+        border: '2px solid #312e81',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: 'bold'
       }
     });
-    
-    // Add child nodes in a grid layout
-    (rootAction.children || []).forEach((child, index) => {
-      // Ensure child has valid ID
-      if (!child.id) {
-        console.error('Child action missing ID:', child);
-        return;
-      }
+
+    // Add ancestors (parents) above the focal action
+    relationships.ancestors.forEach((ancestor, index) => {
+      flowNodes.push({
+        id: ancestor.id,
+        position: { x: 400, y: 100 - (index * 80) },
+        data: { 
+          label: ancestor.title,
+          type: 'ancestor'
+        },
+        style: { 
+          background: '#059669', 
+          color: 'white',
+          borderRadius: '6px'
+        }
+      });
       
+      // Add family edge from ancestor to focal action or child ancestor
+      const targetId = index === relationships.ancestors.length - 1 ? action.id : relationships.ancestors[index + 1].id;
+      flowEdges.push({
+        id: `family-${ancestor.id}-${targetId}`,
+        source: ancestor.id,
+        target: targetId,
+        type: 'default',
+        style: { stroke: '#059669', strokeWidth: 2 },
+        label: 'parent'
+      });
+    });
+
+    // Add children below the focal action
+    relationships.children.forEach((child, index) => {
       const col = index % 3;
       const row = Math.floor(index / 3);
       
       flowNodes.push({
-        id: String(child.id),
+        id: child.id,
         position: { 
-          x: 150 + (col * 200), 
-          y: 200 + (row * 100) 
+          x: 250 + (col * 150), 
+          y: 450 + (row * 80) 
         },
         data: { 
-          label: child.title || 'Untitled'
+          label: child.title,
+          type: 'child'
+        },
+        style: { 
+          background: '#0ea5e9', 
+          color: 'white',
+          borderRadius: '6px'
         }
       });
       
-      // Add edge from root to child
+      // Add family edge from focal action to child
       flowEdges.push({
-        id: `edge-${String(rootAction.id)}-${String(child.id)}`,
-        source: String(rootAction.id),
-        target: String(child.id)
+        id: `family-${action.id}-${child.id}`,
+        source: action.id,
+        target: child.id,
+        type: 'default',
+        style: { stroke: '#0ea5e9', strokeWidth: 2 },
+        label: 'child'
       });
     });
 
-    console.log('Generated nodes:', flowNodes.map(n => ({ id: n.id, label: n.data.label })));
+    // Add dependencies to the left of focal action
+    relationships.dependencies.forEach((dep, index) => {
+      flowNodes.push({
+        id: dep.id,
+        position: { 
+          x: 100, 
+          y: 250 + (index * 100) 
+        },
+        data: { 
+          label: dep.title,
+          type: 'dependency'
+        },
+        style: { 
+          background: '#dc2626', 
+          color: 'white',
+          borderRadius: '6px'
+        }
+      });
+      
+      // Add dependency edge from dependency to focal action
+      flowEdges.push({
+        id: `dependency-${dep.id}-${action.id}`,
+        source: dep.id,
+        target: action.id,
+        type: 'default',
+        style: { stroke: '#dc2626', strokeWidth: 2 },
+        label: 'blocks',
+        markerEnd: { type: MarkerType.Arrow, color: '#dc2626' }
+      });
+    });
+
+    // Add dependents to the right of focal action
+    relationships.dependents.forEach((dependent, index) => {
+      flowNodes.push({
+        id: dependent.id,
+        position: { 
+          x: 700, 
+          y: 250 + (index * 100) 
+        },
+        data: { 
+          label: dependent.title,
+          type: 'dependent'
+        },
+        style: { 
+          background: '#ea580c', 
+          color: 'white',
+          borderRadius: '6px'
+        }
+      });
+      
+      // Add dependency edge from focal action to dependent
+      flowEdges.push({
+        id: `dependency-${action.id}-${dependent.id}`,
+        source: action.id,
+        target: dependent.id,
+        type: 'default',
+        style: { stroke: '#ea580c', strokeWidth: 2 },
+        label: 'blocks',
+        markerEnd: { type: MarkerType.Arrow, color: '#ea580c' }
+      });
+    });
+
+    // Add siblings around the focal action
+    relationships.siblings.forEach((sibling, index) => {
+      const angle = (index / relationships.siblings.length) * 2 * Math.PI;
+      const radius = 200;
+      const x = 400 + Math.cos(angle) * radius;
+      const y = 300 + Math.sin(angle) * radius;
+      
+      flowNodes.push({
+        id: sibling.id,
+        position: { x, y },
+        data: { 
+          label: sibling.title,
+          type: 'sibling'
+        },
+        style: { 
+          background: '#7c3aed', 
+          color: 'white',
+          borderRadius: '6px'
+        }
+      });
+      
+      // Note: Siblings don't have direct edges to focal action in dependency model
+    });
+
+    console.log('Generated contextual nodes:', flowNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.type })));
     return { nodes: flowNodes, edges: flowEdges };
-  }, [rootAction]);
+  }, [context]);
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
     router.push(`/flow/${node.id}`);
@@ -132,18 +271,50 @@ export default function FlowIdPage() {
     return <div className="flex items-center justify-center h-screen text-red-500">Error: {error}</div>;
   }
 
-  if (!rootAction) {
+  if (!context) {
     return <div className="flex items-center justify-center h-screen">Action not found</div>;
   }
+
+  const { action, relationships } = context;
+  const totalRelationships = relationships.ancestors.length + relationships.children.length + 
+                             relationships.dependencies.length + relationships.dependents.length + 
+                             relationships.siblings.length;
 
   return (
     <div className="h-screen">
       <div className="p-4 bg-gray-100 border-b">
-        <h1 className="text-2xl font-bold">{rootAction.title}</h1>
-        <p className="text-gray-600">Status: {rootAction.done ? 'Completed' : 'In Progress'}</p>
+        <h1 className="text-2xl font-bold">{action.title}</h1>
+        <h2 className="text-lg text-gray-700 mb-2">Contextual Flow View</h2>
+        <p className="text-gray-600">Status: {action.done ? 'Completed' : 'In Progress'}</p>
         <p className="text-sm text-gray-500">
-          Showing {(rootAction.children || []).length} child action{(rootAction.children || []).length !== 1 ? 's' : ''}
+          {relationships.ancestors.length} ancestor{relationships.ancestors.length !== 1 ? 's' : ''} • {' '}
+          {relationships.children.length} child{relationships.children.length !== 1 ? 'ren' : ''} • {' '}
+          {relationships.dependencies.length} dependenc{relationships.dependencies.length !== 1 ? 'ies' : 'y'} • {' '}
+          {relationships.dependents.length} dependent{relationships.dependents.length !== 1 ? 's' : ''} • {' '}
+          {relationships.siblings.length} sibling{relationships.siblings.length !== 1 ? 's' : ''}
         </p>
+        <div className="flex items-center gap-2 mt-2 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-600 rounded"></div>
+            <span>Ancestors</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <span>Children</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-600 rounded"></div>
+            <span>Dependencies</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-orange-600 rounded"></div>
+            <span>Dependents</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-purple-600 rounded"></div>
+            <span>Siblings</span>
+          </div>
+        </div>
       </div>
       <ReactFlow
         key={`flow-${actionId}`}
