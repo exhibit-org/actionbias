@@ -90,10 +90,34 @@ export default function FlowIdPage() {
     
     const { action, relationships } = context;
     
-    // Center the focal action in the middle
+    // Calculate vertical positions for hierarchy
+    const ancestorCount = relationships.ancestors.length;
+    const childrenCount = relationships.children.length;
+    const totalHeight = (ancestorCount + 1 + Math.ceil(childrenCount / 3)) * 120;
+    const startY = 100;
+    
+    // Add ancestors (parents) above - maintaining hierarchy
+    relationships.ancestors.forEach((ancestor, index) => {
+      flowNodes.push({
+        id: ancestor.id,
+        position: { x: 400, y: startY + (index * 120) },
+        data: { 
+          label: ancestor.title,
+          type: 'ancestor'
+        },
+        style: { 
+          background: '#059669', 
+          color: 'white',
+          borderRadius: '6px'
+        }
+      });
+    });
+
+    // Center the focal action - positioned after ancestors
+    const focalY = startY + (ancestorCount * 120);
     flowNodes.push({
       id: action.id,
-      position: { x: 400, y: 300 },
+      position: { x: 400, y: focalY },
       data: { 
         label: action.title,
         type: 'focal'
@@ -108,35 +132,7 @@ export default function FlowIdPage() {
       }
     });
 
-    // Add ancestors (parents) above the focal action
-    relationships.ancestors.forEach((ancestor, index) => {
-      flowNodes.push({
-        id: ancestor.id,
-        position: { x: 400, y: 100 - (index * 80) },
-        data: { 
-          label: ancestor.title,
-          type: 'ancestor'
-        },
-        style: { 
-          background: '#059669', 
-          color: 'white',
-          borderRadius: '6px'
-        }
-      });
-      
-      // Add family edge from ancestor to focal action or child ancestor
-      const targetId = index === relationships.ancestors.length - 1 ? action.id : relationships.ancestors[index + 1].id;
-      flowEdges.push({
-        id: `family-${ancestor.id}-${targetId}`,
-        source: ancestor.id,
-        target: targetId,
-        type: 'default',
-        style: { stroke: '#059669', strokeWidth: 2 },
-        label: 'parent'
-      });
-    });
-
-    // Add children below the focal action
+    // Add children below the focal action - maintaining hierarchy
     relationships.children.forEach((child, index) => {
       const col = index % 3;
       const row = Math.floor(index / 3);
@@ -144,8 +140,8 @@ export default function FlowIdPage() {
       flowNodes.push({
         id: child.id,
         position: { 
-          x: 250 + (col * 150), 
-          y: 450 + (row * 80) 
+          x: 300 + (col * 200), 
+          y: focalY + 120 + (row * 100) 
         },
         data: { 
           label: child.title,
@@ -157,16 +153,6 @@ export default function FlowIdPage() {
           borderRadius: '6px'
         }
       });
-      
-      // Add family edge from focal action to child
-      flowEdges.push({
-        id: `family-${action.id}-${child.id}`,
-        source: action.id,
-        target: child.id,
-        type: 'default',
-        style: { stroke: '#0ea5e9', strokeWidth: 2 },
-        label: 'child'
-      });
     });
 
     // Add dependencies to the left of focal action
@@ -175,7 +161,7 @@ export default function FlowIdPage() {
         id: dep.id,
         position: { 
           x: 100, 
-          y: 250 + (index * 100) 
+          y: focalY - 50 + (index * 100) 
         },
         data: { 
           label: dep.title,
@@ -195,7 +181,6 @@ export default function FlowIdPage() {
         target: action.id,
         type: 'default',
         style: { stroke: '#dc2626', strokeWidth: 2 },
-        label: 'blocks',
         markerEnd: { type: MarkerType.Arrow, color: '#dc2626' }
       });
     });
@@ -206,7 +191,7 @@ export default function FlowIdPage() {
         id: dependent.id,
         position: { 
           x: 700, 
-          y: 250 + (index * 100) 
+          y: focalY - 50 + (index * 100) 
         },
         data: { 
           label: dependent.title,
@@ -226,21 +211,20 @@ export default function FlowIdPage() {
         target: dependent.id,
         type: 'default',
         style: { stroke: '#ea580c', strokeWidth: 2 },
-        label: 'blocks',
         markerEnd: { type: MarkerType.Arrow, color: '#ea580c' }
       });
     });
 
-    // Add siblings around the focal action
+    // Add siblings at the same level as focal action
     relationships.siblings.forEach((sibling, index) => {
-      const angle = (index / relationships.siblings.length) * 2 * Math.PI;
-      const radius = 200;
-      const x = 400 + Math.cos(angle) * radius;
-      const y = 300 + Math.sin(angle) * radius;
+      const offsetX = (index - (relationships.siblings.length - 1) / 2) * 150;
       
       flowNodes.push({
         id: sibling.id,
-        position: { x, y },
+        position: { 
+          x: 400 + offsetX, 
+          y: focalY + 60 
+        },
         data: { 
           label: sibling.title,
           type: 'sibling'
@@ -251,8 +235,6 @@ export default function FlowIdPage() {
           borderRadius: '6px'
         }
       });
-      
-      // Note: Siblings don't have direct edges to focal action in dependency model
     });
 
     console.log('Generated contextual nodes:', flowNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.type })));
