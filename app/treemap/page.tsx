@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ResponsiveTreeMap } from '@nivo/treemap';
+import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode } from '../../lib/types/resources';
 
 interface TreemapNode {
@@ -11,11 +11,12 @@ interface TreemapNode {
   value?: number; // Optional - parent nodes don't need explicit values
   color?: string;
   children?: TreemapNode[];
+  depth?: number; // Track hierarchical depth
 }
 
-function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode): TreemapNode[] {
+function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode, currentDepth: number = 0): TreemapNode[] {
   return actionNodes.map(node => {
-    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot) : [];
+    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot, currentDepth + 1) : [];
     
     // Determine if this node should be highlighted
     let isHighlighted = false;
@@ -28,6 +29,7 @@ function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: strin
       id: node.id,
       name: node.title,
       color: getNodeColor(node, childrenData.length > 0, isHighlighted),
+      depth: currentDepth, // Add depth information
     };
     
     // For parent nodes (with children), don't set a value - let treemap calculate from children
@@ -55,6 +57,23 @@ function findNodeInTree(nodes: ActionNode[], targetId: string): ActionNode | nul
     if (found) return found;
   }
   return null;
+}
+
+function getNodeDepth(nodeId: string, treeData: ActionTreeResource): number {
+  function findDepth(nodes: ActionNode[], targetId: string, currentDepth: number): number {
+    for (const node of nodes) {
+      if (node.id === targetId) {
+        return currentDepth;
+      }
+      if (node.children.length > 0) {
+        const found = findDepth(node.children, targetId, currentDepth + 1);
+        if (found !== -1) return found;
+      }
+    }
+    return -1;
+  }
+  
+  return findDepth(treeData.rootActions, nodeId, 0);
 }
 
 function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean): string {
@@ -130,8 +149,34 @@ export default function TreemapPage() {
 
   return (
     <div className="w-full h-screen bg-black">
+      <style jsx global>{`
+        /* Override the centering transform and dimensions */
+        [data-testid^="label."] {
+          transform: translate(6px, 6px) !important;
+          width: calc(100% - 12px) !important;
+          height: auto !important;
+          max-width: calc(100% - 12px) !important;
+          justify-content: flex-start !important;
+          align-items: flex-start !important;
+          text-align: left !important;
+          white-space: normal !important;
+          font-family: ui-monospace, SFMono-Regular, monospace !important;
+          font-size: 11px !important;
+          line-height: 1.3 !important;
+          color: #d1d5db !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+        }
+        
+        /* Parent label styling */
+        [data-testid^="label."][data-testid*="parent"] {
+          font-size: 14px !important;
+          font-weight: 600 !important;
+          color: #f3f4f6 !important;
+        }
+      `}</style>
       <div className="w-full h-full p-4">
-        <ResponsiveTreeMap
+        <ResponsiveTreeMapHtml
           data={treemapData}
           identity="id"
           value="value"
@@ -141,7 +186,7 @@ export default function TreemapPage() {
           tile="squarify"
           innerPadding={2}
           outerPadding={0}
-          labelSkipSize={20}
+          labelSkipSize={12}
           parentLabelSize={16}
           enableParentLabel={true}
           labelTextColor="#d1d5db"
@@ -163,16 +208,11 @@ export default function TreemapPage() {
           }}
           label={({ data, width, height }) => {
             const name = (data as any).name;
-            // Only show label if the rectangle is large enough
-            if (width < 80 || height < 40) return '';
-            // Truncate long names
-            return name.length > 15 ? name.substring(0, 12) + '...' : name;
+            return name; // Show all labels, let CSS handle wrapping
           }}
           parentLabel={({ data, width, height }) => {
             const name = (data as any).name;
-            // Only show parent label if rectangle is large enough
-            if (width < 120 || height < 60) return '';
-            return name.length > 25 ? name.substring(0, 22) + '...' : name;
+            return name; // Show all parent labels
           }}
           tooltip={({ node }) => (
             <div className="bg-gray-900 p-3 border border-gray-700 rounded shadow-lg max-w-xs">
