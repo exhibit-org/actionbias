@@ -12,7 +12,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMap: ({ data, tooltip, onClick, ...props }: any) => (
+  ResponsiveTreeMap: ({ data, tooltip, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
       {data.children && data.children.map((child: any) => (
@@ -20,6 +20,8 @@ jest.mock('@nivo/treemap', () => ({
           key={child.id} 
           data-testid={`treemap-node-${child.id}`}
           onClick={() => onClick && onClick({ data: child })}
+          onMouseEnter={() => onMouseEnter && onMouseEnter({ data: child })}
+          onMouseLeave={() => onMouseLeave && onMouseLeave()}
           style={{ cursor: 'pointer' }}
         >
           {child.name}
@@ -155,5 +157,31 @@ describe('TreemapPage', () => {
 
     // Check that navigation was called with the correct path
     expect(mockPush).toHaveBeenCalledWith('/treemap/1');
+  });
+
+  it('handles hover events for highlighting subtrees', async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: mockTreeData
+      })
+    });
+
+    render(<TreemapPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
+    });
+
+    // Test mouse enter
+    const nodeElement = screen.getByTestId('treemap-node-1');
+    nodeElement.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+
+    // Test mouse leave
+    nodeElement.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+
+    // Just verify the handlers don't crash - the actual highlighting logic
+    // would need integration testing with the real @nivo component
   });
 });

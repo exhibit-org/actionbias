@@ -13,14 +13,21 @@ interface TreemapNode {
   children?: TreemapNode[];
 }
 
-function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
+function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode): TreemapNode[] {
   return actionNodes.map(node => {
-    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children) : [];
+    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot) : [];
+    
+    // Determine if this node should be highlighted
+    let isHighlighted = false;
+    if (hoveredNodeId && hoveredSubtreeRoot) {
+      // Only highlight if this node is the hovered node or a descendant of it
+      isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
+    }
     
     const result: TreemapNode = {
       id: node.id,
       name: node.title,
-      color: childrenData.length > 0 ? '#374151' : '#4b5563',
+      color: getNodeColor(node, childrenData.length > 0, isHighlighted),
     };
     
     if (childrenData.length > 0) {
@@ -31,6 +38,18 @@ function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
     
     return result;
   });
+}
+
+function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
+  if (node.id === ancestor.id) return true;
+  return ancestor.children.some(child => isDescendantOf(node, child));
+}
+
+function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean): string {
+  if (isHighlighted) {
+    return '#22c55e'; // green-500 for highlighted nodes
+  }
+  return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
 
 function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
@@ -55,6 +74,7 @@ export default function TreemapIdPage() {
   const [targetAction, setTargetAction] = useState<ActionNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTreeData = async () => {
@@ -131,10 +151,13 @@ export default function TreemapIdPage() {
     );
   }
 
+  // Find the hovered subtree root within the target action's children
+  const hoveredSubtreeRoot = hoveredNodeId ? findActionInTree(targetAction.children, hoveredNodeId) : null;
+  
   // If the target action has no children, show it as a single node
   const treemapData = targetAction.children.length > 0 ? {
     name: targetAction.title,
-    children: transformToTreemapData(targetAction.children)
+    children: transformToTreemapData(targetAction.children, hoveredNodeId || undefined, hoveredSubtreeRoot || undefined)
   } : {
     name: targetAction.title,
     value: 1,
@@ -178,9 +201,10 @@ export default function TreemapIdPage() {
               labelTextColor="#d1d5db"
               parentLabelTextColor="#f3f4f6"
               borderWidth={0}
-              animate={true}
-              motionConfig="gentle"
+              animate={false}
               onClick={handleNodeClick}
+              onMouseEnter={(node) => setHoveredNodeId((node as any).data.id)}
+              onMouseLeave={() => setHoveredNodeId(null)}
               theme={{
                 tooltip: {
                   container: {

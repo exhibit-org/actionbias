@@ -15,7 +15,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMap: ({ data, onClick, ...props }: any) => (
+  ResponsiveTreeMap: ({ data, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
       {data.children && data.children.map((child: any) => (
@@ -23,6 +23,8 @@ jest.mock('@nivo/treemap', () => ({
           key={child.id} 
           data-testid={`treemap-node-${child.id}`}
           onClick={() => onClick && onClick({ data: child })}
+          onMouseEnter={() => onMouseEnter && onMouseEnter({ data: child })}
+          onMouseLeave={() => onMouseLeave && onMouseLeave()}
           style={{ cursor: 'pointer' }}
         >
           {child.name}

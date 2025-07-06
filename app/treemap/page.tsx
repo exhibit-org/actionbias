@@ -13,14 +13,21 @@ interface TreemapNode {
   children?: TreemapNode[];
 }
 
-function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
+function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode): TreemapNode[] {
   return actionNodes.map(node => {
-    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children) : [];
+    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot) : [];
+    
+    // Determine if this node should be highlighted
+    let isHighlighted = false;
+    if (hoveredNodeId && hoveredSubtreeRoot) {
+      // Only highlight if this node is the hovered node or a descendant of it
+      isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
+    }
     
     const result: TreemapNode = {
       id: node.id,
       name: node.title,
-      color: childrenData.length > 0 ? '#374151' : '#4b5563', // gray-700 for parents, gray-600 for leaves
+      color: getNodeColor(node, childrenData.length > 0, isHighlighted),
     };
     
     // For parent nodes (with children), don't set a value - let treemap calculate from children
@@ -36,11 +43,33 @@ function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
   });
 }
 
+function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
+  if (node.id === ancestor.id) return true;
+  return ancestor.children.some(child => isDescendantOf(node, child));
+}
+
+function findNodeInTree(nodes: ActionNode[], targetId: string): ActionNode | null {
+  for (const node of nodes) {
+    if (node.id === targetId) return node;
+    const found = findNodeInTree(node.children, targetId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean): string {
+  if (isHighlighted) {
+    return '#22c55e'; // green-500 for highlighted nodes
+  }
+  return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
+}
+
 export default function TreemapPage() {
   const router = useRouter();
   const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTreeData = async () => {
@@ -87,9 +116,11 @@ export default function TreemapPage() {
     );
   }
 
+  const hoveredSubtreeRoot = hoveredNodeId ? findNodeInTree(treeData.rootActions, hoveredNodeId) : null;
+  
   const treemapData = {
     name: 'Actions',
-    children: transformToTreemapData(treeData.rootActions)
+    children: transformToTreemapData(treeData.rootActions, hoveredNodeId || undefined, hoveredSubtreeRoot || undefined)
   };
 
   const handleNodeClick = (node: any) => {
@@ -116,9 +147,10 @@ export default function TreemapPage() {
           labelTextColor="#d1d5db"
           parentLabelTextColor="#f3f4f6"
           borderWidth={0}
-          animate={true}
-          motionConfig="gentle"
+          animate={false}
           onClick={handleNodeClick}
+          onMouseEnter={(node) => setHoveredNodeId((node as any).data.id)}
+          onMouseLeave={() => setHoveredNodeId(null)}
           theme={{
             tooltip: {
               container: {
