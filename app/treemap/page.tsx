@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ResponsiveTreeMap } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode } from '../../lib/types/resources';
 
@@ -36,6 +37,7 @@ function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
 }
 
 export default function TreemapPage() {
+  const router = useRouter();
   const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,11 @@ export default function TreemapPage() {
     children: transformToTreemapData(treeData.rootActions)
   };
 
+  const handleNodeClick = (node: any) => {
+    // Navigate to the treemap page for the specific action
+    router.push(`/treemap/${node.data.id}`);
+  };
+
   return (
     <div className="w-full h-screen bg-black">
       <div className="w-full h-full p-4">
@@ -111,6 +118,17 @@ export default function TreemapPage() {
           borderWidth={0}
           animate={true}
           motionConfig="gentle"
+          onClick={handleNodeClick}
+          theme={{
+            tooltip: {
+              container: {
+                background: '#1f2937',
+                border: '1px solid #374151',
+                borderRadius: '4px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }
+            }
+          }}
           label={({ data, width, height }) => {
             const name = (data as any).name;
             // Only show label if the rectangle is large enough

@@ -1,18 +1,21 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import TreemapPage from '../../app/treemap/page';
-import { ActionTreeResource, ActionNode } from '../../lib/types/resources';
+import TreemapIdPage from '../../app/treemap/[id]/page';
+import { ActionTreeResource } from '../../lib/types/resources';
 
 // Mock Next.js navigation
 const mockPush = jest.fn();
+const mockParams = { id: '1' };
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useParams: () => mockParams,
 }));
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMap: ({ data, tooltip, onClick, ...props }: any) => (
+  ResponsiveTreeMap: ({ data, onClick, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
       {data.children && data.children.map((child: any) => (
@@ -32,7 +35,7 @@ jest.mock('@nivo/treemap', () => ({
 // Mock the fetch function
 global.fetch = jest.fn();
 
-// Mock tree data representing what the API returns (completed actions already filtered out)
+// Mock tree data
 const mockTreeData: ActionTreeResource = {
   rootActions: [
     {
@@ -44,6 +47,14 @@ const mockTreeData: ActionTreeResource = {
         {
           id: '3',
           title: 'Child Action 2',
+          done: false,
+          created_at: '2023-01-01T00:00:00Z',
+          children: [],
+          dependencies: []
+        },
+        {
+          id: '4',
+          title: 'Child Action 3',
           done: false,
           created_at: '2023-01-01T00:00:00Z',
           children: [],
@@ -63,7 +74,7 @@ const mockTreeData: ActionTreeResource = {
   ]
 };
 
-describe('TreemapPage', () => {
+describe('TreemapIdPage', () => {
   beforeEach(() => {
     (global.fetch as jest.Mock).mockClear();
     mockPush.mockClear();
@@ -74,11 +85,11 @@ describe('TreemapPage', () => {
       new Promise(resolve => setTimeout(resolve, 1000))
     );
     
-    render(<TreemapPage />);
-    expect(screen.getByText('Loading action tree...')).toBeInTheDocument();
+    render(<TreemapIdPage />);
+    expect(screen.getByText('Loading action subtree...')).toBeInTheDocument();
   });
 
-  it('renders treemap visualization after loading data', async () => {
+  it('renders treemap for action with children', async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -87,54 +98,23 @@ describe('TreemapPage', () => {
       })
     });
 
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
-    });
-  });
-
-  it('renders error state when fetch fails', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      json: async () => ({
-        success: false,
-        error: 'Failed to fetch tree data'
-      })
-    });
-
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Error loading action tree/)).toBeInTheDocument();
-    });
-  });
-
-  it('displays pending actions from API response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
-    });
-
-    render(<TreemapPage />);
+    render(<TreemapIdPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
     });
 
-    // Check that top-level pending actions from API are displayed
-    expect(screen.getByText('Root Action 1')).toBeInTheDocument();
-    expect(screen.getByText('Root Action 3')).toBeInTheDocument();
+    // Check that the action title appears in breadcrumb
+    expect(screen.getByText('/ Root Action 1')).toBeInTheDocument();
     
-    // Check that the treemap data includes the child action in the JSON
-    const treemapData = screen.getByTestId('treemap-data');
-    expect(treemapData.textContent).toContain('Child Action 2');
+    // Check that back button is present
+    expect(screen.getByText('← Back to Full Tree')).toBeInTheDocument();
   });
 
-  it('navigates to treemap/[id] when a node is clicked', async () => {
+  it('renders message for action with no children', async () => {
+    // Mock params to point to an action with no children
+    mockParams.id = '5';
+    
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -143,17 +123,55 @@ describe('TreemapPage', () => {
       })
     });
 
-    render(<TreemapPage />);
+    render(<TreemapIdPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
+      expect(screen.getByText('This action has no children')).toBeInTheDocument();
     });
 
-    // Click on a treemap node
-    const nodeElement = screen.getByTestId('treemap-node-1');
-    nodeElement.click();
+    expect(screen.getByText('Root Action 3')).toBeInTheDocument();
+  });
 
-    // Check that navigation was called with the correct path
-    expect(mockPush).toHaveBeenCalledWith('/treemap/1');
+  it('renders error when action not found', async () => {
+    // Mock params to point to non-existent action
+    mockParams.id = 'nonexistent';
+    
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: mockTreeData
+      })
+    });
+
+    render(<TreemapIdPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Error: Action with ID nonexistent not found')).toBeInTheDocument();
+    });
+  });
+
+  it('navigates back to full tree when back button is clicked', async () => {
+    mockParams.id = '1';
+    
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: mockTreeData
+      })
+    });
+
+    render(<TreemapIdPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('← Back to Full Tree')).toBeInTheDocument();
+    });
+
+    // Click the back button
+    const backButton = screen.getByText('← Back to Full Tree');
+    backButton.click();
+
+    expect(mockPush).toHaveBeenCalledWith('/treemap');
   });
 });
