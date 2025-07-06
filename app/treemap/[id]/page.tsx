@@ -54,6 +54,33 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
 
+function calculateFontSize(width: number, height: number, isParent: boolean, depth: number): number {
+  // Base font sizes
+  const minFontSize = 7;
+  const maxFontSize = isParent ? 20 : 14;
+  
+  // Calculate size based on rectangle area
+  const area = width * height;
+  const baseSize = Math.sqrt(area) / (isParent ? 15 : 20);
+  
+  // Adjust for hierarchy depth (deeper = smaller)
+  const depthMultiplier = Math.max(0.7, 1 - (depth * 0.15));
+  
+  // Parent labels get a boost
+  const parentMultiplier = isParent ? 1.4 : 1;
+  
+  const calculatedSize = baseSize * depthMultiplier * parentMultiplier;
+  
+  return Math.round(Math.max(minFontSize, Math.min(maxFontSize, calculatedSize)));
+}
+
+function createLabelWithStyle(text: string, fontSize: number, isParent: boolean): string {
+  const color = isParent ? '#f3f4f6' : '#d1d5db';
+  const fontWeight = isParent ? '600' : '400';
+  
+  return `<span style="font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; font-family: ui-monospace, SFMono-Regular, monospace; line-height: 1.3;">${text}</span>`;
+}
+
 function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
   for (const node of actionNodes) {
     if (node.id === targetId) {
@@ -179,19 +206,8 @@ export default function TreemapIdPage() {
           align-items: flex-start !important;
           text-align: left !important;
           white-space: normal !important;
-          font-family: ui-monospace, SFMono-Regular, monospace !important;
-          font-size: 11px !important;
-          line-height: 1.3 !important;
-          color: #d1d5db !important;
           word-wrap: break-word !important;
           overflow-wrap: break-word !important;
-        }
-        
-        /* Parent label styling */
-        [data-testid^="label."][data-testid*="parent"] {
-          font-size: 14px !important;
-          font-weight: 600 !important;
-          color: #f3f4f6 !important;
         }
       `}</style>
       <div className="w-full h-full flex flex-col">
@@ -245,11 +261,15 @@ export default function TreemapIdPage() {
               }}
               label={({ data, width, height }) => {
                 const name = (data as any).name;
-                return name; // Show all labels, let CSS handle wrapping
+                const depth = (data as any).depth || 0;
+                const fontSize = calculateFontSize(width, height, false, depth);
+                return createLabelWithStyle(name, fontSize, false);
               }}
               parentLabel={({ data, width, height }) => {
                 const name = (data as any).name;
-                return name; // Show all parent labels
+                const depth = (data as any).depth || 0;
+                const fontSize = calculateFontSize(width, height, true, depth);
+                return createLabelWithStyle(name, fontSize, true);
               }}
               tooltip={({ node }) => (
                 <div className="bg-gray-900 p-3 border border-gray-700 rounded shadow-lg max-w-xs">
