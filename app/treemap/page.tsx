@@ -1,0 +1,139 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { ResponsiveTreeMap } from '@nivo/treemap';
+import { ActionTreeResource, ActionNode } from '../../lib/types/resources';
+
+interface TreemapNode {
+  id: string;
+  name: string;
+  value?: number; // Optional - parent nodes don't need explicit values
+  color?: string;
+  children?: TreemapNode[];
+}
+
+function transformToTreemapData(actionNodes: ActionNode[]): TreemapNode[] {
+  return actionNodes.map(node => {
+    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children) : [];
+    
+    const result: TreemapNode = {
+      id: node.id,
+      name: node.title,
+      color: childrenData.length > 0 ? '#374151' : '#4b5563', // gray-700 for parents, gray-600 for leaves
+    };
+    
+    // For parent nodes (with children), don't set a value - let treemap calculate from children
+    // For leaf nodes, set value to 1
+    if (childrenData.length > 0) {
+      result.children = childrenData;
+      // Don't set value for parent nodes - treemap will sum children automatically
+    } else {
+      result.value = 1; // Only leaf nodes get explicit values
+    }
+    
+    return result;
+  });
+}
+
+export default function TreemapPage() {
+  const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchTreeData = async () => {
+      try {
+        const response = await fetch('/api/tree');
+        const result = await response.json();
+        
+        if (result.success) {
+          setTreeData(result.data);
+        } else {
+          setError(result.error || 'Failed to fetch tree data');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTreeData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-lg text-gray-300 font-mono">Loading action tree...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-red-400 font-mono">Error loading action tree: {error}</div>
+      </div>
+    );
+  }
+
+  if (!treeData || treeData.rootActions.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-gray-500 font-mono">No actions found</div>
+      </div>
+    );
+  }
+
+  const treemapData = {
+    name: 'Actions',
+    children: transformToTreemapData(treeData.rootActions)
+  };
+
+  return (
+    <div className="w-full h-screen bg-black">
+      <div className="w-full h-full p-4">
+        <ResponsiveTreeMap
+          data={treemapData}
+          identity="id"
+          value="value"
+          colors={({ data }) => (data as any).color || '#4b5563'}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          leavesOnly={false}
+          tile="squarify"
+          innerPadding={2}
+          outerPadding={0}
+          labelSkipSize={20}
+          parentLabelSize={16}
+          enableParentLabel={true}
+          labelTextColor="#d1d5db"
+          parentLabelTextColor="#f3f4f6"
+          borderWidth={0}
+          animate={true}
+          motionConfig="gentle"
+          label={({ data, width, height }) => {
+            const name = (data as any).name;
+            // Only show label if the rectangle is large enough
+            if (width < 80 || height < 40) return '';
+            // Truncate long names
+            return name.length > 15 ? name.substring(0, 12) + '...' : name;
+          }}
+          parentLabel={({ data, width, height }) => {
+            const name = (data as any).name;
+            // Only show parent label if rectangle is large enough
+            if (width < 120 || height < 60) return '';
+            return name.length > 25 ? name.substring(0, 22) + '...' : name;
+          }}
+          tooltip={({ node }) => (
+            <div className="bg-gray-900 p-3 border border-gray-700 rounded shadow-lg max-w-xs">
+              <div className="font-semibold text-gray-100 break-words font-mono text-sm">{(node as any).data.name}</div>
+              <div className="text-xs text-gray-400 font-mono mt-1">
+                Status: Pending
+              </div>
+            </div>
+          )}
+        />
+      </div>
+    </div>
+  );
+}
