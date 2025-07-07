@@ -12,8 +12,6 @@ interface TreemapData {
   color?: string;
   children?: TreemapData[];
   depth?: number;
-  isStripe?: boolean;
-  stripeAngle?: number;
 }
 
 function countDescendants(node: ActionNode): number {
@@ -49,8 +47,6 @@ function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: strin
       name: node.title,
       color: getNodeColor(node, childrenData.length > 0, isHighlighted, siblingIndex),
       depth: currentDepth,
-      isStripe: siblingIndex >= 0,
-      stripeAngle: siblingIndex >= 0 ? getSiblingStripeAngle(node) : undefined,
     };
     
     if (childrenData.length > 0) {
@@ -74,20 +70,29 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
   if (isHighlighted) {
     return '#22c55e'; // light green for focused action
   }
-  // For siblings, we'll use CSS stripes instead of different colors
-  // Return the default color for all non-highlighted nodes
+  if (siblingIndex >= 0) {
+    // Bright blue shades for sibling highlighting
+    const siblingColors = [
+      '#3b82f6', // blue-500
+      '#1d4ed8', // blue-700
+      '#1e40af', // blue-800
+      '#60a5fa', // blue-400
+      '#2563eb', // blue-600
+      '#93c5fd', // blue-300
+    ];
+    
+    // Use node ID to generate a consistent random-like assignment
+    const hash = node.id.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const colorIndex = Math.abs(hash) % siblingColors.length;
+    
+    return siblingColors[colorIndex];
+  }
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
 
-function getSiblingStripeAngle(node: ActionNode): number {
-  // Generate a consistent random angle between 15-165 degrees for diagonal stripes
-  const hash = node.id.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  // Map hash to angle between 15 and 165 degrees (avoiding too horizontal/vertical)
-  return 15 + (Math.abs(hash) % 150);
-}
 
 function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
   for (const node of actionNodes) {
@@ -357,35 +362,6 @@ function TreemapIdPageContent() {
     color: '#4b5563'
   };
 
-  // Generate CSS for stripe patterns
-  const generateStripeCSS = (data: any): string => {
-    let css = '';
-    const processNode = (node: any) => {
-      if (node.isStripe && node.stripeAngle) {
-        // Target treemap nodes by their ID - try various selectors
-        css += `
-          [data-testid*="${node.id}"] {
-            background-image: repeating-linear-gradient(
-              ${node.stripeAngle}deg,
-              transparent,
-              transparent 8px,
-              rgba(34, 197, 94, 0.4) 8px,
-              rgba(34, 197, 94, 0.4) 9px
-            ) !important;
-          }
-        `;
-      }
-      if (node.children) {
-        node.children.forEach(processNode);
-      }
-    };
-    if (data.children) {
-      data.children.forEach(processNode);
-    }
-    return css;
-  };
-
-  const stripeCSS = generateStripeCSS(treemapData);
 
   return (
     <div className="w-full h-screen bg-black">
@@ -422,8 +398,7 @@ function TreemapIdPageContent() {
           max-width: 50% !important;
         }
         
-        /* Dynamic stripe patterns for sibling highlighting */
-        ${stripeCSS}
+        /* Sibling highlighting with bright blue colors */
       `}</style>
       <div className="w-full h-full flex flex-col">
         {/* Header with breadcrumb - only show if we have a focused action */}
