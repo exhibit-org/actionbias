@@ -22,27 +22,30 @@ function countDescendants(node: ActionNode): number {
 }
 
 function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode, currentDepth: number = 0, maxDepth?: number): TreemapData[] {
-  return actionNodes.map(node => {
+  return actionNodes.map((node, index) => {
     const shouldShowChildren = maxDepth === undefined || currentDepth < maxDepth;
     const childrenData = node.children.length > 0 && shouldShowChildren ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot, currentDepth + 1, maxDepth) : [];
     
     // Determine if this node should be highlighted
     let isHighlighted = false;
-    let isSibling = false;
+    let siblingIndex = -1;
     if (hoveredNodeId && hoveredSubtreeRoot) {
       // Only highlight if this node is the hovered node or a descendant of it
       isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
       
       // Check if this node is a sibling of the hovered node
       if (!isHighlighted && hoveredNodeId !== node.id) {
-        isSibling = actionNodes.some(sibling => sibling.id === hoveredNodeId) && actionNodes.some(sibling => sibling.id === node.id);
+        const isSibling = actionNodes.some(sibling => sibling.id === hoveredNodeId) && actionNodes.some(sibling => sibling.id === node.id);
+        if (isSibling) {
+          siblingIndex = index;
+        }
       }
     }
     
     const result: TreemapData = {
       id: node.id,
       name: node.title,
-      color: getNodeColor(node, childrenData.length > 0, isHighlighted, isSibling),
+      color: getNodeColor(node, childrenData.length > 0, isHighlighted, siblingIndex),
       depth: currentDepth,
     };
     
@@ -63,12 +66,27 @@ function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
   return ancestor.children.some(child => isDescendantOf(node, child));
 }
 
-function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean, isSibling: boolean = false): string {
+function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean, siblingIndex: number = -1): string {
   if (isHighlighted) {
     return '#22c55e'; // green-500 for highlighted nodes
   }
-  if (isSibling) {
-    return '#000000'; // black for sibling nodes
+  if (siblingIndex >= 0) {
+    // Color palette for siblings - cycling through distinct colors
+    const siblingColors = [
+      '#f97316', // orange-500
+      '#8b5cf6', // violet-500
+      '#06b6d4', // cyan-500
+      '#ec4899', // pink-500
+      '#eab308', // yellow-500
+      '#ef4444', // red-500
+      '#84cc16', // lime-500
+      '#6366f1', // indigo-500
+      '#f59e0b', // amber-500
+      '#10b981', // emerald-500
+      '#d946ef', // fuchsia-500
+      '#3b82f6', // blue-500
+    ];
+    return siblingColors[siblingIndex % siblingColors.length];
   }
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
