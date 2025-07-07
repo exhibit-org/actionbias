@@ -71,7 +71,7 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#22c55e'; // green-500 for highlighted nodes
   }
   if (siblingIndex >= 0) {
-    // Monochromatic palette for siblings - mid to light blues for better contrast
+    // Clean blue palette for siblings - mid to light blues only
     const siblingColors = [
       '#2563eb', // blue-600
       '#3b82f6', // blue-500
@@ -79,14 +79,16 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
       '#93c5fd', // blue-300
       '#bfdbfe', // blue-200
       '#dbeafe', // blue-100
-      '#1d4ed8', // blue-700 (darker but still distinguishable)
-      '#06b6d4', // cyan-500 (for variety)
-      '#0891b2', // cyan-600
-      '#0e7490', // cyan-700
-      '#164e63', // cyan-800
-      '#0f172a', // slate-900 (darkest option)
     ];
-    return siblingColors[siblingIndex % siblingColors.length];
+    
+    // Use node ID to generate a consistent random-like assignment
+    const hash = node.id.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const colorIndex = Math.abs(hash) % siblingColors.length;
+    
+    return siblingColors[colorIndex];
   }
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
