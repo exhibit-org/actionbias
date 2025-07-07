@@ -71,20 +71,20 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#22c55e'; // green-500 for highlighted nodes
   }
   if (siblingIndex >= 0) {
-    // Monochromatic palette for siblings - different shades of blue
+    // Monochromatic palette for siblings - mid to light blues for better contrast
     const siblingColors = [
-      '#1e3a8a', // blue-900
-      '#1e40af', // blue-800
-      '#1d4ed8', // blue-700
       '#2563eb', // blue-600
       '#3b82f6', // blue-500
       '#60a5fa', // blue-400
       '#93c5fd', // blue-300
       '#bfdbfe', // blue-200
       '#dbeafe', // blue-100
-      '#eff6ff', // blue-50
-      '#1e293b', // slate-800
-      '#334155', // slate-700
+      '#1d4ed8', // blue-700 (darker but still distinguishable)
+      '#06b6d4', // cyan-500 (for variety)
+      '#0891b2', // cyan-600
+      '#0e7490', // cyan-700
+      '#164e63', // cyan-800
+      '#0f172a', // slate-900 (darkest option)
     ];
     return siblingColors[siblingIndex % siblingColors.length];
   }
