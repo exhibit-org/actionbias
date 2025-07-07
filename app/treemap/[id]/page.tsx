@@ -368,9 +368,9 @@ function TreemapIdPageContent() {
             background-image: repeating-linear-gradient(
               ${node.stripeAngle}deg,
               transparent,
-              transparent 3px,
-              rgba(255, 255, 255, 0.2) 3px,
-              rgba(255, 255, 255, 0.2) 6px
+              transparent 8px,
+              rgba(255, 255, 255, 0.4) 8px,
+              rgba(255, 255, 255, 0.4) 9px
             ) !important;
           }
         `;
