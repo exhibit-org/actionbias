@@ -68,7 +68,7 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#22c55e'; // green-500 for highlighted nodes
   }
   if (isSibling) {
-    return '#3b82f6'; // blue-500 for sibling nodes
+    return '#000000'; // black for sibling nodes
   }
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
