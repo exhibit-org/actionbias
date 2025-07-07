@@ -362,14 +362,15 @@ function TreemapIdPageContent() {
     let css = '';
     const processNode = (node: any) => {
       if (node.isStripe && node.stripeAngle) {
+        // Target treemap nodes by their ID - try various selectors
         css += `
-          [data-testid="rect.${node.id}"] {
+          [data-testid*="${node.id}"] {
             background-image: repeating-linear-gradient(
               ${node.stripeAngle}deg,
               transparent,
               transparent 3px,
-              rgba(255, 255, 255, 0.15) 3px,
-              rgba(255, 255, 255, 0.15) 6px
+              rgba(255, 255, 255, 0.2) 3px,
+              rgba(255, 255, 255, 0.2) 6px
             ) !important;
           }
         `;
