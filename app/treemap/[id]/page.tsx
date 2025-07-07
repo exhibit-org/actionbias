@@ -71,14 +71,20 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#22c55e'; // green-500 for highlighted nodes
   }
   if (siblingIndex >= 0) {
-    // Clean blue palette for siblings - mid to light blues only
+    // Warm orange-yellow palette for siblings
     const siblingColors = [
-      '#2563eb', // blue-600
-      '#3b82f6', // blue-500
-      '#60a5fa', // blue-400
-      '#93c5fd', // blue-300
-      '#bfdbfe', // blue-200
-      '#dbeafe', // blue-100
+      '#ea580c', // orange-600
+      '#f97316', // orange-500
+      '#fb923c', // orange-400
+      '#fdba74', // orange-300
+      '#fed7aa', // orange-200
+      '#ffedd5', // orange-100
+      '#d97706', // amber-600
+      '#f59e0b', // amber-500
+      '#fbbf24', // amber-400
+      '#fcd34d', // amber-300
+      '#fde68a', // amber-200
+      '#fef3c7', // amber-100
     ];
     
     // Use node ID to generate a consistent random-like assignment
