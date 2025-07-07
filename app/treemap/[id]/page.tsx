@@ -385,12 +385,21 @@ function TreemapIdPageContent() {
           font-family: ui-monospace, SFMono-Regular, monospace !important;
           line-height: 1.3 !important;
           color: #d1d5db !important;
+          pointer-events: none !important;
         }
         
         /* Parent label styling - bolder and different color */
         [data-testid^="label."][data-testid*="parent"] {
           font-weight: 600 !important;
           color: #f3f4f6 !important;
+          pointer-events: auto !important;
+          cursor: pointer !important;
+          padding: 4px 6px !important;
+          margin: 2px !important;
+          background-color: rgba(55, 65, 81, 0.8) !important;
+          border-radius: 4px !important;
+          width: auto !important;
+          max-width: 50% !important;
         }
       `}</style>
       <div className="w-full h-full flex flex-col">
@@ -421,6 +430,12 @@ function TreemapIdPageContent() {
               if (e.target === e.currentTarget) {
                 setSelectedNodeId(null);
                 setLastClickedNodeId(null);
+              }
+            }}
+            onMouseLeave={() => {
+              // Only clear hover highlighting if no node is selected
+              if (!selectedNodeId) {
+                setHoveredNodeId(null);
               }
             }}
           >
