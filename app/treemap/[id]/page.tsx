@@ -274,10 +274,10 @@ function TreemapIdPageContent() {
                 <div className="text-sm text-gray-200 font-mono">{inspectorNode.title}</div>
               </div>
               
-              {inspectorNode.description && (
+              {(inspectorNode as any).description && (
                 <div>
                   <div className="text-xs text-gray-400 font-mono mb-1">Description</div>
-                  <div className="text-xs text-gray-300 font-mono">{inspectorNode.description}</div>
+                  <div className="text-xs text-gray-300 font-mono">{(inspectorNode as any).description}</div>
                 </div>
               )}
               
