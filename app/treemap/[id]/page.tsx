@@ -369,8 +369,8 @@ function TreemapIdPageContent() {
               ${node.stripeAngle}deg,
               transparent,
               transparent 8px,
-              rgba(255, 255, 255, 0.4) 8px,
-              rgba(255, 255, 255, 0.4) 9px
+              rgba(34, 197, 94, 0.4) 8px,
+              rgba(34, 197, 94, 0.4) 9px
             ) !important;
           }
         `;
