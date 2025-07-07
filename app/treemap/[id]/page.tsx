@@ -3,7 +3,9 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
-import { ActionTreeResource, ActionNode } from '../../../lib/types/resources';
+import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
+import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
+import { Copy, Link, Check, Square, CheckSquare } from 'react-feather';
 
 interface TreemapData {
   id: string;
@@ -132,6 +134,10 @@ function TreemapIdPageContent() {
   const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 });
   const [lastClickTime, setLastClickTime] = useState<number>(0);
   const [lastClickedNodeId, setLastClickedNodeId] = useState<string | null>(null);
+  const [selectedActionDetail, setSelectedActionDetail] = useState<ActionDetailResource | null>(null);
+  const [loadingActionDetail, setLoadingActionDetail] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyingUrl, setCopyingUrl] = useState(false);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -224,6 +230,60 @@ function TreemapIdPageContent() {
   // Use selected node for highlighting if available, otherwise use hovered node
   const highlightNodeId = selectedNodeId || hoveredNodeId;
 
+  // Fetch detailed action data when a node is selected
+  useEffect(() => {
+    const fetchActionDetail = async (actionId: string) => {
+      if (loadingActionDetail) return;
+      
+      try {
+        setLoadingActionDetail(true);
+        const response = await fetch(`/api/actions/${actionId}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch action details');
+        setSelectedActionDetail(data.data);
+      } catch (err) {
+        console.error('Error fetching action details:', err);
+        setSelectedActionDetail(null);
+      } finally {
+        setLoadingActionDetail(false);
+      }
+    };
+
+    if (selectedNodeId) {
+      fetchActionDetail(selectedNodeId);
+    } else {
+      setSelectedActionDetail(null);
+    }
+  }, [selectedNodeId, loadingActionDetail]);
+
+  // Copy functions
+  const copyPromptToClipboard = async () => {
+    if (!selectedActionDetail) return;
+    try {
+      setCopying(true);
+      const prompt = buildActionPrompt(selectedActionDetail);
+      await navigator.clipboard.writeText(prompt);
+      setTimeout(() => setCopying(false), 1000);
+    } catch (err) {
+      console.error('Failed to copy prompt:', err);
+      setCopying(false);
+    }
+  };
+
+  const copyActionUrl = async () => {
+    if (!selectedActionDetail) return;
+    try {
+      setCopyingUrl(true);
+      const url = `https://www.actionbias.ai/${selectedActionDetail.id}`;
+      await navigator.clipboard.writeText(url);
+      setTimeout(() => setCopyingUrl(false), 1000);
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
+      setCopyingUrl(false);
+    }
+  };
+
   // Inspector component
   const Inspector = () => (
     <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`}>
@@ -261,24 +321,58 @@ function TreemapIdPageContent() {
       
       {/* Inspector content */}
       {!isInspectorMinimized && (
-        <div className="flex-1 p-3 overflow-y-auto">
-          {inspectorNode ? (
-            <div className="space-y-3">
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {selectedNodeId && selectedActionDetail ? (
+            <>
+              {/* Action buttons */}
+              <div className="p-3 border-b border-gray-700 flex gap-2">
+                <button 
+                  onClick={copyPromptToClipboard} 
+                  disabled={copying} 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Copy prompt to clipboard"
+                >
+                  {copying ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+                <button 
+                  onClick={copyActionUrl} 
+                  disabled={copyingUrl} 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Copy action URL"
+                >
+                  {copyingUrl ? <Check size={14} /> : <Link size={14} />}
+                </button>
+                <button 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title={selectedActionDetail.done ? "Reopen action" : "Complete action"}
+                >
+                  {selectedActionDetail.done ? <CheckSquare size={14} /> : <Square size={14} />}
+                </button>
+              </div>
+              
+              {/* Action details */}
+              <div className="flex-1 p-3 overflow-y-auto">
+                {loadingActionDetail ? (
+                  <div className="text-xs text-gray-400 font-mono">Loading action details...</div>
+                ) : (
+                  <div className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words">
+                    {buildActionPrompt(selectedActionDetail)}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : inspectorNode ? (
+            <div className="p-3 space-y-3">
               <div>
                 <div className="text-xs text-gray-400 font-mono mb-1">Title</div>
                 <div className="text-sm text-gray-200 font-mono">{inspectorNode.title}</div>
               </div>
               
-              {(inspectorNode as any).description && (
-                <div>
-                  <div className="text-xs text-gray-400 font-mono mb-1">Description</div>
-                  <div className="text-xs text-gray-300 font-mono">{(inspectorNode as any).description}</div>
-                </div>
-              )}
-              
               <div>
-                <div className="text-xs text-gray-400 font-mono mb-1">ID</div>
-                <div className="text-xs text-gray-500 font-mono break-all">{inspectorNode.id}</div>
+                <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
+                <div className="text-xs text-gray-300 font-mono">
+                  {selectedNodeId === inspectorNode.id ? 'Click again to focus and view details' : 'Hovered - click to select'}
+                </div>
               </div>
               
               {inspectorNode.children.length > 0 && (
@@ -287,18 +381,11 @@ function TreemapIdPageContent() {
                   <div className="text-xs text-gray-300 font-mono">{inspectorNode.children.length} child{inspectorNode.children.length !== 1 ? 'ren' : ''}</div>
                 </div>
               )}
-              
-              <div>
-                <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
-                <div className="text-xs text-gray-300 font-mono">
-                  {selectedNodeId === inspectorNode.id ? 'Selected (click again to focus)' : 'Hovered'}
-                </div>
-              </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-500 font-mono space-y-2">
+            <div className="p-3 text-xs text-gray-500 font-mono space-y-2">
               <div>Click a node to select and inspect</div>
-              <div>Click again to focus on that node</div>
+              <div>Click again to focus and view full details</div>
             </div>
           )}
         </div>
