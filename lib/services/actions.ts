@@ -815,9 +815,16 @@ export class ActionsService {
   static async removeDependency(params: RemoveDependencyParams) {
     const { action_id, depends_on_id } = params;
     
+    console.log(`[REMOVE_DEPENDENCY] Starting removal: ${action_id} depends on ${depends_on_id}`);
+    
     // Check that both actions exist
+    console.log(`[REMOVE_DEPENDENCY] Checking if action ${action_id} exists...`);
     const action = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Action found: ${action.length > 0 ? action[0].data?.title : 'NOT FOUND'}`);
+    
+    console.log(`[REMOVE_DEPENDENCY] Checking if dependency action ${depends_on_id} exists...`);
     const dependsOn = await getDb().select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Dependency action found: ${dependsOn.length > 0 ? dependsOn[0].data?.title : 'NOT FOUND'}`);
     
     if (action.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
@@ -828,6 +835,7 @@ export class ActionsService {
     }
 
     // Check if dependency exists
+    console.log(`[REMOVE_DEPENDENCY] Checking if dependency edge exists: src=${depends_on_id}, dst=${action_id}, kind=depends_on`);
     const existingEdge = await getDb().select().from(edges).where(
       and(
         eq(edges.src, depends_on_id),
@@ -835,12 +843,14 @@ export class ActionsService {
         eq(edges.kind, "depends_on")
       )
     ).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Existing edge found: ${existingEdge.length > 0 ? 'YES' : 'NO'}`);
 
     if (existingEdge.length === 0) {
       throw new Error(`No dependency found: ${action[0].data?.title} does not depend on ${dependsOn[0].data?.title}`);
     }
     
     // Delete the dependency edge
+    console.log(`[REMOVE_DEPENDENCY] Deleting dependency edge...`);
     const deletedEdge = await getDb().delete(edges).where(
       and(
         eq(edges.src, depends_on_id),
@@ -848,7 +858,9 @@ export class ActionsService {
         eq(edges.kind, "depends_on")
       )
     ).returning();
+    console.log(`[REMOVE_DEPENDENCY] Deleted edge:`, deletedEdge[0]);
 
+    console.log(`[REMOVE_DEPENDENCY] Successfully removed dependency`);
     return {
       action: action[0],
       depends_on: dependsOn[0],

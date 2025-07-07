@@ -4,15 +4,21 @@ import { ActionTreeResource, ActionNode } from '../../lib/types/resources';
 
 // Mock Next.js navigation
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockGet = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
+  }),
+  useSearchParams: () => ({
+    get: mockGet,
   }),
 }));
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMap: ({ data, tooltip, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
+  ResponsiveTreeMapHtml: ({ data, tooltip, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
       {data.children && data.children.map((child: any) => (
@@ -69,119 +75,26 @@ describe('TreemapPage', () => {
   beforeEach(() => {
     (global.fetch as jest.Mock).mockClear();
     mockPush.mockClear();
+    mockReplace.mockClear();
+    mockGet.mockClear();
   });
 
-  it('renders loading state initially', () => {
-    (global.fetch as jest.Mock).mockImplementation(() => 
-      new Promise(resolve => setTimeout(resolve, 1000))
-    );
+  it('redirects to root treemap view', () => {
+    mockGet.mockReturnValue(null); // No depth parameter
     
     render(<TreemapPage />);
-    expect(screen.getByText('Loading action tree...')).toBeInTheDocument();
-  });
-
-  it('renders treemap visualization after loading data', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
-    });
-
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
-    });
-  });
-
-  it('renders error state when fetch fails', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: false,
-      json: async () => ({
-        success: false,
-        error: 'Failed to fetch tree data'
-      })
-    });
-
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Error loading action tree/)).toBeInTheDocument();
-    });
-  });
-
-  it('displays pending actions from API response', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
-    });
-
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
-    });
-
-    // Check that top-level pending actions from API are displayed
-    expect(screen.getByText('Root Action 1')).toBeInTheDocument();
-    expect(screen.getByText('Root Action 3')).toBeInTheDocument();
     
-    // Check that the treemap data includes the child action in the JSON
-    const treemapData = screen.getByTestId('treemap-data');
-    expect(treemapData.textContent).toContain('Child Action 2');
+    expect(mockReplace).toHaveBeenCalledWith('/treemap/root?');
+    expect(screen.getByText('Redirecting to treemap...')).toBeInTheDocument();
   });
 
-  it('navigates to treemap/[id] when a node is clicked', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
-    });
-
+  it('redirects to root treemap view with depth parameter', () => {
+    mockGet.mockReturnValue('3'); // depth=3
+    
     render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
-    });
-
-    // Click on a treemap node
-    const nodeElement = screen.getByTestId('treemap-node-1');
-    nodeElement.click();
-
-    // Check that navigation was called with the correct path
-    expect(mockPush).toHaveBeenCalledWith('/treemap/1');
+    
+    expect(mockReplace).toHaveBeenCalledWith('/treemap/root?depth=3');
+    expect(screen.getByText('Redirecting to treemap...')).toBeInTheDocument();
   });
 
-  it('handles hover events for highlighting subtrees', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
-    });
-
-    render(<TreemapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
-    });
-
-    // Test mouse enter
-    const nodeElement = screen.getByTestId('treemap-node-1');
-    nodeElement.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-
-    // Test mouse leave
-    nodeElement.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-
-    // Just verify the handlers don't crash - the actual highlighting logic
-    // would need integration testing with the real @nivo component
-  });
 });

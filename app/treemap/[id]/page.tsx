@@ -1,22 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode } from '../../../lib/types/resources';
 
-interface TreemapNode {
+interface TreemapData {
   id: string;
   name: string;
   value?: number;
   color?: string;
-  children?: TreemapNode[];
+  children?: TreemapData[];
   depth?: number;
 }
 
-function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode, currentDepth: number = 0): TreemapNode[] {
+function countDescendants(node: ActionNode): number {
+  if (node.children.length === 0) {
+    return 1; // Leaf node counts as 1
+  }
+  return node.children.reduce((sum, child) => sum + countDescendants(child), 0);
+}
+
+function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode, currentDepth: number = 0, maxDepth?: number): TreemapData[] {
   return actionNodes.map(node => {
-    const childrenData = node.children.length > 0 ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot, currentDepth + 1) : [];
+    const shouldShowChildren = maxDepth === undefined || currentDepth < maxDepth;
+    const childrenData = node.children.length > 0 && shouldShowChildren ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot, currentDepth + 1, maxDepth) : [];
     
     // Determine if this node should be highlighted
     let isHighlighted = false;
@@ -25,7 +33,7 @@ function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: strin
       isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
     }
     
-    const result: TreemapNode = {
+    const result: TreemapData = {
       id: node.id,
       name: node.title,
       color: getNodeColor(node, childrenData.length > 0, isHighlighted),
@@ -35,7 +43,9 @@ function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: strin
     if (childrenData.length > 0) {
       result.children = childrenData;
     } else {
-      result.value = 1;
+      // This is either a true leaf node or a node at max depth
+      // Weight by total descendant count
+      result.value = countDescendants(node);
     }
     
     return result;
@@ -54,33 +64,6 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
 
-function calculateFontSize(width: number, height: number, isParent: boolean, depth: number): number {
-  // Base font sizes
-  const minFontSize = 7;
-  const maxFontSize = isParent ? 20 : 14;
-  
-  // Calculate size based on rectangle area
-  const area = width * height;
-  const baseSize = Math.sqrt(area) / (isParent ? 15 : 20);
-  
-  // Adjust for hierarchy depth (deeper = smaller)
-  const depthMultiplier = Math.max(0.7, 1 - (depth * 0.15));
-  
-  // Parent labels get a boost
-  const parentMultiplier = isParent ? 1.4 : 1;
-  
-  const calculatedSize = baseSize * depthMultiplier * parentMultiplier;
-  
-  return Math.round(Math.max(minFontSize, Math.min(maxFontSize, calculatedSize)));
-}
-
-function createLabelWithStyle(text: string, fontSize: number, isParent: boolean): string {
-  const color = isParent ? '#f3f4f6' : '#d1d5db';
-  const fontWeight = isParent ? '600' : '400';
-  
-  return `<span style="font-size: ${fontSize}px; color: ${color}; font-weight: ${fontWeight}; font-family: ui-monospace, SFMono-Regular, monospace; line-height: 1.3;">${text}</span>`;
-}
-
 function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
   for (const node of actionNodes) {
     if (node.id === targetId) {
@@ -94,9 +77,19 @@ function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNo
   return null;
 }
 
-export default function TreemapIdPage() {
+function findNodeInTree(nodes: ActionNode[], targetId: string): ActionNode | null {
+  for (const node of nodes) {
+    if (node.id === targetId) return node;
+    const found = findNodeInTree(node.children, targetId);
+    if (found) return found;
+  }
+  return null;
+}
+
+function TreemapIdPageContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const actionId = params.id as string;
   
   const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
@@ -104,6 +97,9 @@ export default function TreemapIdPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  
+  const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
+  const isRootView = actionId === 'root';
 
   useEffect(() => {
     const fetchTreeData = async () => {
@@ -114,12 +110,14 @@ export default function TreemapIdPage() {
         if (result.success) {
           setTreeData(result.data);
           
-          // Find the target action in the tree
-          const foundAction = findActionInTree(result.data.rootActions, actionId);
-          if (foundAction) {
-            setTargetAction(foundAction);
-          } else {
-            setError(`Action with ID ${actionId} not found`);
+          if (!isRootView) {
+            // Find the target action in the tree
+            const foundAction = findActionInTree(result.data.rootActions, actionId);
+            if (foundAction) {
+              setTargetAction(foundAction);
+            } else {
+              setError(`Action with ID ${actionId} not found`);
+            }
           }
         } else {
           setError(result.error || 'Failed to fetch tree data');
@@ -134,20 +132,26 @@ export default function TreemapIdPage() {
     if (actionId) {
       fetchTreeData();
     }
-  }, [actionId]);
+  }, [actionId, isRootView]);
 
   const handleNodeClick = (node: any) => {
-    router.push(`/treemap/${node.data.id}`);
+    const params = new URLSearchParams();
+    if (maxDepth) params.set('depth', maxDepth.toString());
+    router.push(`/treemap/${node.data.id}?${params.toString()}`);
   };
 
   const handleBackClick = () => {
-    router.push('/treemap');
+    const params = new URLSearchParams();
+    if (maxDepth) params.set('depth', maxDepth.toString());
+    router.push(`/treemap/root?${params.toString()}`);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-black">
-        <div className="text-lg text-gray-300 font-mono">Loading action subtree...</div>
+        <div className="text-lg text-gray-300 font-mono">
+          Loading {isRootView ? 'action tree' : 'action subtree'}...
+        </div>
       </div>
     );
   }
@@ -166,10 +170,10 @@ export default function TreemapIdPage() {
     );
   }
 
-  if (!targetAction) {
+  if (!treeData || treeData.rootActions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-black">
-        <div className="text-gray-500 font-mono mb-4">Action not found</div>
+        <div className="text-gray-500 font-mono mb-4">No actions found</div>
         <button
           onClick={handleBackClick}
           className="px-4 py-2 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono"
@@ -180,15 +184,20 @@ export default function TreemapIdPage() {
     );
   }
 
-  // Find the hovered subtree root within the target action's children
-  const hoveredSubtreeRoot = hoveredNodeId ? findActionInTree(targetAction.children, hoveredNodeId) : null;
+  // Determine what to display
+  const displayAction = isRootView ? null : targetAction;
+  const displayNodes = displayAction ? displayAction.children : treeData.rootActions;
+  const displayTitle = displayAction ? displayAction.title : 'Actions';
   
-  // If the target action has no children, show it as a single node
-  const treemapData = targetAction.children.length > 0 ? {
-    name: targetAction.title,
-    children: transformToTreemapData(targetAction.children, hoveredNodeId || undefined, hoveredSubtreeRoot || undefined)
+  // Find the hovered subtree root within the display nodes
+  const hoveredSubtreeRoot = hoveredNodeId ? findNodeInTree(displayNodes, hoveredNodeId) : null;
+  
+  // Create treemap data
+  const treemapData = displayNodes.length > 0 ? {
+    name: displayTitle,
+    children: transformToTreemapData(displayNodes, hoveredNodeId || undefined, hoveredSubtreeRoot || undefined, 0, maxDepth)
   } : {
-    name: targetAction.title,
+    name: displayTitle,
     value: 1,
     color: '#4b5563'
   };
@@ -208,27 +217,38 @@ export default function TreemapIdPage() {
           white-space: normal !important;
           word-wrap: break-word !important;
           overflow-wrap: break-word !important;
+          font-family: ui-monospace, SFMono-Regular, monospace !important;
+          line-height: 1.3 !important;
+          color: #d1d5db !important;
+        }
+        
+        /* Parent label styling - bolder and different color */
+        [data-testid^="label."][data-testid*="parent"] {
+          font-weight: 600 !important;
+          color: #f3f4f6 !important;
         }
       `}</style>
       <div className="w-full h-full flex flex-col">
-        {/* Header with breadcrumb */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={handleBackClick}
-              className="px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-sm"
-            >
-              ← Back to Full Tree
-            </button>
-            <div className="text-gray-400 font-mono text-sm">
-              / {targetAction.title}
+        {/* Header with breadcrumb - only show if we have a focused action */}
+        {displayAction && (
+          <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleBackClick}
+                className="px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-sm"
+              >
+                ← Back to Full Tree
+              </button>
+              <div className="text-gray-400 font-mono text-sm">
+                / {displayAction.title}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Treemap */}
         <div className="flex-1 p-4">
-          {targetAction.children.length > 0 ? (
+          {displayNodes.length > 0 ? (
             <ResponsiveTreeMapHtml
               data={treemapData}
               identity="id"
@@ -249,47 +269,17 @@ export default function TreemapIdPage() {
               onClick={handleNodeClick}
               onMouseEnter={(node) => setHoveredNodeId((node as any).data.id)}
               onMouseLeave={() => setHoveredNodeId(null)}
-              theme={{
-                tooltip: {
-                  container: {
-                    background: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }
-                }
-              }}
-              label={({ data, width, height }) => {
-                const name = (data as any).name;
-                const depth = (data as any).depth || 0;
-                const fontSize = calculateFontSize(width, height, false, depth);
-                return createLabelWithStyle(name, fontSize, false);
-              }}
-              parentLabel={({ data, width, height }) => {
-                const name = (data as any).name;
-                const depth = (data as any).depth || 0;
-                const fontSize = calculateFontSize(width, height, true, depth);
-                return createLabelWithStyle(name, fontSize, true);
-              }}
-              tooltip={({ node }) => (
-                <div className="bg-gray-900 p-3 border border-gray-700 rounded shadow-lg max-w-xs">
-                  <div className="font-semibold text-gray-100 break-words font-mono text-sm">
-                    {(node as any).data.name}
-                  </div>
-                  <div className="text-xs text-gray-400 font-mono mt-1">
-                    Status: Pending
-                  </div>
-                </div>
-              )}
+              label={({ data }) => (data as any).name}
+              parentLabel={({ data }) => (data as any).name}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <div className="text-2xl text-gray-300 font-mono mb-2">
-                  {targetAction.title}
+                  {displayTitle}
                 </div>
                 <div className="text-gray-500 font-mono text-sm">
-                  This action has no children
+                  {displayAction ? "This action has no children" : "No actions found"}
                 </div>
               </div>
             </div>
@@ -297,5 +287,17 @@ export default function TreemapIdPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TreemapIdPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-lg text-gray-300 font-mono">Loading...</div>
+      </div>
+    }>
+      <TreemapIdPageContent />
+    </Suspense>
   );
 }

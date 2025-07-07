@@ -258,14 +258,16 @@ export function registerTools(server: any) {
     },
     async ({ action_id, depends_on_id }: { action_id: string; depends_on_id: string }, extra: any) => {
       try {
-        console.log(`Removing dependency: ${action_id} no longer depends on ${depends_on_id}`);
+        console.log(`[MCP TOOL] remove_dependency called with action_id: ${action_id}, depends_on_id: ${depends_on_id}`);
+        console.log(`[MCP TOOL] Starting dependency removal...`);
         
         // Call ActionsService directly to avoid HTTP authentication issues
         const result = await ActionsService.removeDependency({ action_id, depends_on_id });
+        console.log(`[MCP TOOL] ActionsService.removeDependency completed successfully`);
 
         const { action, depends_on, deleted_edge } = result;
 
-        return {
+        const response = {
           content: [
             {
               type: "text",
@@ -273,9 +275,12 @@ export function registerTools(server: any) {
             },
           ],
         };
+        
+        console.log(`[MCP TOOL] Returning successful response`);
+        return response;
       } catch (error) {
-        console.error('Error removing dependency:', error);
-        return {
+        console.error('[MCP TOOL] Error removing dependency:', error);
+        const errorResponse = {
           content: [
             {
               type: "text",
@@ -283,6 +288,8 @@ export function registerTools(server: any) {
             },
           ],
         };
+        console.log(`[MCP TOOL] Returning error response`);
+        return errorResponse;
       }
     },
   );

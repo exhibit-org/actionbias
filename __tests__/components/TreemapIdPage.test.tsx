@@ -5,17 +5,21 @@ import { ActionTreeResource } from '../../lib/types/resources';
 // Mock Next.js navigation
 const mockPush = jest.fn();
 const mockParams = { id: '1' };
+const mockGet = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
   useParams: () => mockParams,
+  useSearchParams: () => ({
+    get: mockGet,
+  }),
 }));
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMap: ({ data, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
+  ResponsiveTreeMapHtml: ({ data, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
       {data.children && data.children.map((child: any) => (
@@ -80,9 +84,11 @@ describe('TreemapIdPage', () => {
   beforeEach(() => {
     (global.fetch as jest.Mock).mockClear();
     mockPush.mockClear();
+    mockGet.mockClear();
   });
 
   it('renders loading state initially', () => {
+    mockGet.mockReturnValue(null); // No depth parameter
     (global.fetch as jest.Mock).mockImplementation(() => 
       new Promise(resolve => setTimeout(resolve, 1000))
     );
@@ -92,6 +98,7 @@ describe('TreemapIdPage', () => {
   });
 
   it('renders treemap for action with children', async () => {
+    mockGet.mockReturnValue(null); // No depth parameter
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -100,6 +107,7 @@ describe('TreemapIdPage', () => {
       })
     });
 
+    mockGet.mockReturnValue(null); // No depth parameter
     render(<TreemapIdPage />);
 
     await waitFor(() => {
@@ -125,6 +133,7 @@ describe('TreemapIdPage', () => {
       })
     });
 
+    mockGet.mockReturnValue(null); // No depth parameter
     render(<TreemapIdPage />);
 
     await waitFor(() => {
@@ -146,6 +155,7 @@ describe('TreemapIdPage', () => {
       })
     });
 
+    mockGet.mockReturnValue(null); // No depth parameter
     render(<TreemapIdPage />);
 
     await waitFor(() => {
@@ -174,6 +184,6 @@ describe('TreemapIdPage', () => {
     const backButton = screen.getByText('← Back to Full Tree');
     backButton.click();
 
-    expect(mockPush).toHaveBeenCalledWith('/treemap');
+    expect(mockPush).toHaveBeenCalledWith('/treemap/root?');
   });
 });
