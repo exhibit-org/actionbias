@@ -71,20 +71,20 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#22c55e'; // green-500 for highlighted nodes
   }
   if (siblingIndex >= 0) {
-    // Ultra-bright sun palette to overcome transparency
+    // Anti-brown palette - cool bright colors that resist muddying
     const siblingColors = [
-      '#ffff00', // Pure yellow - electric sun
-      '#ffed4e', // Bright golden yellow
-      '#ffd700', // Gold
-      '#ffcc00', // Pure golden yellow
-      '#fff700', // Lime yellow
-      '#ffb300', // Bright amber
-      '#ffa500', // Pure orange
-      '#ffea00', // Bright lemon
-      '#ffe135', // Sunny yellow
-      '#ffd60a', // Electric gold
-      '#ffcf00', // Bright gold
-      '#ffe66d', // Soft electric yellow
+      '#ffffff', // Pure white - maximum brightness
+      '#ffffcc', // Cream white
+      '#ffff99', // Light yellow
+      '#ffff66', // Bright pale yellow  
+      '#ffff33', // Electric yellow
+      '#ccff00', // Lime green-yellow
+      '#99ff00', // Bright lime
+      '#66ff00', // Electric lime
+      '#ccffcc', // Pale green
+      '#99ffcc', // Light mint
+      '#66ffcc', // Bright mint
+      '#33ffcc', // Electric mint
     ];
     
     // Use node ID to generate a consistent random-like assignment
