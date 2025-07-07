@@ -271,6 +271,7 @@ function TreemapIdPageContent() {
               onMouseLeave={() => setHoveredNodeId(null)}
               label={({ data }) => (data as any).name}
               parentLabel={({ data }) => (data as any).name}
+              tooltip={() => null}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
