@@ -448,26 +448,21 @@ function TreemapIdPageContent() {
               margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               leavesOnly={false}
               tile="squarify"
-              innerPadding={2}
+              innerPadding={0}
               outerPadding={0}
               labelSkipSize={12}
               parentLabelSize={16}
               enableParentLabel={true}
               labelTextColor="#d1d5db"
               parentLabelTextColor="#f3f4f6"
-              borderWidth={0}
+              borderWidth={2}
+              borderColor="rgba(0, 0, 0, 0)"
               animate={false}
               onClick={handleNodeClick}
               onMouseEnter={(node) => {
                 // Only show hover highlighting if no node is selected
                 if (!selectedNodeId) {
                   setHoveredNodeId((node as any).data.id);
-                }
-              }}
-              onMouseLeave={() => {
-                // Only clear hover highlighting if no node is selected
-                if (!selectedNodeId) {
-                  setHoveredNodeId(null);
                 }
               }}
               label={({ data }) => (data as any).name}
