@@ -68,23 +68,21 @@ function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
 
 function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean, siblingIndex: number = -1): string {
   if (isHighlighted) {
-    return '#22c55e'; // green-500 for highlighted nodes
+    return '#ffff00'; // bright yellow for focused action
   }
   if (siblingIndex >= 0) {
-    // Anti-brown palette - cool bright colors that resist muddying
+    // Blue shades for sibling highlighting
     const siblingColors = [
-      '#ffffff', // Pure white - maximum brightness
-      '#ffffcc', // Cream white
-      '#ffff99', // Light yellow
-      '#ffff66', // Bright pale yellow  
-      '#ffff33', // Electric yellow
-      '#ccff00', // Lime green-yellow
-      '#99ff00', // Bright lime
-      '#66ff00', // Electric lime
-      '#ccffcc', // Pale green
-      '#99ffcc', // Light mint
-      '#66ffcc', // Bright mint
-      '#33ffcc', // Electric mint
+      '#3b82f6', // blue-500
+      '#60a5fa', // blue-400
+      '#93c5fd', // blue-300
+      '#dbeafe', // blue-100
+      '#1d4ed8', // blue-700
+      '#2563eb', // blue-600
+      '#1e40af', // blue-800
+      '#1e3a8a', // blue-900
+      '#bfdbfe', // blue-200
+      '#eff6ff', // blue-50
     ];
     
     // Use node ID to generate a consistent random-like assignment
