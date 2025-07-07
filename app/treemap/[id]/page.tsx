@@ -455,7 +455,7 @@ function TreemapIdPageContent() {
               enableParentLabel={true}
               labelTextColor="#d1d5db"
               parentLabelTextColor="#f3f4f6"
-              borderWidth={2}
+              borderWidth={1}
               borderColor="rgba(0, 0, 0, 0)"
               animate={false}
               onClick={handleNodeClick}
