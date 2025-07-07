@@ -127,6 +127,8 @@ function TreemapIdPageContent() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isInspectorMinimized, setIsInspectorMinimized] = useState(false);
   const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 });
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [lastClickedNodeId, setLastClickedNodeId] = useState<string | null>(null);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -180,13 +182,25 @@ function TreemapIdPageContent() {
   }, []);
 
   const handleNodeClick = (node: any) => {
-    // Set selected node for inspector
-    setSelectedNodeId(node.data.id);
+    const nodeId = node.data.id;
+    const currentTime = Date.now();
+    const doubleClickDelay = 500; // ms
     
-    // If double-click or some condition, navigate
-    const params = new URLSearchParams();
-    if (maxDepth) params.set('depth', maxDepth.toString());
-    router.push(`/treemap/${node.data.id}?${params.toString()}`);
+    // Check if this is a second click on the same node within the delay
+    const isSecondClick = lastClickedNodeId === nodeId && 
+                         (currentTime - lastClickTime) < doubleClickDelay;
+    
+    if (isSecondClick) {
+      // Second click: navigate to focus on this node
+      const params = new URLSearchParams();
+      if (maxDepth) params.set('depth', maxDepth.toString());
+      router.push(`/treemap/${nodeId}?${params.toString()}`);
+    } else {
+      // First click: select node and freeze highlighting
+      setSelectedNodeId(nodeId);
+      setLastClickedNodeId(nodeId);
+      setLastClickTime(currentTime);
+    }
   };
 
   const handleBackClick = () => {
@@ -203,6 +217,9 @@ function TreemapIdPageContent() {
   const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
   const hoveredNode = hoveredNodeId ? findNodeInTree(treeData?.rootActions || [], hoveredNodeId) : null;
   const inspectorNode = selectedNode || hoveredNode;
+  
+  // Use selected node for highlighting if available, otherwise use hovered node
+  const highlightNodeId = selectedNodeId || hoveredNodeId;
 
   // Inspector component
   const Inspector = () => (
@@ -210,7 +227,21 @@ function TreemapIdPageContent() {
       {/* Inspector header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         {!isInspectorMinimized && (
-          <h3 className="text-sm font-mono text-gray-200">Inspector</h3>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-sm font-mono text-gray-200">Inspector</h3>
+            {selectedNodeId && (
+              <button
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setLastClickedNodeId(null);
+                }}
+                className="text-xs text-gray-400 hover:text-gray-200 transition-colors px-2 py-1 rounded bg-gray-800 hover:bg-gray-700"
+                title="Clear selection"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         )}
         <button
           onClick={() => setIsInspectorMinimized(!isInspectorMinimized)}
@@ -257,13 +288,14 @@ function TreemapIdPageContent() {
               <div>
                 <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
                 <div className="text-xs text-gray-300 font-mono">
-                  {selectedNodeId === inspectorNode.id ? 'Selected' : 'Hovered'}
+                  {selectedNodeId === inspectorNode.id ? 'Selected (click again to focus)' : 'Hovered'}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-500 font-mono">
-              Hover or click a node to inspect
+            <div className="text-xs text-gray-500 font-mono space-y-2">
+              <div>Click a node to select and inspect</div>
+              <div>Click again to focus on that node</div>
             </div>
           )}
         </div>
@@ -314,13 +346,13 @@ function TreemapIdPageContent() {
   const displayNodes = displayAction ? displayAction.children : treeData.rootActions;
   const displayTitle = displayAction ? displayAction.title : 'Actions';
   
-  // Find the hovered subtree root within the display nodes
-  const hoveredSubtreeRoot = hoveredNodeId ? findNodeInTree(displayNodes, hoveredNodeId) : null;
+  // Find the highlight subtree root within the display nodes
+  const highlightSubtreeRoot = highlightNodeId ? findNodeInTree(displayNodes, highlightNodeId) : null;
   
   // Create treemap data
   const treemapData = displayNodes.length > 0 ? {
     name: displayTitle,
-    children: transformToTreemapData(displayNodes, hoveredNodeId || undefined, hoveredSubtreeRoot || undefined, 0, maxDepth)
+    children: transformToTreemapData(displayNodes, highlightNodeId || undefined, highlightSubtreeRoot || undefined, 0, maxDepth)
   } : {
     name: displayTitle,
     value: 1,
@@ -374,7 +406,16 @@ function TreemapIdPageContent() {
         {/* Main content area with treemap and inspector */}
         <div className={`flex-1 flex ${isWideScreen ? 'flex-row' : 'flex-col'}`}>
           {/* Treemap */}
-          <div className="flex-1 p-4">
+          <div 
+            className="flex-1 p-4"
+            onClick={(e) => {
+              // Clear selection if clicking on empty area
+              if (e.target === e.currentTarget) {
+                setSelectedNodeId(null);
+                setLastClickedNodeId(null);
+              }
+            }}
+          >
           {displayNodes.length > 0 ? (
             <ResponsiveTreeMapHtml
               data={treemapData}
@@ -394,8 +435,18 @@ function TreemapIdPageContent() {
               borderWidth={0}
               animate={false}
               onClick={handleNodeClick}
-              onMouseEnter={(node) => setHoveredNodeId((node as any).data.id)}
-              onMouseLeave={() => setHoveredNodeId(null)}
+              onMouseEnter={(node) => {
+                // Only show hover highlighting if no node is selected
+                if (!selectedNodeId) {
+                  setHoveredNodeId((node as any).data.id);
+                }
+              }}
+              onMouseLeave={() => {
+                // Only clear hover highlighting if no node is selected
+                if (!selectedNodeId) {
+                  setHoveredNodeId(null);
+                }
+              }}
               label={({ data }) => (data as any).name}
               parentLabel={({ data }) => (data as any).name}
               tooltip={() => null}
