@@ -28,15 +28,21 @@ function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: strin
     
     // Determine if this node should be highlighted
     let isHighlighted = false;
+    let isSibling = false;
     if (hoveredNodeId && hoveredSubtreeRoot) {
       // Only highlight if this node is the hovered node or a descendant of it
       isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
+      
+      // Check if this node is a sibling of the hovered node
+      if (!isHighlighted && hoveredNodeId !== node.id) {
+        isSibling = actionNodes.some(sibling => sibling.id === hoveredNodeId) && actionNodes.some(sibling => sibling.id === node.id);
+      }
     }
     
     const result: TreemapData = {
       id: node.id,
       name: node.title,
-      color: getNodeColor(node, childrenData.length > 0, isHighlighted),
+      color: getNodeColor(node, childrenData.length > 0, isHighlighted, isSibling),
       depth: currentDepth,
     };
     
@@ -57,9 +63,12 @@ function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
   return ancestor.children.some(child => isDescendantOf(node, child));
 }
 
-function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean): string {
+function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean, isSibling: boolean = false): string {
   if (isHighlighted) {
     return '#22c55e'; // green-500 for highlighted nodes
+  }
+  if (isSibling) {
+    return '#3b82f6'; // blue-500 for sibling nodes
   }
   return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
 }
