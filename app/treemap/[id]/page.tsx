@@ -233,8 +233,6 @@ function TreemapIdPageContent() {
   // Fetch detailed action data when a node is selected
   useEffect(() => {
     const fetchActionDetail = async (actionId: string) => {
-      if (loadingActionDetail) return;
-      
       try {
         setLoadingActionDetail(true);
         const response = await fetch(`/api/actions/${actionId}`);
@@ -254,8 +252,9 @@ function TreemapIdPageContent() {
       fetchActionDetail(selectedNodeId);
     } else {
       setSelectedActionDetail(null);
+      setLoadingActionDetail(false);
     }
-  }, [selectedNodeId, loadingActionDetail]);
+  }, [selectedNodeId]);
 
   // Copy functions
   const copyPromptToClipboard = async () => {
