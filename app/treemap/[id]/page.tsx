@@ -124,6 +124,9 @@ function TreemapIdPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isInspectorMinimized, setIsInspectorMinimized] = useState(false);
+  const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 });
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -161,7 +164,26 @@ function TreemapIdPageContent() {
     }
   }, [actionId, isRootView]);
 
+  // Window resize handler for responsive inspector
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    // Set initial dimensions
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleNodeClick = (node: any) => {
+    // Set selected node for inspector
+    setSelectedNodeId(node.data.id);
+    
+    // If double-click or some condition, navigate
     const params = new URLSearchParams();
     if (maxDepth) params.set('depth', maxDepth.toString());
     router.push(`/treemap/${node.data.id}?${params.toString()}`);
@@ -172,6 +194,82 @@ function TreemapIdPageContent() {
     if (maxDepth) params.set('depth', maxDepth.toString());
     router.push(`/treemap/root?${params.toString()}`);
   };
+
+  // Determine inspector layout based on window aspect ratio
+  const isWideScreen = windowDimensions.width > windowDimensions.height;
+  const inspectorSize = isInspectorMinimized ? (isWideScreen ? 'w-12' : 'h-12') : (isWideScreen ? 'w-80' : 'h-64');
+  
+  // Find selected node data
+  const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
+  const hoveredNode = hoveredNodeId ? findNodeInTree(treeData?.rootActions || [], hoveredNodeId) : null;
+  const inspectorNode = selectedNode || hoveredNode;
+
+  // Inspector component
+  const Inspector = () => (
+    <div className={`bg-gray-900 border-gray-700 ${isWideScreen ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`}>
+      {/* Inspector header */}
+      <div className="flex items-center justify-between p-3 border-b border-gray-700">
+        {!isInspectorMinimized && (
+          <h3 className="text-sm font-mono text-gray-200">Inspector</h3>
+        )}
+        <button
+          onClick={() => setIsInspectorMinimized(!isInspectorMinimized)}
+          className="text-gray-400 hover:text-gray-200 transition-colors p-1"
+          title={isInspectorMinimized ? 'Expand inspector' : 'Minimize inspector'}
+        >
+          {isInspectorMinimized ? (
+            isWideScreen ? '◀' : '▲'
+          ) : (
+            isWideScreen ? '▶' : '▼'
+          )}
+        </button>
+      </div>
+      
+      {/* Inspector content */}
+      {!isInspectorMinimized && (
+        <div className="flex-1 p-3 overflow-y-auto">
+          {inspectorNode ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs text-gray-400 font-mono mb-1">Title</div>
+                <div className="text-sm text-gray-200 font-mono">{inspectorNode.title}</div>
+              </div>
+              
+              {inspectorNode.description && (
+                <div>
+                  <div className="text-xs text-gray-400 font-mono mb-1">Description</div>
+                  <div className="text-xs text-gray-300 font-mono">{inspectorNode.description}</div>
+                </div>
+              )}
+              
+              <div>
+                <div className="text-xs text-gray-400 font-mono mb-1">ID</div>
+                <div className="text-xs text-gray-500 font-mono break-all">{inspectorNode.id}</div>
+              </div>
+              
+              {inspectorNode.children.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-400 font-mono mb-1">Children</div>
+                  <div className="text-xs text-gray-300 font-mono">{inspectorNode.children.length} child{inspectorNode.children.length !== 1 ? 'ren' : ''}</div>
+                </div>
+              )}
+              
+              <div>
+                <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
+                <div className="text-xs text-gray-300 font-mono">
+                  {selectedNodeId === inspectorNode.id ? 'Selected' : 'Hovered'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 font-mono">
+              Hover or click a node to inspect
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -273,8 +371,10 @@ function TreemapIdPageContent() {
           </div>
         )}
 
-        {/* Treemap */}
-        <div className="flex-1 p-4">
+        {/* Main content area with treemap and inspector */}
+        <div className={`flex-1 flex ${isWideScreen ? 'flex-row' : 'flex-col'}`}>
+          {/* Treemap */}
+          <div className="flex-1 p-4">
           {displayNodes.length > 0 ? (
             <ResponsiveTreeMapHtml
               data={treemapData}
@@ -312,6 +412,10 @@ function TreemapIdPageContent() {
               </div>
             </div>
           )}
+          </div>
+          
+          {/* Inspector */}
+          <Inspector />
         </div>
       </div>
     </div>
