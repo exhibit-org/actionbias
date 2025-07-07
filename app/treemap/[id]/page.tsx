@@ -71,17 +71,13 @@ function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolea
     return '#ffff00'; // bright yellow for focused action
   }
   if (siblingIndex >= 0) {
-    // Blue shades for sibling highlighting
+    // Light blue shades for sibling highlighting - 6 hues of varying lightness
     const siblingColors = [
-      '#3b82f6', // blue-500
-      '#60a5fa', // blue-400
-      '#93c5fd', // blue-300
       '#dbeafe', // blue-100
-      '#1d4ed8', // blue-700
-      '#2563eb', // blue-600
-      '#1e40af', // blue-800
-      '#1e3a8a', // blue-900
       '#bfdbfe', // blue-200
+      '#93c5fd', // blue-300
+      '#60a5fa', // blue-400
+      '#3b82f6', // blue-500
       '#eff6ff', // blue-50
     ];
     
@@ -215,9 +211,9 @@ function TreemapIdPageContent() {
     router.push(`/treemap/root?${params.toString()}`);
   };
 
-  // Determine inspector layout based on window aspect ratio
-  const isWideScreen = windowDimensions.width > windowDimensions.height;
-  const inspectorSize = isInspectorMinimized ? (isWideScreen ? 'w-12' : 'h-12') : (isWideScreen ? 'w-80' : 'h-64');
+  // Determine inspector layout based on mobile form factors
+  const isMobile = windowDimensions.width < 768; // Mobile breakpoint (Tailwind's md breakpoint)
+  const inspectorSize = isInspectorMinimized ? (!isMobile ? 'w-12' : 'h-12') : (!isMobile ? 'w-80' : 'h-64');
   
   // Find selected node data
   const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
@@ -229,7 +225,7 @@ function TreemapIdPageContent() {
 
   // Inspector component
   const Inspector = () => (
-    <div className={`bg-gray-900 border-gray-700 ${isWideScreen ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`}>
+    <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`}>
       {/* Inspector header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         {!isInspectorMinimized && (
@@ -255,9 +251,9 @@ function TreemapIdPageContent() {
           title={isInspectorMinimized ? 'Expand inspector' : 'Minimize inspector'}
         >
           {isInspectorMinimized ? (
-            isWideScreen ? '◀' : '▲'
+            !isMobile ? '◀' : '▲'
           ) : (
-            isWideScreen ? '▶' : '▼'
+            !isMobile ? '▶' : '▼'
           )}
         </button>
       </div>
@@ -419,7 +415,7 @@ function TreemapIdPageContent() {
         )}
 
         {/* Main content area with treemap and inspector */}
-        <div className={`flex-1 flex ${isWideScreen ? 'flex-row' : 'flex-col'}`}>
+        <div className={`flex-1 flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
           {/* Treemap */}
           <div 
             className="flex-1 p-4"
