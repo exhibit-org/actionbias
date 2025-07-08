@@ -119,7 +119,7 @@ function TreemapIdPageContent() {
 
   // Create stable treemap data that never changes structure (only for layout)
   const stableTreemapData = useMemo(() => {
-    console.log('Recalculating stable treemap data'); // Debug log
+    console.log('Recalculating stable treemap data - displayNodes length:', displayNodes.length, 'displayTitle:', displayTitle, 'maxDepth:', maxDepth);
     return displayNodes.length > 0 ? {
       name: displayTitle,
       children: transformToTreemapData(displayNodes, 0, maxDepth)
@@ -190,13 +190,17 @@ function TreemapIdPageContent() {
     const isSecondClick = lastClickedNodeId === nodeId && 
                          (currentTime - lastClickTime) < doubleClickDelay;
     
+    console.log('Node clicked:', nodeId, 'isSecondClick:', isSecondClick);
+    
     if (isSecondClick) {
       // Second click: navigate to focus on this node
+      console.log('Double click detected - navigating to:', nodeId);
       const params = new URLSearchParams();
       if (maxDepth) params.set('depth', maxDepth.toString());
       router.push(`/treemap/${nodeId}?${params.toString()}`);
     } else {
       // First click: select node and freeze highlighting
+      console.log('Single click - selecting node:', nodeId);
       setSelectedNodeId(nodeId);
       setLastClickedNodeId(nodeId);
       setLastClickTime(currentTime);
