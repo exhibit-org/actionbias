@@ -331,7 +331,7 @@ function TreemapIdPageContent() {
     if (!selectedActionDetail) return;
     try {
       setCopyingUrl(true);
-      const url = `https://www.actionbias.ai/${selectedActionDetail.id}`;
+      const url = `https://done.engineering/${selectedActionDetail.id}`;
       await navigator.clipboard.writeText(url);
       setTimeout(() => setCopyingUrl(false), 1000);
     } catch (err) {

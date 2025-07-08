@@ -138,14 +138,6 @@ export default function TreemapInspector({
             {/* Action buttons */}
             <div className="p-3 border-b border-gray-700 flex gap-2">
               <button 
-                onClick={onCopyPrompt} 
-                disabled={copying} 
-                className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                title="Copy prompt to clipboard"
-              >
-                {copying ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-              <button 
                 onClick={onCopyUrl} 
                 disabled={copyingUrl} 
                 className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
@@ -244,7 +236,17 @@ export default function TreemapInspector({
 
                   {/* Full prompt (read-only) */}
                   <div className="pt-4 border-t border-gray-700">
-                    <div className="text-xs text-gray-400 font-mono mb-2">Full Prompt</div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs text-gray-400 font-mono">Full Prompt</div>
+                      <button 
+                        onClick={onCopyPrompt} 
+                        disabled={copying} 
+                        className="flex items-center justify-center w-6 h-6 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                        title="Copy prompt to clipboard"
+                      >
+                        {copying ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                    </div>
                     <div className="text-xs font-mono text-gray-500 whitespace-pre-wrap break-words bg-gray-800 p-2 rounded">
                       {buildActionPrompt(selectedActionDetail)}
                     </div>
