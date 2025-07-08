@@ -129,6 +129,8 @@ function TreemapIdPageContent() {
   const [loadingActionDetail, setLoadingActionDetail] = useState(false);
   const [copying, setCopying] = useState(false);
   const [copyingUrl, setCopyingUrl] = useState(false);
+  const [inspectorWidth, setInspectorWidth] = useState(320); // Default width in pixels
+  const [isDragging, setIsDragging] = useState(false);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -202,6 +204,38 @@ function TreemapIdPageContent() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Inspector resize drag logic
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      
+      // Calculate new width based on mouse position from right edge
+      const newWidth = Math.max(200, Math.min(600, window.innerWidth - e.clientX));
+      setInspectorWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    } else {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isDragging]);
+
   const handleNodeClick = (node: any) => {
     const nodeId = node.data.id;
     const currentTime = Date.now();
@@ -236,7 +270,21 @@ function TreemapIdPageContent() {
 
   // Determine inspector layout based on mobile form factors
   const isMobile = windowDimensions.width < 768; // Mobile breakpoint (Tailwind's md breakpoint)
-  const inspectorSize = isInspectorMinimized ? (!isMobile ? 'w-12' : 'h-12') : (!isMobile ? 'w-80' : 'h-64');
+  
+  // Dynamic inspector sizing
+  const getInspectorStyle = () => {
+    if (isMobile) {
+      return {
+        [isInspectorMinimized ? 'height' : 'height']: isInspectorMinimized ? '48px' : '256px',
+        width: '100%'
+      };
+    } else {
+      return {
+        width: isInspectorMinimized ? '48px' : `${inspectorWidth}px`,
+        height: '100%'
+      };
+    }
+  };
   
   // Find selected node data
   const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
@@ -298,7 +346,14 @@ function TreemapIdPageContent() {
 
   // Inspector component
   const Inspector = () => (
-    <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`} style={{ maxHeight: '100vh', overflow: 'hidden' }}>
+    <div 
+      className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} transition-all duration-300 flex flex-col`} 
+      style={{ 
+        ...getInspectorStyle(),
+        maxHeight: '100vh', 
+        overflow: 'hidden' 
+      }}
+    >
       {/* Inspector header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         {!isInspectorMinimized && (
@@ -545,6 +600,15 @@ function TreemapIdPageContent() {
             </div>
           )}
           </div>
+          
+          {/* Resize handle - only show on desktop when inspector is expanded */}
+          {!isMobile && !isInspectorMinimized && (
+            <div
+              className="w-1 bg-gray-700 hover:bg-gray-600 cursor-col-resize flex-shrink-0 transition-colors"
+              onMouseDown={() => setIsDragging(true)}
+              title="Drag to resize inspector"
+            />
+          )}
           
           {/* Inspector */}
           <Inspector />
