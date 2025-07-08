@@ -7,6 +7,27 @@ export interface EditorialContent {
   pullQuotes?: string[];
 }
 
+export interface DependencyCompletion {
+  title: string;
+  impactStory?: string;
+  implementationStory?: string;
+  learningStory?: string;
+  completedAt?: string;
+  familyContext?: string;
+  isBlocker?: boolean;
+}
+
+export interface SiblingContext {
+  completedSiblings?: Array<{
+    title: string;
+    impactStory?: string;
+  }>;
+  activeSiblings?: Array<{
+    title: string;
+    vision?: string;
+  }>;
+}
+
 export interface GenerateEditorialParams {
   actionTitle: string;
   actionDescription?: string;
@@ -19,10 +40,8 @@ export interface GenerateEditorialParams {
   subtreeSummary?: string;
   familyContextSummary?: string;
   familyVisionSummary?: string;
-  dependencyCompletions?: Array<{
-    title: string;
-    impactStory?: string;
-  }>;
+  dependencyCompletions?: DependencyCompletion[];
+  siblingContext?: SiblingContext;
 }
 
 export class EditorialAIService {
@@ -41,7 +60,8 @@ export class EditorialAIService {
       subtreeSummary,
       familyContextSummary,
       familyVisionSummary,
-      dependencyCompletions
+      dependencyCompletions,
+      siblingContext
     } = params;
 
     try {
@@ -68,7 +88,26 @@ ${familyVisionSummary ? `Family Vision: ${familyVisionSummary}\n` : ''}
 
 ${dependencyCompletions && dependencyCompletions.length > 0 ? `
 Building on these completed dependencies:
-${dependencyCompletions.map(dep => `- ${dep.title}: ${dep.impactStory || 'Completed'}`).join('\n')}
+${dependencyCompletions.map(dep => {
+  let depInfo = `- ${dep.title}`;
+  if (dep.impactStory) depInfo += `\n  Impact: ${dep.impactStory}`;
+  if (dep.implementationStory) depInfo += `\n  Implementation: ${dep.implementationStory.substring(0, 200)}...`;
+  if (dep.learningStory) depInfo += `\n  Learning: ${dep.learningStory.substring(0, 150)}...`;
+  if (dep.familyContext) depInfo += `\n  Context: ${dep.familyContext}`;
+  if (dep.completedAt) depInfo += `\n  Completed: ${new Date(dep.completedAt).toLocaleDateString()}`;
+  if (dep.isBlocker) depInfo += `\n  (Critical blocking dependency)`;
+  return depInfo;
+}).join('\n\n')}
+` : ''}
+
+${siblingContext?.completedSiblings && siblingContext.completedSiblings.length > 0 ? `
+Related completed work in same family:
+${siblingContext.completedSiblings.map(sib => `- ${sib.title}${sib.impactStory ? `: ${sib.impactStory}` : ''}`).join('\n')}
+` : ''}
+
+${siblingContext?.activeSiblings && siblingContext.activeSiblings.length > 0 ? `
+Parallel work in progress:
+${siblingContext.activeSiblings.map(sib => `- ${sib.title}${sib.vision ? ` (${sib.vision})` : ''}`).join('\n')}
 ` : ''}
 
 Implementation Story: ${implementationStory}
@@ -84,9 +123,9 @@ Generate the following editorial content:
 - "Automated code analysis reduces manual review time by 90%"
 - "Caching implementation reduces infrastructure costs by $50K monthly"
 
-2. DECK: A 2-3 sentence standfirst in the style of The Economist that provides context and key findings. Write with analytical precision, avoiding superlatives and focusing on factual outcomes. Remember to use backticks around technical terms.
+2. DECK: A 2-3 sentence standfirst in the style of The Economist that provides context and key findings. Consider how this work builds on dependencies and fits within the broader family context. Write with analytical precision, avoiding superlatives and focusing on factual outcomes. Remember to use backticks around technical terms.
 
-3. PULL QUOTES: Extract 2-3 notable quotes from the stories that highlight key technical findings, measurable outcomes, or lessons learned. Select quotes that demonstrate analytical thinking rather than excitement. Use backticks around technical terms within quotes.
+3. PULL QUOTES: Extract 2-4 notable quotes from the stories that highlight key technical findings, measurable outcomes, dependency insights, or lessons learned. Consider including quotes that show how this work builds on prior dependencies or relates to parallel efforts. Select quotes that demonstrate analytical thinking rather than excitement. Use backticks around technical terms within quotes.
 
 Return ONLY valid JSON without any markdown formatting or code blocks. The response should be pure JSON that can be parsed directly:
 {

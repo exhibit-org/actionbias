@@ -280,7 +280,7 @@ export default function ChangelogItem({
       {showLink && (
         <div className="mt-4 pt-4 border-t border-gray-100">
           <Link 
-            href={`/log/${item.actionId}`}
+            href={`/done/${item.actionId}`}
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
             View shareable page →

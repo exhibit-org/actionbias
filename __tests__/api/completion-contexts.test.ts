@@ -3,41 +3,47 @@ import { GET as GetById, PUT, DELETE } from '../../app/api/completion-contexts/[
 import { NextRequest } from 'next/server';
 import { ActionsService } from '../../lib/services/actions';
 import { CompletionContextService } from '../../lib/services/completion-context';
-import { getDb, initializePGlite, cleanupPGlite } from '../../lib/db/adapter';
+
+// Mock the services to avoid database dependencies
+jest.mock('../../lib/services/actions');
+jest.mock('../../lib/services/completion-context');
+
+const mockedActionsService = ActionsService as jest.Mocked<typeof ActionsService>;
+const mockedCompletionContextService = CompletionContextService as jest.Mocked<typeof CompletionContextService>;
 
 describe('/api/completion-contexts', () => {
-  const originalEnv = process.env;
-  let testActionId: string;
+  const testActionId = '550e8400-e29b-41d4-a716-446655440000';
 
-  beforeEach(async () => {
-    jest.resetModules();
-    process.env = { ...originalEnv };
-    process.env.DATABASE_URL = `pglite://.pglite-api-test-${Math.random().toString(36).substring(7)}`;
-
-    await cleanupPGlite();
-    const { resetCache } = require('../../lib/db/adapter');
-    resetCache();
-    await initializePGlite();
-
-    // Create a test action
-    const action = await ActionsService.createAction({
-      title: 'Test Action for API',
-      description: 'Test action description',
-      vision: 'Test vision'
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Setup default mock responses
+    mockedActionsService.createAction.mockResolvedValue({
+      action: {
+        id: testActionId,
+        data: { title: 'Test Action for API' },
+        done: false,
+        version: 1,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      }
     });
-    testActionId = action.action.id;
-  });
-
-  afterEach(async () => {
-    await cleanupPGlite();
-  });
-
-  afterAll(() => {
-    process.env = originalEnv;
   });
 
   describe('POST /api/completion-contexts', () => {
     it('should create completion context successfully', async () => {
+      const mockCompletionContext = {
+        actionId: testActionId,
+        implementationStory: '**Built with TypeScript** and comprehensive testing',
+        impactStory: 'Successfully created working API endpoints',
+        learningStory: 'Learned about Next.js API route patterns',
+        changelogVisibility: 'team' as const,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      };
+
+      mockedCompletionContextService.createCompletionContext.mockResolvedValue(mockCompletionContext);
+
       const requestBody = {
         actionId: testActionId,
         implementationStory: '**Built with TypeScript** and comprehensive testing',
@@ -84,13 +90,18 @@ describe('/api/completion-contexts', () => {
   });
 
   describe('GET /api/completion-contexts', () => {
-    beforeEach(async () => {
-      // Create some test completion contexts
-      await CompletionContextService.createCompletionContext({
-        actionId: testActionId,
-        implementationStory: 'Test implementation',
-        changelogVisibility: 'team'
-      });
+    beforeEach(() => {
+      const mockCompletionContexts = [
+        {
+          actionId: testActionId,
+          implementationStory: 'Test implementation',
+          changelogVisibility: 'team' as const,
+          createdAt: new Date('2023-01-01'),
+          updatedAt: new Date('2023-01-01'),
+        }
+      ];
+
+      mockedCompletionContextService.listCompletionContexts.mockResolvedValue(mockCompletionContexts);
     });
 
     it('should list completion contexts', async () => {
@@ -98,23 +109,15 @@ describe('/api/completion-contexts', () => {
       const response = await GET(request);
       const data = await response.json();
 
-      if (response.status !== 200) {
-        console.error('List completion contexts failed:', data);
-      }
-
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(Array.isArray(data.data)).toBe(true);
     });
 
     it('should filter by visibility', async () => {
-      const request = new NextRequest('http://localhost:3000/api/completion-contexts?visibility=team');
+      const request = new NextRequest('http://localhost:3000/api/completion-contexts?limit=20&offset=0&visibility=team');
       const response = await GET(request);
       const data = await response.json();
-
-      if (response.status !== 200) {
-        console.error('Filter completion contexts failed:', data);
-      }
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
@@ -123,12 +126,21 @@ describe('/api/completion-contexts', () => {
   });
 
   describe('GET /api/completion-contexts/[actionId]', () => {
-    beforeEach(async () => {
-      await CompletionContextService.createCompletionContext({
+    beforeEach(() => {
+      const mockCompletionContext = {
         actionId: testActionId,
         implementationStory: 'Test implementation',
         impactStory: 'Test impact',
-        changelogVisibility: 'team'
+        changelogVisibility: 'team' as const,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      };
+
+      mockedCompletionContextService.getCompletionContext.mockImplementation(async (actionId) => {
+        if (actionId === testActionId) {
+          return mockCompletionContext;
+        }
+        return null;
       });
     });
 
@@ -157,6 +169,17 @@ describe('/api/completion-contexts', () => {
 
   describe('PUT /api/completion-contexts/[actionId]', () => {
     it('should update completion context', async () => {
+      const updatedContext = {
+        actionId: testActionId,
+        implementationStory: 'Updated implementation story with **markdown**',
+        impactStory: 'Updated impact story',
+        changelogVisibility: 'public' as const,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      };
+
+      mockedCompletionContextService.upsertCompletionContext.mockResolvedValue(updatedContext);
+
       const updateBody = {
         implementationStory: 'Updated implementation story with **markdown**',
         impactStory: 'Updated impact story',
@@ -195,11 +218,20 @@ describe('/api/completion-contexts', () => {
   });
 
   describe('DELETE /api/completion-contexts/[actionId]', () => {
-    beforeEach(async () => {
-      await CompletionContextService.createCompletionContext({
+    beforeEach(() => {
+      const mockDeletedContext = {
         actionId: testActionId,
         implementationStory: 'To be deleted',
-        changelogVisibility: 'team'
+        changelogVisibility: 'team' as const,
+        createdAt: new Date('2023-01-01'),
+        updatedAt: new Date('2023-01-01'),
+      };
+
+      mockedCompletionContextService.deleteCompletionContext.mockImplementation(async (actionId) => {
+        if (actionId === testActionId) {
+          return mockDeletedContext;
+        }
+        return null;
       });
     });
 

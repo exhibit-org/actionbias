@@ -76,7 +76,6 @@ done.engineering exposes these tools via Model Context Protocol:
 - **`complete_action`** - Mark complete with rich context stories
 - **`uncomplete_action`** - Reopen completed actions
 - **`join_family`** - Move actions between families
-- **`suggest_family`** - AI-powered family suggestions
 - **`search_actions`** - Semantic + keyword hybrid search
 
 ## MCP Resources
@@ -84,24 +83,25 @@ done.engineering exposes these tools via Model Context Protocol:
 done.engineering exposes these resources via Model Context Protocol:
 
 ### Action Management
-- **`action://list`** - List all actions
+- **`work://list`** - List all actions
   - Query params: `?includeCompleted=true` (default: false)
-- **`action://tree`** - Hierarchical view of actions showing family relationships
+- **`work://tree`** - Hierarchical view of actions showing family relationships
   - Query params: `?includeCompleted=true` (default: false)
-- **`action://tree/{id}`** - Hierarchical view scoped to a specific subtree
+- **`work://tree/{id}`** - Hierarchical view scoped to a specific subtree
   - Query params: `?includeCompleted=true` (default: false)
-- **`action://item/{id}`** - Individual action details with relationships
+- **`work://{id}`** - Individual action core data
+- **`work://context/{id}`** - Rich relationship context for agents
 
 ### Execution & Planning
-- **`action://next`** - Get the next action to work on based on dependencies
-- **`action://next/{id}`** - Get the next action within a specific subtree
-- **`action://dependencies`** - Dependency graph view
+- **`work://next`** - Get the next action to work on based on dependencies
+- **`work://next/{id}`** - Get the next action within a specific subtree
+- **`work://dependencies`** - Dependency graph view
   - Query params: `?includeCompleted=true` (default: false)
 
 ### Completion Logs
-- **`action://log`** - Recent completion logs with pagination
+- **`work://done`** - Recent completion logs with pagination
   - Query params: `?limit=20&offset=0&visibility=public|team|private`
-- **`action://log/{id}`** - Completion log for a specific action
+- **`work://done/{id}`** - Completion log for a specific action
 
 ## Architecture
 
@@ -146,8 +146,7 @@ pnpm build
 - `GET /api/feed` - List changelog feed
 
 ### AI Features
-- `POST /api/actions/suggest-family` - Get AI family suggestions
-- `POST /api/actions/search` - Semantic search
+- `POST /api/actions/search` - Semantic + keyword hybrid search
 
 ## Environment Variables
 

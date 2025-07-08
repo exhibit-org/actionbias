@@ -1,0 +1,567 @@
+'use client';
+
+import { useState, useEffect, Suspense, useMemo, memo } from 'react';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { ResponsiveTreeMapHtml } from '@nivo/treemap';
+import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
+import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
+import { Copy, Link, Check, Square, CheckSquare } from 'react-feather';
+import { 
+  TreemapData, 
+  countDescendants, 
+  transformToTreemapData, 
+  isDescendantOf, 
+  findActionInTree, 
+  findNodeInTree, 
+  findParentOfNode 
+} from './utils';
+
+// Stable treemap component that never re-renders once mounted
+const MemoizedTreemap = memo(({ 
+  treemapData, 
+  actionId, 
+  maxDepth, 
+  handleNodeClick, 
+  selectedNodeId,
+  hoveredNodeId,
+  setHoveredNodeId,
+  displayNodes 
+}: {
+  treemapData: any;
+  actionId: string;
+  maxDepth?: number;
+  handleNodeClick: (node: any) => void;
+  selectedNodeId: string | null;
+  hoveredNodeId: string | null;
+  setHoveredNodeId: (id: string | null) => void;
+  displayNodes: ActionNode[];
+}) => {
+  return (
+    <ResponsiveTreeMapHtml
+      key={`treemap-${actionId}-${maxDepth || 'unlimited'}`}
+      data={treemapData}
+      identity="id"
+      value="value"
+      colors={({ data, id }) => {
+        const nodeId = (data as any).id || id;
+        const highlightNodeId = selectedNodeId || hoveredNodeId;
+        
+        // Find the node in the tree to get more info
+        const node = findNodeInTree(displayNodes, nodeId);
+        if (!node) return '#4b5563';
+        
+        // Check if highlighted
+        if (highlightNodeId === nodeId) {
+          return '#22c55e'; // light green for focused action
+        }
+        
+        // Check if sibling (same parent level)
+        if (highlightNodeId) {
+          const parent = findParentOfNode(displayNodes, nodeId);
+          const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
+          if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
+            // Use rich color palette for siblings
+            const siblingColors = [
+              '#ffba08', // selective_yellow
+              '#faa307', // orange_(web)
+              '#f48c06', // princeton_orange
+              '#e85d04', // persimmon
+              '#dc2f02', // sinopia
+              '#d00000', // engineering_orange
+              '#9d0208', // penn_red
+              '#6a040f', // rosewood
+              '#370617', // chocolate_cosmos
+              '#03071e', // rich_black
+            ];
+            return siblingColors[Math.floor(Math.random() * siblingColors.length)];
+          }
+        }
+        
+        // Default colors
+        return node.children.length > 0 ? '#374151' : '#4b5563';
+      }}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      leavesOnly={false}
+      tile="squarify"
+      innerPadding={0}
+      outerPadding={0}
+      labelSkipSize={12}
+      parentLabelSize={16}
+      enableParentLabel={true}
+      labelTextColor="#d1d5db"
+      parentLabelTextColor="#f3f4f6"
+      borderWidth={1}
+      borderColor="rgba(0, 0, 0, 0)"
+      animate={false}
+      onClick={handleNodeClick}
+      onMouseEnter={(node) => {
+        // Only show hover highlighting if no node is selected
+        if (!selectedNodeId) {
+          setHoveredNodeId((node as any).data.id);
+        }
+      }}
+      label={({ data }) => (data as any).name}
+      parentLabel={({ data }) => (data as any).name}
+      tooltip={() => null}
+    />
+  );
+});
+
+MemoizedTreemap.displayName = 'MemoizedTreemap';
+
+function TreemapIdPageContent() {
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const actionId = params.id as string;
+  
+  const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
+  const [targetAction, setTargetAction] = useState<ActionNode | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isInspectorMinimized, setIsInspectorMinimized] = useState(false);
+  const [windowDimensions, setWindowDimensions] = useState({ width: 0, height: 0 });
+  const [lastClickTime, setLastClickTime] = useState<number>(0);
+  const [lastClickedNodeId, setLastClickedNodeId] = useState<string | null>(null);
+  const [selectedActionDetail, setSelectedActionDetail] = useState<ActionDetailResource | null>(null);
+  const [loadingActionDetail, setLoadingActionDetail] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const [copyingUrl, setCopyingUrl] = useState(false);
+  
+  const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
+  const isRootView = actionId === 'root';
+
+  // Determine what to display (computed values for memoization)
+  const displayAction = isRootView ? null : targetAction;
+  const displayNodes = displayAction ? displayAction.children : treeData?.rootActions || [];
+  const displayTitle = displayAction ? displayAction.title : 'Actions';
+
+  // Create stable treemap data that never changes structure (only for layout)
+  // This must NEVER depend on selectedActionDetail or any API response data
+  const stableTreemapData = useMemo(() => {
+    return displayNodes.length > 0 ? {
+      name: displayTitle,
+      children: transformToTreemapData(displayNodes, 0, maxDepth)
+    } : {
+      name: displayTitle,
+      value: 1,
+      color: '#4b5563'
+    };
+  }, [displayNodes, displayTitle, maxDepth]);
+
+  // Use the stable data for the treemap component
+  const treemapData = stableTreemapData;
+
+  useEffect(() => {
+    const fetchTreeData = async () => {
+      try {
+        const response = await fetch('/api/tree');
+        const result = await response.json();
+        
+        if (result.success) {
+          setTreeData(result.data);
+          
+          if (!isRootView) {
+            // Find the target action in the tree
+            const foundAction = findActionInTree(result.data.rootActions, actionId);
+            if (foundAction) {
+              setTargetAction(foundAction);
+            } else {
+              setError(`Action with ID ${actionId} not found`);
+            }
+          }
+        } else {
+          setError(result.error || 'Failed to fetch tree data');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (actionId) {
+      fetchTreeData();
+    }
+  }, [actionId, isRootView]);
+
+  // Window resize handler for responsive inspector
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+
+    // Set initial dimensions
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleNodeClick = (node: any) => {
+    const nodeId = node.data.id;
+    const currentTime = Date.now();
+    const doubleClickDelay = 500; // ms
+    
+    // Check if this is a second click on the same node within the delay
+    const isSecondClick = lastClickedNodeId === nodeId && 
+                         (currentTime - lastClickTime) < doubleClickDelay;
+    
+    console.log('CLICK DEBUG:', { nodeId, isSecondClick, lastClickedNodeId, timeDiff: currentTime - lastClickTime });
+    
+    if (isSecondClick) {
+      // Second click: navigate to focus on this node
+      console.log('NAVIGATING to:', nodeId);
+      const params = new URLSearchParams();
+      if (maxDepth) params.set('depth', maxDepth.toString());
+      router.push(`/treemap/${nodeId}?${params.toString()}`);
+    } else {
+      // First click: select node and freeze highlighting
+      console.log('SELECTING node:', nodeId);
+      setSelectedNodeId(nodeId);
+      setLastClickedNodeId(nodeId);
+      setLastClickTime(currentTime);
+    }
+  };
+
+  const handleBackClick = () => {
+    const params = new URLSearchParams();
+    if (maxDepth) params.set('depth', maxDepth.toString());
+    router.push(`/treemap/root?${params.toString()}`);
+  };
+
+  // Determine inspector layout based on mobile form factors
+  const isMobile = windowDimensions.width < 768; // Mobile breakpoint (Tailwind's md breakpoint)
+  const inspectorSize = isInspectorMinimized ? (!isMobile ? 'w-12' : 'h-12') : (!isMobile ? 'w-80' : 'h-64');
+  
+  // Find selected node data
+  const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
+  const hoveredNode = hoveredNodeId ? findNodeInTree(treeData?.rootActions || [], hoveredNodeId) : null;
+  const inspectorNode = selectedNode || hoveredNode;
+
+  // Fetch detailed action data when a node is selected
+  useEffect(() => {
+    const fetchActionDetail = async (actionId: string) => {
+      try {
+        setLoadingActionDetail(true);
+        const response = await fetch(`/api/actions/${actionId}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Failed to fetch action details');
+        setSelectedActionDetail(data.data);
+      } catch (err) {
+        console.error('Error fetching action details:', err);
+        setSelectedActionDetail(null);
+      } finally {
+        setLoadingActionDetail(false);
+      }
+    };
+
+    if (selectedNodeId) {
+      fetchActionDetail(selectedNodeId);
+    } else {
+      setSelectedActionDetail(null);
+      setLoadingActionDetail(false);
+    }
+  }, [selectedNodeId]);
+
+  // Copy functions
+  const copyPromptToClipboard = async () => {
+    if (!selectedActionDetail) return;
+    try {
+      setCopying(true);
+      const prompt = buildActionPrompt(selectedActionDetail);
+      await navigator.clipboard.writeText(prompt);
+      setTimeout(() => setCopying(false), 1000);
+    } catch (err) {
+      console.error('Failed to copy prompt:', err);
+      setCopying(false);
+    }
+  };
+
+  const copyActionUrl = async () => {
+    if (!selectedActionDetail) return;
+    try {
+      setCopyingUrl(true);
+      const url = `https://www.actionbias.ai/${selectedActionDetail.id}`;
+      await navigator.clipboard.writeText(url);
+      setTimeout(() => setCopyingUrl(false), 1000);
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
+      setCopyingUrl(false);
+    }
+  };
+
+  // Inspector component
+  const Inspector = () => (
+    <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`} style={{ maxHeight: '100vh', overflow: 'hidden' }}>
+      {/* Inspector header */}
+      <div className="flex items-center justify-between p-3 border-b border-gray-700">
+        {!isInspectorMinimized && (
+          <div className="flex items-center space-x-2">
+            <h3 className="text-sm font-mono text-gray-200">Inspector</h3>
+            {selectedNodeId && (
+              <button
+                onClick={() => {
+                  setSelectedNodeId(null);
+                  setLastClickedNodeId(null);
+                }}
+                className="text-xs text-gray-400 hover:text-gray-200 transition-colors px-2 py-1 rounded bg-gray-800 hover:bg-gray-700"
+                title="Clear selection"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+        <button
+          onClick={() => setIsInspectorMinimized(!isInspectorMinimized)}
+          className="text-gray-400 hover:text-gray-200 transition-colors p-1"
+          title={isInspectorMinimized ? 'Expand inspector' : 'Minimize inspector'}
+        >
+          {isInspectorMinimized ? (
+            !isMobile ? '◀' : '▲'
+          ) : (
+            !isMobile ? '▶' : '▼'
+          )}
+        </button>
+      </div>
+      
+      {/* Inspector content */}
+      {!isInspectorMinimized && (
+        <div className="flex-1 overflow-y-auto flex flex-col h-full">
+          {selectedNodeId && selectedActionDetail ? (
+            <>
+              {/* Action buttons */}
+              <div className="p-3 border-b border-gray-700 flex gap-2">
+                <button 
+                  onClick={copyPromptToClipboard} 
+                  disabled={copying} 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Copy prompt to clipboard"
+                >
+                  {copying ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+                <button 
+                  onClick={copyActionUrl} 
+                  disabled={copyingUrl} 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Copy action URL"
+                >
+                  {copyingUrl ? <Check size={14} /> : <Link size={14} />}
+                </button>
+                <button 
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title={selectedActionDetail.done ? "Reopen action" : "Complete action"}
+                >
+                  {selectedActionDetail.done ? <CheckSquare size={14} /> : <Square size={14} />}
+                </button>
+              </div>
+              
+              {/* Action details */}
+              <div className="flex-1 p-3 overflow-y-auto">
+                {loadingActionDetail ? (
+                  <div className="text-xs text-gray-400 font-mono">Loading action details...</div>
+                ) : (
+                  <div className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words">
+                    {buildActionPrompt(selectedActionDetail)}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : inspectorNode ? (
+            <div className="p-3 space-y-3">
+              <div>
+                <div className="text-xs text-gray-400 font-mono mb-1">Title</div>
+                <div className="text-sm text-gray-200 font-mono">{inspectorNode.title}</div>
+              </div>
+              
+              <div>
+                <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
+                <div className="text-xs text-gray-300 font-mono">
+                  {selectedNodeId === inspectorNode.id ? 'Click again to focus and view details' : 'Hovered - click to select'}
+                </div>
+              </div>
+              
+              {inspectorNode.children.length > 0 && (
+                <div>
+                  <div className="text-xs text-gray-400 font-mono mb-1">Children</div>
+                  <div className="text-xs text-gray-300 font-mono">{inspectorNode.children.length} child{inspectorNode.children.length !== 1 ? 'ren' : ''}</div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="p-3 text-xs text-gray-500 font-mono space-y-2">
+              <div>Click a node to select and inspect</div>
+              <div>Click again to focus and view full details</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-lg text-gray-300 font-mono">
+          Loading {isRootView ? 'action tree' : 'action subtree'}...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-black">
+        <div className="text-red-400 font-mono mb-4">Error: {error}</div>
+        <button
+          onClick={handleBackClick}
+          className="px-4 py-2 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono"
+        >
+          Back to Full Tree
+        </button>
+      </div>
+    );
+  }
+
+  if (!treeData || treeData.rootActions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-black">
+        <div className="text-gray-500 font-mono mb-4">No actions found</div>
+        <button
+          onClick={handleBackClick}
+          className="px-4 py-2 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono"
+        >
+          Back to Full Tree
+        </button>
+      </div>
+    );
+  }
+
+
+
+  return (
+    <div className="w-full h-screen bg-black">
+      <style jsx global>{`
+        /* Override the centering transform and dimensions */
+        [data-testid^="label."] {
+          transform: translate(6px, 6px) !important;
+          width: calc(100% - 12px) !important;
+          height: auto !important;
+          max-width: calc(100% - 12px) !important;
+          justify-content: flex-start !important;
+          align-items: flex-start !important;
+          text-align: left !important;
+          white-space: normal !important;
+          word-wrap: break-word !important;
+          overflow-wrap: break-word !important;
+          font-family: ui-monospace, SFMono-Regular, monospace !important;
+          line-height: 1.3 !important;
+          color: #d1d5db !important;
+          pointer-events: none !important;
+        }
+        
+        /* Parent label styling - bolder and different color */
+        [data-testid^="label."][data-testid*="parent"] {
+          font-weight: 600 !important;
+          color: #f3f4f6 !important;
+          pointer-events: auto !important;
+          cursor: pointer !important;
+          padding: 4px 6px !important;
+          margin: 2px !important;
+          background-color: rgba(55, 65, 81, 0.8) !important;
+          border-radius: 4px !important;
+          width: auto !important;
+          max-width: 50% !important;
+        }
+        
+        /* Sibling highlighting with bright blue colors */
+      `}</style>
+      <div className="w-full h-screen flex flex-col">
+        {/* Header with breadcrumb - only show if we have a focused action */}
+        {displayAction && (
+          <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleBackClick}
+                className="px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-sm"
+              >
+                ← Back to Full Tree
+              </button>
+              <div className="text-gray-400 font-mono text-sm">
+                / {displayAction.title}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main content area with treemap and inspector */}
+        <div className={`flex-1 flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
+          {/* Treemap */}
+          <div 
+            key="treemap-container" 
+            className="flex-1 p-4"
+            style={{ maxHeight: '100vh', overflow: 'hidden' }}
+            onClick={(e) => {
+              // Clear selection if clicking on empty area
+              if (e.target === e.currentTarget) {
+                setSelectedNodeId(null);
+                setLastClickedNodeId(null);
+              }
+            }}
+            onMouseLeave={() => {
+              // Only clear hover highlighting if no node is selected
+              if (!selectedNodeId) {
+                setHoveredNodeId(null);
+              }
+            }}
+          >
+          {displayNodes.length > 0 ? (
+            <MemoizedTreemap
+              treemapData={treemapData}
+              actionId={actionId}
+              maxDepth={maxDepth}
+              handleNodeClick={handleNodeClick}
+              selectedNodeId={selectedNodeId}
+              hoveredNodeId={hoveredNodeId}
+              setHoveredNodeId={setHoveredNodeId}
+              displayNodes={displayNodes}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="text-2xl text-gray-300 font-mono mb-2">
+                  {displayTitle}
+                </div>
+                <div className="text-gray-500 font-mono text-sm">
+                  {displayAction ? "This action has no children" : "No actions found"}
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
+          
+          {/* Inspector */}
+          <Inspector />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TreemapIdPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-black">
+        <div className="text-lg text-gray-300 font-mono">Loading...</div>
+      </div>
+    }>
+      <TreemapIdPageContent />
+    </Suspense>
+  );
+}

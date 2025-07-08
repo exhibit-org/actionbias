@@ -75,10 +75,10 @@ export const createMockChangelogMetadata = (
     openGraph: {
       title: `Action ${actionId} - Test Changelog`,
       description: `Test changelog entry for action ${actionId}`,
-      url: `https://test.com/log/${actionId}`,
+      url: `https://test.com/done/${actionId}`,
       images: [
         {
-          url: `https://test.com/api/og/log/${actionId}`,
+          url: `https://test.com/api/og/done/${actionId}`,
           width: 1200,
           height: 630,
           alt: `Changelog for action ${actionId}`,
@@ -90,7 +90,7 @@ export const createMockChangelogMetadata = (
       card: 'summary_large_image',
       title: `Action ${actionId} - Test Changelog`,
       description: `Test changelog entry for action ${actionId}`,
-      images: [`https://test.com/api/og/log/${actionId}`],
+      images: [`https://test.com/api/og/done/${actionId}`],
     },
     ...overrides,
   };

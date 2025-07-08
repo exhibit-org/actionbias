@@ -1,7 +1,10 @@
-// Mock postgres
-const mockPostgresClient = {
-  end: jest.fn(),
-};
+// Setup mocks first
+jest.mock('@vercel/postgres', () => ({
+  sql: {},
+}));
+jest.mock('drizzle-orm/vercel-postgres', () => ({
+  drizzle: jest.fn(() => ({ query: 'mocked-drizzle-db' })),
+}));
 
 // Mock PGlite
 const mockPGliteInstance = {
@@ -13,12 +16,6 @@ const mockPGliteDrizzleDb = {
   query: 'mocked-pglite-drizzle-db',
   execute: jest.fn(),
 };
-
-// Setup mocks using factory functions
-jest.mock('postgres', () => jest.fn(() => mockPostgresClient));
-jest.mock('drizzle-orm/postgres-js', () => ({
-  drizzle: jest.fn(() => ({ query: 'mocked-drizzle-db' })),
-}));
 jest.mock('@electric-sql/pglite', () => ({
   PGlite: jest.fn(() => mockPGliteInstance),
 }));
@@ -28,13 +25,12 @@ jest.mock('drizzle-orm/pglite', () => ({
 
 // Import after mocks
 import { getDb, initializePGlite, cleanupPGlite, resetCache } from '../../../lib/db/adapter';
-import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { sql } from '@vercel/postgres';
+import { drizzle } from 'drizzle-orm/vercel-postgres';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle as drizzlePGlite } from 'drizzle-orm/pglite';
 
 // Get the mocked functions
-const mockPostgresModule = postgres as jest.MockedFunction<typeof postgres>;
 const mockDrizzleModule = drizzle as jest.MockedFunction<typeof drizzle>;
 const mockPGliteModule = PGlite as jest.MockedClass<typeof PGlite>;
 const mockDrizzlePGliteModule = drizzlePGlite as jest.MockedFunction<typeof drizzlePGlite>;
@@ -51,7 +47,7 @@ describe('Database Adapter', () => {
     process.env.SKIP_MIGRATIONS = 'true';
     
     // Reset mock implementations to default
-    mockPostgresModule.mockImplementation(() => mockPostgresClient);
+    // Reset mocks
     mockDrizzleModule.mockImplementation(() => ({ query: 'mocked-drizzle-db' }));
     mockPGliteModule.mockImplementation(() => mockPGliteInstance);
     mockDrizzlePGliteModule.mockImplementation(() => mockPGliteDrizzleDb);
@@ -71,12 +67,14 @@ describe('Database Adapter', () => {
   describe('getDb', () => {
     it('throws error when DATABASE_URL is not set', () => {
       delete process.env.DATABASE_URL;
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by global setup
       
       expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
 
     it('throws error when DATABASE_URL is empty string', () => {
       process.env.DATABASE_URL = '';
+      delete process.env.POSTGRES_URL; // Also remove POSTGRES_URL set by global setup
       
       expect(() => getDb()).toThrow('DATABASE_URL or POSTGRES_URL environment variable is not set');
     });
@@ -86,8 +84,7 @@ describe('Database Adapter', () => {
       
       const db = getDb();
       
-      expect(mockPostgresModule).toHaveBeenCalledWith('postgresql://user:pass@localhost:5432/testdb');
-      expect(mockDrizzleModule).toHaveBeenCalledWith(mockPostgresClient);
+      expect(mockDrizzleModule).toHaveBeenCalledWith(sql);
       expect(db).toEqual({ query: 'mocked-drizzle-db' });
     });
 
@@ -97,7 +94,7 @@ describe('Database Adapter', () => {
       const db1 = getDb();
       const db2 = getDb();
       
-      expect(mockPostgresModule).toHaveBeenCalledTimes(1);
+      expect(mockDrizzleModule).toHaveBeenCalledTimes(1);
       expect(mockDrizzleModule).toHaveBeenCalledTimes(1);
       expect(db1).toBe(db2);
     });
@@ -126,7 +123,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
@@ -136,7 +134,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('./custom/path.db');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('custom/path.db'));
       expect(mockDrizzlePGliteModule).toHaveBeenCalledWith(mockPGliteInstance);
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
@@ -146,7 +145,8 @@ describe('Database Adapter', () => {
       
       const db = await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
       expect(db).toEqual(mockPGliteDrizzleDb);
     });
 
@@ -255,7 +255,8 @@ describe('Database Adapter', () => {
       
       const db = getDb();
       
-      expect(mockPostgresModule).toHaveBeenCalledWith('postgresql://user%40domain:p%40ssw0rd@localhost:5432/test-db');
+      // Vercel Postgres doesn't use connection strings directly
+      expect(db).toBeDefined();
       expect(db).toEqual({ query: 'mocked-drizzle-db' });
     });
 
@@ -264,7 +265,8 @@ describe('Database Adapter', () => {
       
       await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('./data/databases/test-app.db');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('data/databases/test-app.db'));
     });
 
     it('handles PGlite URLs with just protocol', async () => {
@@ -272,7 +274,17 @@ describe('Database Adapter', () => {
       
       await initializePGlite();
       
-      expect(mockPGliteModule).toHaveBeenCalledWith('.pglite');
+      // Expect absolute path since we resolve relative paths
+      expect(mockPGliteModule).toHaveBeenCalledWith(expect.stringContaining('.pglite'));
+    });
+
+    it('handles memory database correctly', async () => {
+      process.env.DATABASE_URL = 'pglite://memory';
+      
+      await initializePGlite();
+      
+      // Memory should be passed as-is without path resolution
+      expect(mockPGliteModule).toHaveBeenCalledWith('memory');
     });
   });
 });

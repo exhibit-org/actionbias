@@ -11,10 +11,22 @@ interface ActionFields {
   vision: string;
 }
 
-interface FamilySuggestion {
-  id: string;
-  title: string;
-  similarity: number;
+interface AIPreview {
+  fields: ActionFields;
+  placement: {
+    parent: {
+      id: string;
+      title: string;
+      reasoning: string;
+    } | null;
+    reasoning: string;
+  };
+  isDuplicate?: boolean;
+  duplicate?: {
+    id: string;
+    title: string;
+    similarity: number;
+  };
 }
 
 export default function QuickActionModal() {
@@ -23,8 +35,7 @@ export default function QuickActionModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [actionFields, setActionFields] = useState<ActionFields | null>(null);
-  const [familySuggestion, setFamilySuggestion] = useState<FamilySuggestion | null>(null);
+  const [aiPreview, setAIPreview] = useState<AIPreview | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,16 +47,14 @@ export default function QuickActionModal() {
     if (isOpen && textareaRef.current) {
       textareaRef.current.focus();
       setError(null);
-      setActionFields(null);
-      setFamilySuggestion(null);
+      setAIPreview(null);
     }
   }, [isOpen]);
 
-  // Generate action fields from text
-  const generateActionFields = useCallback(async (text: string) => {
+  // Generate AI preview from text
+  const generateAIPreview = useCallback(async (text: string) => {
     if (!text.trim()) {
-      setActionFields(null);
-      setFamilySuggestion(null);
+      setAIPreview(null);
       return;
     }
 
@@ -53,79 +62,59 @@ export default function QuickActionModal() {
     setError(null);
 
     try {
-      // Parse the text into structured fields
-      const parseResponse = await fetch('/api/actions/parse', {
+      // Use the AI-powered endpoint to analyze and get placement
+      const response = await fetch('/api/actions/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       });
 
-      if (!parseResponse.ok) {
-        throw new Error('Failed to parse action text');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to analyze action');
       }
 
-      const parseData = await parseResponse.json();
-      setActionFields(parseData.data);
+      // Set the preview data including duplicate detection
+      setAIPreview({
+        fields: data.data.fields,
+        placement: data.data.placement,
+        isDuplicate: data.data.isDuplicate,
+        duplicate: data.data.duplicate,
+      });
 
-      // Get family suggestion based on the generated title
-      if (parseData.data?.title) {
-        // Use the same suggest-family endpoint that the MCP tools use
-        const suggestResponse = await fetch('/api/actions/suggest-family', {
+      // Set error if duplicate detected
+      if (data.data.isDuplicate && data.data.duplicate) {
+        setError(`Similar action already exists: "${data.data.duplicate.title}"`);
+      }
+
+      console.log('AI Preview generated:', {
+        fields: data.data.fields,
+        placement: data.data.placement,
+      });
+    } catch (err) {
+      console.error('Error generating AI preview:', err);
+      // Fallback to basic parsing if AI analysis fails
+      try {
+        const parseResponse = await fetch('/api/actions/parse', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: parseData.data.title,
-            description: parseData.data.description,
-            vision: parseData.data.vision,
-            limit: 10, // Get more candidates to see what's available
-            threshold: 0.05, // Very low threshold to be more inclusive
-          }),
+          body: JSON.stringify({ text }),
         });
 
-        if (suggestResponse.ok) {
-          const suggestData = await suggestResponse.json();
-          console.log('Generated action fields:', {
-            title: parseData.data.title,
-            description: parseData.data.description,
-            vision: parseData.data.vision
+        if (parseResponse.ok) {
+          const parseData = await parseResponse.json();
+          setAIPreview({
+            fields: parseData.data,
+            placement: {
+              parent: null,
+              reasoning: 'AI analysis unavailable, creating as root action',
+            },
           });
-          
-          console.log('Family suggestions response:', {
-            candidatesCount: suggestData.data?.candidates?.length || 0,
-            metadata: suggestData.data?.metadata,
-            firstCandidate: suggestData.data?.candidates?.[0]
-          }); // Enhanced debug log
-          
-          // Log all candidates for debugging
-          if (suggestData.data?.candidates?.length > 0) {
-            console.log('All family candidates:');
-            suggestData.data.candidates.forEach((candidate: any, index: number) => {
-              console.log(`${index + 1}. ${candidate.title} (${Math.round(candidate.similarity * 100)}%)`);
-            });
-          } else {
-            console.log('No family candidates found at all');
-          }
-          
-          const topCandidate = suggestData.data?.candidates?.[0];
-          if (topCandidate) {
-            setFamilySuggestion({
-              id: topCandidate.id,
-              title: topCandidate.title,
-              similarity: topCandidate.similarity,
-            });
-          } else {
-            setFamilySuggestion(null); // Explicitly clear if no match
-          }
-        } else {
-          console.error('Failed to get family suggestions:', await suggestResponse.text());
-          setFamilySuggestion(null);
         }
-      } else {
-        setFamilySuggestion(null);
+      } catch (fallbackErr) {
+        console.error('Fallback parsing also failed:', fallbackErr);
       }
-    } catch (err) {
-      console.error('Error generating fields:', err);
-      // Don't show error for generation failures, just don't update fields
     } finally {
       setIsGenerating(false);
     }
@@ -143,17 +132,16 @@ export default function QuickActionModal() {
 
     // If text is empty or whitespace only, clear the fields immediately
     if (!text.trim()) {
-      setActionFields(null);
-      setFamilySuggestion(null);
+      setAIPreview(null);
       setIsGenerating(false);
       return;
     }
 
     // Set new timer for non-empty text
     debounceTimerRef.current = setTimeout(() => {
-      generateActionFields(text);
+      generateAIPreview(text);
     }, 500); // 500ms debounce
-  }, [generateActionFields]);
+  }, [generateAIPreview]);
 
   // Cleanup timer on unmount
   useEffect(() => {
@@ -194,26 +182,32 @@ export default function QuickActionModal() {
     e.preventDefault();
     if (!actionText.trim() || isSubmitting) return;
 
-    // If we don't have generated fields yet, wait for generation
-    if (!actionFields && actionText.trim()) {
-      setError('Please wait for the action preview to generate');
+    // If we don't have AI preview yet, wait for generation
+    if (!aiPreview && actionText.trim()) {
+      setError('Please wait for the AI preview to generate');
+      return;
+    }
+
+    // Don't allow submission if duplicate detected
+    if (aiPreview?.isDuplicate) {
+      setError('Cannot create duplicate action. Please modify your request or use the existing action.');
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      // Create the action with generated fields
+      // Create the action with AI-determined placement
       const createResponse = await fetch('/api/actions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: actionFields?.title || actionText.trim(),
-          description: actionFields?.description,
-          vision: actionFields?.vision,
-          parent_id: familySuggestion?.id,
+          title: aiPreview?.fields.title || actionText.trim(),
+          description: aiPreview?.fields.description,
+          vision: aiPreview?.fields.vision,
+          parent_id: aiPreview?.placement.parent?.id,
         }),
       });
 
@@ -228,14 +222,13 @@ export default function QuickActionModal() {
       console.log('Action created:', createData);
       
       // Show success message
-      const actionTitle = actionFields?.title || actionText.trim();
+      const actionTitle = aiPreview?.fields.title || actionText.trim();
       setSuccessMessage(`Action "${actionTitle}" created successfully!`);
       setShowSuccess(true);
       
       // Reset form and close modal
       setActionText('');
-      setActionFields(null);
-      setFamilySuggestion(null);
+      setAIPreview(null);
       closeModal();
     } catch (error) {
       console.error('Error creating action:', error);
@@ -304,11 +297,23 @@ export default function QuickActionModal() {
                   )}
                 </div>
 
+                {aiPreview?.isDuplicate && aiPreview.duplicate && (
+                  <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <span className="text-yellow-600 text-sm font-medium">⚠️ Duplicate Detected</span>
+                    </div>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Similar action exists: "{aiPreview.duplicate.title}" 
+                      ({Math.round(aiPreview.duplicate.similarity * 100)}% match)
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-gray-600">Title</label>
                     <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
-                      {actionFields?.title || (
+                      {aiPreview?.fields.title || (
                         actionText.trim() && isGenerating ? 
                         <span className="text-gray-400 italic">Generating...</span> : 
                         <span className="text-gray-300 italic">Enter action text to generate</span>
@@ -319,7 +324,7 @@ export default function QuickActionModal() {
                   <div>
                     <label className="text-xs font-medium text-gray-600">Description</label>
                     <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[4rem] max-h-24 overflow-y-auto">
-                      {actionFields?.description || (
+                      {aiPreview?.fields.description || (
                         actionText.trim() && isGenerating ? 
                         <span className="text-gray-400 italic">Generating...</span> : 
                         <span className="text-gray-300 italic">Enter action text to generate</span>
@@ -330,7 +335,7 @@ export default function QuickActionModal() {
                   <div>
                     <label className="text-xs font-medium text-gray-600">Vision</label>
                     <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[3rem] max-h-20 overflow-y-auto">
-                      {actionFields?.vision || (
+                      {aiPreview?.fields.vision || (
                         actionText.trim() && isGenerating ? 
                         <span className="text-gray-400 italic">Generating...</span> : 
                         <span className="text-gray-300 italic">Enter action text to generate</span>
@@ -339,19 +344,19 @@ export default function QuickActionModal() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Family</label>
+                    <label className="text-xs font-medium text-gray-600">Parent Action</label>
                     <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
-                      {familySuggestion ? (
-                        <span>
-                          {familySuggestion.title}
-                          <span className="text-xs text-gray-500 ml-2">
-                            ({Math.round(familySuggestion.similarity * 100)}% match)
-                          </span>
-                        </span>
+                      {aiPreview?.placement.parent ? (
+                        <div>
+                          <span className="font-medium">{aiPreview.placement.parent.title}</span>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {aiPreview.placement.parent.reasoning}
+                          </div>
+                        </div>
                       ) : (
-                        <span className={actionFields ? "text-gray-400 italic" : "text-gray-300 italic"}>
-                          {actionFields ? 'No matching family found (root action)' : 
-                           actionText.trim() && isGenerating ? 'Generating...' : 'Enter action text to generate'}
+                        <span className={aiPreview ? "text-gray-500" : "text-gray-300 italic"}>
+                          {aiPreview ? aiPreview.placement.reasoning || 'Root-level action' : 
+                           actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 'Enter action text to analyze'}
                         </span>
                       )}
                     </div>
@@ -378,7 +383,7 @@ export default function QuickActionModal() {
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!actionText.trim() || isSubmitting || isGenerating || !actionFields}
+                disabled={!actionText.trim() || isSubmitting || isGenerating || !aiPreview || aiPreview?.isDuplicate}
               >
                 {isSubmitting ? 'Creating...' : isGenerating ? 'Generating...' : 'Create Action'}
               </button>

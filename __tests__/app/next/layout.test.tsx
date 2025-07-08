@@ -8,7 +8,7 @@ describe('Next Layout', () => {
   describe('metadata export', () => {
     it('should export correct metadata object', () => {
       expect(metadata).toEqual({
-        title: 'Next Action - ActionBias',
+        title: 'Next Action - done.engineering',
         description: 'Your next action to focus on',
       });
     });

@@ -52,7 +52,7 @@ export default function ScopedNextPage({ params }: { params: Promise<{ id: strin
           body: JSON.stringify({
             method: 'resources/read',
             params: {
-              uri: `action://next/${id}`
+              uri: `work://next/${id}`
             }
           })
         });

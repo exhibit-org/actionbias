@@ -10,6 +10,34 @@ export const actionDataSchema = z.object({
 
 export type ActionData = z.infer<typeof actionDataSchema>;
 
+// Template content types for multiple audience views
+export type TemplateContent = {
+  engineering?: {
+    headline?: string;
+    deck?: string;
+    implementation_story?: string;
+    impact_story?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+  business?: {
+    headline?: string;
+    deck?: string;
+    impact_story?: string;
+    strategic_implications?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+  customer?: {
+    headline?: string;
+    announcement?: string;
+    feature_highlights?: string;
+    user_benefits?: string;
+    pull_quotes?: string[];
+    importance?: 'high' | 'medium' | 'low';
+  };
+};
+
 export const actions = pgTable('actions', {
   id: uuid('id').primaryKey(),
   data: jsonb('data').$type<ActionData>(),
@@ -155,6 +183,41 @@ export const completionContexts = pgTable('completion_contexts', {
     }>;
   }>(),
   
+  // Template-specific content storage for multiple audience views
+  templateContent: jsonb('template_content').$type<TemplateContent>(),
+  
+  // Phase 3: Objective completion data
+  technicalChanges: jsonb('technical_changes').$type<{
+    files_modified?: string[];
+    files_created?: string[];
+    functions_added?: string[];
+    apis_modified?: string[];
+    dependencies_added?: string[];
+    config_changes?: string[];
+  }>(),
+
+  outcomes: jsonb('outcomes').$type<{
+    features_implemented?: string[];
+    bugs_fixed?: string[];
+    performance_improvements?: string[];
+    tests_passing?: boolean;
+    build_status?: 'success' | 'failed' | 'unknown';
+  }>(),
+
+  challenges: jsonb('challenges').$type<{
+    blockers_encountered?: string[];
+    blockers_resolved?: string[];
+    approaches_tried?: string[];
+    discoveries?: string[];
+  }>(),
+
+  alignmentReflection: jsonb('alignment_reflection').$type<{
+    purpose_interpretation?: string;
+    goal_achievement_assessment?: string;
+    context_influence?: string;
+    assumptions_made?: string[];
+  }>(),
+  
   // Metadata for changelog generation
   completionTimestamp: timestamp('completion_timestamp').defaultNow().notNull(),
   changelogVisibility: text('changelog_visibility').default('team').notNull(),
@@ -170,4 +233,12 @@ export const waitlist = pgTable('waitlist', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   source: text('source').default('homepage').notNull(), // Track where signup came from
   metadata: jsonb('metadata'), // JSON for any additional data
+});
+
+// Work log for agent activity and collaboration tracking
+export const workLog = pgTable('work_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  content: text('content').notNull(), // Rich narrative: "Claimed action X, discovered it depends on Y and Z, moved X under parent P"
+  metadata: jsonb('metadata'), // Flexible data: action IDs, agent info, whatever makes sense
+  timestamp: timestamp('timestamp').defaultNow().notNull(),
 });

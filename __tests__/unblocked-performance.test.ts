@@ -181,19 +181,17 @@ async function getWorkableActionsOptimized(): Promise<any[]> {
 
 // Helper to create test data
 async function createTestAction(id: string, title: string, done: boolean = false) {
-  await getDb().insert(actions).values({
+  const actionData = {
     id,
-    data: { title },
+    title,
     done,
-    version: 0,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  });
+  };
+  
+  await getDb().insert(actions).values(actionData);
 }
 
 async function createDependency(fromId: string, toId: string) {
   await getDb().insert(edges).values({
-    id: `dep-${fromId}-${toId}`,
     src: fromId,
     dst: toId,
     kind: 'depends_on'
@@ -202,7 +200,6 @@ async function createDependency(fromId: string, toId: string) {
 
 async function createFamilyRelation(parentId: string, childId: string) {
   await getDb().insert(edges).values({
-    id: `fam-${parentId}-${childId}`,
     src: parentId,
     dst: childId,
     kind: 'family'
@@ -211,6 +208,8 @@ async function createFamilyRelation(parentId: string, childId: string) {
 
 describe('Workable Actions Performance', () => {
   beforeAll(async () => {
+    // Set up PGlite database URL for tests
+    process.env.DATABASE_URL = 'pglite://.pglite-performance-test';
     // Initialize PGlite for tests
     await cleanupPGlite();
     await initializePGlite();
@@ -221,9 +220,11 @@ describe('Workable Actions Performance', () => {
   });
   
   beforeEach(async () => {
+    // Ensure database is initialized
+    const db = await initializePGlite();
     // Clean tables by truncating (safer than delete)
-    await getDb().execute(sql`TRUNCATE TABLE ${edges} CASCADE`);
-    await getDb().execute(sql`TRUNCATE TABLE ${actions} CASCADE`);
+    await db.execute(sql`TRUNCATE TABLE ${edges} CASCADE`);
+    await db.execute(sql`TRUNCATE TABLE ${actions} CASCADE`);
   });
   
   afterEach(async () => {

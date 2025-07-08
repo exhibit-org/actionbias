@@ -21,6 +21,8 @@ import { FamilySummaryService } from './family-summary';
 import { CompletionContextService } from './completion-context';
 import { ActionSearchService } from './action-search';
 import { EditorialAIService } from './editorial-ai';
+import { EnhancedContextService } from './enhanced-context';
+import { ContextService } from './context';
 import { buildActionPath, buildActionBreadcrumb } from '../utils/path-builder';
 
 // Default confidence threshold for automatically applying placement suggestions
@@ -46,7 +48,7 @@ async function hasIncompleteDependencies(actionId: string): Promise<{ hasIncompl
   
   const incompleteDeps = dependencyActions
     .filter((action: any) => !action.done)
-    .map((action: any) => action.title || action.id);
+    .map((action: any) => `"${action.title || action.id}" (${action.id})`);
   
   return {
     hasIncomplete: incompleteDeps.length > 0,
@@ -385,12 +387,43 @@ export interface UpdateActionParams {
   vision?: string;
   done?: boolean;
   completion_context?: {
+    // Legacy editorial fields (Phase 2)
     implementation_story?: string;
     impact_story?: string;
     learning_story?: string;
     headline?: string;
     deck?: string;
     pull_quotes?: string[];
+    // New objective fields (Phase 3)
+    technical_changes?: {
+      files_modified?: string[];
+      files_created?: string[];
+      functions_added?: string[];
+      apis_modified?: string[];
+      dependencies_added?: string[];
+      config_changes?: string[];
+    };
+    outcomes?: {
+      features_implemented?: string[];
+      bugs_fixed?: string[];
+      performance_improvements?: string[];
+      tests_passing?: boolean;
+      build_status?: "success" | "failed" | "unknown";
+    };
+    challenges?: {
+      blockers_encountered?: string[];
+      blockers_resolved?: string[];
+      approaches_tried?: string[];
+      discoveries?: string[];
+    };
+    // Alignment reflection fields (Phase 3)
+    alignment_reflection?: {
+      purpose_interpretation?: string;
+      goal_achievement_assessment?: string;
+      context_influence?: string;
+      assumptions_made?: string[];
+    };
+    // Common fields
     changelog_visibility?: string;
     git_context?: {
       commits?: Array<{
@@ -782,9 +815,16 @@ export class ActionsService {
   static async removeDependency(params: RemoveDependencyParams) {
     const { action_id, depends_on_id } = params;
     
+    console.log(`[REMOVE_DEPENDENCY] Starting removal: ${action_id} depends on ${depends_on_id}`);
+    
     // Check that both actions exist
+    console.log(`[REMOVE_DEPENDENCY] Checking if action ${action_id} exists...`);
     const action = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Action found: ${action.length > 0 ? action[0].data?.title : 'NOT FOUND'}`);
+    
+    console.log(`[REMOVE_DEPENDENCY] Checking if dependency action ${depends_on_id} exists...`);
     const dependsOn = await getDb().select().from(actions).where(eq(actions.id, depends_on_id)).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Dependency action found: ${dependsOn.length > 0 ? dependsOn[0].data?.title : 'NOT FOUND'}`);
     
     if (action.length === 0) {
       throw new Error(`Action with ID ${action_id} not found`);
@@ -795,6 +835,7 @@ export class ActionsService {
     }
 
     // Check if dependency exists
+    console.log(`[REMOVE_DEPENDENCY] Checking if dependency edge exists: src=${depends_on_id}, dst=${action_id}, kind=depends_on`);
     const existingEdge = await getDb().select().from(edges).where(
       and(
         eq(edges.src, depends_on_id),
@@ -802,12 +843,14 @@ export class ActionsService {
         eq(edges.kind, "depends_on")
       )
     ).limit(1);
+    console.log(`[REMOVE_DEPENDENCY] Existing edge found: ${existingEdge.length > 0 ? 'YES' : 'NO'}`);
 
     if (existingEdge.length === 0) {
       throw new Error(`No dependency found: ${action[0].data?.title} does not depend on ${dependsOn[0].data?.title}`);
     }
     
     // Delete the dependency edge
+    console.log(`[REMOVE_DEPENDENCY] Deleting dependency edge...`);
     const deletedEdge = await getDb().delete(edges).where(
       and(
         eq(edges.src, depends_on_id),
@@ -815,7 +858,9 @@ export class ActionsService {
         eq(edges.kind, "depends_on")
       )
     ).returning();
+    console.log(`[REMOVE_DEPENDENCY] Deleted edge:`, deletedEdge[0]);
 
+    console.log(`[REMOVE_DEPENDENCY] Successfully removed dependency`);
     return {
       action: action[0],
       depends_on: dependsOn[0],
@@ -912,38 +957,11 @@ export class ActionsService {
             !completion_context.deck && 
             !completion_context.pull_quotes) {
           
-          // Fetch dependency completions and generate editorial content asynchronously (don't wait)
+          // Fetch enhanced context and generate editorial content asynchronously (don't wait)
           (async () => {
             try {
-              // Get dependency completions for context
-              const dependencyEdges = await getDb()
-                .select()
-                .from(edges)
-                .where(and(
-                  eq(edges.dst, action_id),
-                  eq(edges.kind, 'depends_on')
-                ));
-              
-              let dependencyCompletions = [];
-              if (dependencyEdges.length > 0) {
-                const depIds = dependencyEdges.map((e: any) => e.src).filter(Boolean);
-                const deps = await getDb()
-                  .select({
-                    action: actions,
-                    context: completionContexts
-                  })
-                  .from(actions)
-                  .leftJoin(completionContexts, eq(completionContexts.actionId, actions.id))
-                  .where(and(
-                    inArray(actions.id, depIds),
-                    eq(actions.done, true)
-                  ));
-                
-                dependencyCompletions = deps.map((d: any) => ({
-                  title: d.action.title || '',
-                  impactStory: d.context?.impactStory || undefined
-                }));
-              }
+              // Get enhanced dependency and sibling context
+              const enhancedContext = await EnhancedContextService.getEnhancedEditorialContext(action_id);
 
               const generatedContent = await EditorialAIService.generateEditorialContent({
                 actionTitle: updatedAction[0].title || existingAction[0].title || 'Untitled Action',
@@ -957,8 +975,9 @@ export class ActionsService {
                 subtreeSummary: updatedAction[0].subtreeSummary || existingAction[0].subtreeSummary,
                 familyContextSummary: updatedAction[0].familyContextSummary || existingAction[0].familyContextSummary,
                 familyVisionSummary: updatedAction[0].familyVisionSummary || existingAction[0].familyVisionSummary,
-                // Include dependency completions
-                dependencyCompletions: dependencyCompletions.length > 0 ? dependencyCompletions : undefined
+                // Include enhanced dependency and sibling context
+                dependencyCompletions: enhancedContext.dependencyCompletions,
+                siblingContext: enhancedContext.siblingContext
               });
               // Update with generated content if available
               if (generatedContent.headline || generatedContent.deck || generatedContent.pullQuotes) {
@@ -985,6 +1004,11 @@ export class ActionsService {
           pullQuotes: completion_context.pull_quotes,
           changelogVisibility: completion_context.changelog_visibility,
           gitContext: completion_context.git_context,
+          // Phase 3: Objective completion data
+          technicalChanges: completion_context.technical_changes,
+          outcomes: completion_context.outcomes,
+          challenges: completion_context.challenges,
+          alignmentReflection: completion_context.alignment_reflection,
         });
       } catch (error) {
         console.error(`Failed to update completion context for action ${action_id}:`, error);
@@ -1138,6 +1162,26 @@ export class ActionsService {
       total,
       offset,
       limit,
+    };
+  }
+
+  static async getActionCounts(): Promise<{ total: number; incomplete: number; completed: number; generatedAt: string }> {
+    // Get total count
+    const totalResult = await getDb().select({ count: count() }).from(actions);
+    const total = totalResult[0].count;
+    
+    // Get completed count
+    const completedResult = await getDb().select({ count: count() }).from(actions).where(eq(actions.done, true));
+    const completed = completedResult[0].count;
+    
+    // Calculate incomplete
+    const incomplete = total - completed;
+    
+    return {
+      total,
+      incomplete,
+      completed,
+      generatedAt: new Date().toISOString()
     };
   }
 
@@ -1731,6 +1775,11 @@ export class ActionsService {
           deck: completionContexts.deck,
           pullQuotes: completionContexts.pullQuotes,
           gitContext: completionContexts.gitContext,
+          templateContent: completionContexts.templateContent,
+          technicalChanges: completionContexts.technicalChanges,
+          outcomes: completionContexts.outcomes,
+          challenges: completionContexts.challenges,
+          alignmentReflection: completionContexts.alignmentReflection,
         })
         .from(completionContexts)
         .where(eq(completionContexts.actionId, actionId))
@@ -1750,9 +1799,60 @@ export class ActionsService {
           deck: context.deck || undefined,
           pull_quotes: context.pullQuotes as string[] || undefined,
           git_context: context.gitContext || undefined,
+          templateContent: context.templateContent || undefined,
+          technical_changes: context.technicalChanges || undefined,
+          outcomes: context.outcomes || undefined,
+          challenges: context.challenges || undefined,
+          alignment_reflection: context.alignmentReflection || undefined,
         };
       }
     }
+
+    // Get siblings (same-parent actions, excluding current action)
+    const siblings: ActionMetadata[] = [];
+    if (parentId) {
+      const siblingEdgesResult = await getDb().select().from(edges).where(
+        and(eq(edges.src, parentId), eq(edges.kind, "family"))
+      );
+      const siblingEdges = Array.isArray(siblingEdgesResult) ? siblingEdgesResult : [];
+      const siblingIds = siblingEdges
+        .map((edge: any) => edge.dst)
+        .filter((id: any): id is string => id !== null && id !== actionId); // Exclude current action
+      
+      if (siblingIds.length > 0) {
+        const siblingActions = await getDb().select().from(actions).where(inArray(actions.id, siblingIds));
+        siblings.push(...siblingActions.map(toActionMetadata));
+      }
+    }
+
+    // Build relationship flags to indicate which lists each action appears in
+    const relationshipFlags: { [action_id: string]: string[] } = {};
+    
+    // Track which lists each action appears in
+    parentChain.forEach((ancestor: ActionMetadata) => {
+      if (!relationshipFlags[ancestor.id]) relationshipFlags[ancestor.id] = [];
+      relationshipFlags[ancestor.id].push('ancestor');
+    });
+    
+    children.map(toActionMetadata).forEach((child: ActionMetadata) => {
+      if (!relationshipFlags[child.id]) relationshipFlags[child.id] = [];
+      relationshipFlags[child.id].push('child');
+    });
+    
+    dependencies.map(toActionMetadata).forEach((dep: ActionMetadata) => {
+      if (!relationshipFlags[dep.id]) relationshipFlags[dep.id] = [];
+      relationshipFlags[dep.id].push('dependency');
+    });
+    
+    dependents.map(toActionMetadata).forEach((dependent: ActionMetadata) => {
+      if (!relationshipFlags[dependent.id]) relationshipFlags[dependent.id] = [];
+      relationshipFlags[dependent.id].push('dependent');
+    });
+    
+    siblings.forEach((sibling: ActionMetadata) => {
+      if (!relationshipFlags[sibling.id]) relationshipFlags[sibling.id] = [];
+      relationshipFlags[sibling.id].push('sibling');
+    });
 
     return {
       id: action[0].id,
@@ -1768,12 +1868,74 @@ export class ActionsService {
       children: children.map(toActionMetadata),
       dependencies: dependencies.map(toActionMetadata),
       dependents: dependents.map(toActionMetadata),
+      siblings: siblings,
+      relationship_flags: relationshipFlags,
       dependency_completion_context: dependencyCompletionContext,
       // Family summaries from database columns
       family_context_summary: action[0].familyContextSummary,
       family_vision_summary: action[0].familyVisionSummary,
       // Action's own completion context
       completion_context: ownCompletionContext,
+    };
+  }
+
+  // Core data only - no relationships, no AI summaries
+  static async getWorkItemCoreData(actionId: string): Promise<{
+    id: string;
+    title: string;
+    description?: string;
+    vision?: string;
+    done: boolean;
+    version: number | null;
+    created_at: string;
+    updated_at: string;
+    completion_context?: DependencyCompletionContext;
+  }> {
+    // Get the basic action data
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, actionId)).limit(1);
+    if (actionResult.length === 0) {
+      throw new Error(`Action with ID ${actionId} not found`);
+    }
+    
+    const action = actionResult[0];
+    
+    // Get completion context if action is completed
+    let completionContext: DependencyCompletionContext | undefined;
+    if (action.done) {
+      const completionResult = await getDb()
+        .select()
+        .from(completionContexts)
+        .where(eq(completionContexts.actionId, actionId))
+        .limit(1);
+      
+      if (completionResult.length > 0) {
+        const context = completionResult[0];
+        completionContext = {
+          action_id: context.actionId,
+          action_title: action.title || action.data?.title || 'untitled',
+          completion_timestamp: context.completionTimestamp?.toISOString() || new Date().toISOString(),
+          implementation_story: context.implementationStory || undefined,
+          impact_story: context.impactStory || undefined,
+          learning_story: context.learningStory || undefined,
+          changelog_visibility: context.changelogVisibility,
+          headline: context.headline || undefined,
+          deck: context.deck || undefined,
+          pull_quotes: context.pullQuotes as string[] || undefined,
+          git_context: context.gitContext || undefined,
+        };
+      }
+    }
+
+    return {
+      id: action.id,
+      title: action.title || action.data?.title || 'untitled',
+      description: action.description || action.data?.description,
+      vision: action.vision || action.data?.vision,
+      done: action.done,
+      version: action.version,
+      created_at: action.createdAt.toISOString(),
+      updated_at: action.updatedAt.toISOString(),
+      completion_context: completionContext,
     };
   }
 

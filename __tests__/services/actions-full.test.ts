@@ -6,17 +6,49 @@ const createMutableQueryBuilder = (resolvedValue: any) => {
     from: jest.fn(() => builder),
     where: jest.fn(() => builder),
     limit: jest.fn(() => builder),
-    orderBy: jest.fn(() => Promise.resolve(resolvedValue)),
+    orderBy: jest.fn(() => builder),
+    execute: jest.fn(() => Promise.resolve(resolvedValue)), // Added execute for explicit resolution
     then: (resolve: any) => Promise.resolve(resolvedValue).then(resolve), // Make it thenable
   };
   return builder;
 };
 
+// Default mock action
+const defaultMockAction = {
+  id: 'test-uuid-123',
+  data: { title: 'Test Action' },
+  done: false,
+  version: 1,
+  createdAt: new Date('2023-01-01'),
+  updatedAt: new Date('2023-01-01'),
+};
+
 const mockDb = {
   select: jest.fn(() => createMutableQueryBuilder([])),
-  insert: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
+  insert: jest.fn(() => ({
+    values: jest.fn(() => ({
+      returning: jest.fn(() => Promise.resolve([defaultMockAction])),
+      execute: jest.fn(() => Promise.resolve([defaultMockAction])),
+      then: (resolve: any) => Promise.resolve([defaultMockAction]).then(resolve),
+    })),
+  })),
+  update: jest.fn(() => ({
+    set: jest.fn(() => ({
+      where: jest.fn(() => ({
+        returning: jest.fn(() => Promise.resolve([defaultMockAction])),
+        execute: jest.fn(() => Promise.resolve([defaultMockAction])),
+        then: (resolve: any) => Promise.resolve([defaultMockAction]).then(resolve),
+      })),
+    })),
+  })),
+  delete: jest.fn(() => ({
+    where: jest.fn(() => ({
+      returning: jest.fn(() => Promise.resolve([defaultMockAction])),
+      execute: jest.fn(() => Promise.resolve([defaultMockAction])),
+      then: (resolve: any) => Promise.resolve([defaultMockAction]).then(resolve),
+    })),
+  })),
+  execute: jest.fn(() => Promise.resolve([])),
 };
 
 jest.mock("../../lib/db/adapter", () => ({

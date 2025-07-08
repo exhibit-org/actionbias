@@ -1,21 +1,28 @@
-const nextJest = require('next/jest')
+const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files
   dir: './',
-})
+});
 
-// Add any custom config to be passed to Jest  
+// Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'node',
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/jest.setup.web.cjs'],
+  globalTeardown: '<rootDir>/scripts/cleanup-test-dbs.mjs',
+  testEnvironment: 'jest-environment-jsdom',
+  maxWorkers: 2, // Limit workers to prevent crashes
+  workerIdleMemoryLimit: '1GB', // Set memory limit for workers
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^next/server$': '<rootDir>/__tests__/__mocks__/next/server.ts',
+    '^lib/(.*)$': '<rootDir>/lib/$1',
+    '^../../lib/(.*)$': '<rootDir>/lib/$1',
+    '^../lib/(.*)$': '<rootDir>/lib/$1',
   },
-  testMatch: [
-    '**/__tests__/**/*.test.{js,ts,tsx}',
-    '**/?(*.)+(spec|test).{js,ts,tsx}'
+  testPathIgnorePatterns: [
+    '<rootDir>/.next/',
+    '<rootDir>/node_modules/',
+    '<rootDir>/__tests__/utils/index.ts',
+    '<rootDir>/__tests__/utils/metadata-test-utils.ts',
   ],
   collectCoverageFrom: [
     'app/api/**/*.{js,ts}',
@@ -32,10 +39,7 @@ const customJestConfig = {
       statements: 80,
     },
   },
-  testTimeout: 30000,
-  globalTeardown: '<rootDir>/scripts/cleanup-test-dbs.mjs',
-  // Remove parallelism restrictions for speed - fix race conditions instead
-}
+};
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-module.exports = createJestConfig(customJestConfig)
+module.exports = createJestConfig(customJestConfig);

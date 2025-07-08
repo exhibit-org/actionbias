@@ -1,16 +1,27 @@
-import { initializePGlite } from '../../lib/db/adapter';
-
 describe('PGlite Connection and Operations', () => {
   let testDb: any;
   let rawPglite: any;
   const originalEnv = process.env;
 
   beforeAll(async () => {
+    // Clean up any existing test database first
+    const fs = require('fs');
+    const dbPath = '.pglite-connection-test';
+    if (fs.existsSync(dbPath)) {
+      fs.rmSync(dbPath, { recursive: true, force: true });
+    }
+    
+    // Ensure SKIP_MIGRATIONS is set before initializing
+    process.env.SKIP_MIGRATIONS = 'true';
     process.env.DATABASE_URL = 'pglite://.pglite-connection-test';
     
     // Get the raw PGlite instance for direct SQL operations
     const { PGlite } = await import('@electric-sql/pglite');
     rawPglite = new PGlite('.pglite-connection-test');
+    
+    // Dynamically import and reset cache to ensure env vars are set
+    const { initializePGlite, resetCache } = await import('../../lib/db/adapter');
+    resetCache(); // Clear any cached instances
     
     // Also get the Drizzle wrapper for comparison
     testDb = await initializePGlite();

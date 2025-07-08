@@ -20,9 +20,9 @@ describe("/api/actions/[id] API Routes", () => {
   describe("PUT /api/actions/[id]", () => {
     it("should update action successfully", async () => {
       const mockUpdatedAction = {
-        id: "test-id",
+        id: "550e8400-e29b-41d4-a716-446655440000",
         data: { title: "Updated Action" },
-        done: true,
+        done: false,
         version: 1,
         createdAt: "2025-06-13T16:53:31.050Z",
         updatedAt: "2025-06-13T16:53:31.050Z",
@@ -34,11 +34,10 @@ describe("/api/actions/[id] API Routes", () => {
         method: "PUT",
         body: JSON.stringify({
           title: "Updated Action",
-          done: true,
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await PUT(request, { params });
       const data = await response.json();
 
@@ -46,9 +45,8 @@ describe("/api/actions/[id] API Routes", () => {
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockUpdatedAction);
       expect(mockedActionsService.updateAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         title: "Updated Action",
-        done: true,
       });
     });
 
@@ -58,7 +56,7 @@ describe("/api/actions/[id] API Routes", () => {
         body: JSON.stringify({}), // Empty body should fail validation
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await PUT(request, { params });
       const data = await response.json();
 
@@ -77,7 +75,7 @@ describe("/api/actions/[id] API Routes", () => {
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await PUT(request, { params });
       const data = await response.json();
 
@@ -88,7 +86,7 @@ describe("/api/actions/[id] API Routes", () => {
 
     it("should update action with description and vision", async () => {
       const mockUpdatedAction = {
-        id: "test-id",
+        id: "550e8400-e29b-41d4-a716-446655440000",
         data: { 
           title: "Updated Action",
           description: "New description",
@@ -111,14 +109,14 @@ describe("/api/actions/[id] API Routes", () => {
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await PUT(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(mockedActionsService.updateAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         title: "Updated Action",
         description: "New description",
         vision: "New vision",
@@ -129,7 +127,7 @@ describe("/api/actions/[id] API Routes", () => {
   describe("DELETE /api/actions/[id]", () => {
     it("should delete action successfully with default child_handling", async () => {
       const mockDeleteResult = {
-        deleted_action: { id: "test-id", data: { title: "Deleted Action" } },
+        deleted_action: { id: "550e8400-e29b-41d4-a716-446655440000", data: { title: "Deleted Action" } },
         children_count: 0,
         child_handling: "reparent" as const,
       };
@@ -141,7 +139,7 @@ describe("/api/actions/[id] API Routes", () => {
         body: JSON.stringify({}),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -149,14 +147,14 @@ describe("/api/actions/[id] API Routes", () => {
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockDeleteResult);
       expect(mockedActionsService.deleteAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         child_handling: "reparent",
       });
     });
 
     it("should delete action with recursive child_handling", async () => {
       const mockDeleteResult = {
-        deleted_action: { id: "test-id", data: { title: "Deleted Action" } },
+        deleted_action: { id: "550e8400-e29b-41d4-a716-446655440000", data: { title: "Deleted Action" } },
         children_count: 2,
         child_handling: "delete_recursive" as const,
       };
@@ -170,7 +168,7 @@ describe("/api/actions/[id] API Routes", () => {
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -178,14 +176,14 @@ describe("/api/actions/[id] API Routes", () => {
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockDeleteResult);
       expect(mockedActionsService.deleteAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         child_handling: "delete_recursive",
       });
     });
 
     it("should delete action with reparent and new_parent_id", async () => {
       const mockDeleteResult = {
-        deleted_action: { id: "test-id", data: { title: "Deleted Action" } },
+        deleted_action: { id: "550e8400-e29b-41d4-a716-446655440000", data: { title: "Deleted Action" } },
         children_count: 1,
         child_handling: "reparent" as const,
         new_parent_id: "550e8400-e29b-41d4-a716-446655440000",
@@ -201,7 +199,7 @@ describe("/api/actions/[id] API Routes", () => {
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -209,7 +207,7 @@ describe("/api/actions/[id] API Routes", () => {
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockDeleteResult);
       expect(mockedActionsService.deleteAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         child_handling: "reparent",
         new_parent_id: "550e8400-e29b-41d4-a716-446655440000",
       });
@@ -217,7 +215,7 @@ describe("/api/actions/[id] API Routes", () => {
 
     it("should handle empty request body", async () => {
       const mockDeleteResult = {
-        deleted_action: { id: "test-id", data: { title: "Deleted Action" } },
+        deleted_action: { id: "550e8400-e29b-41d4-a716-446655440000", data: { title: "Deleted Action" } },
         children_count: 0,
         child_handling: "reparent" as const,
       };
@@ -229,14 +227,14 @@ describe("/api/actions/[id] API Routes", () => {
         // No body
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
       expect(mockedActionsService.deleteAction).toHaveBeenCalledWith({
-        action_id: "test-id",
+        action_id: "550e8400-e29b-41d4-a716-446655440000",
         child_handling: "reparent",
       });
     });
@@ -249,7 +247,7 @@ describe("/api/actions/[id] API Routes", () => {
         body: JSON.stringify({}),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -266,7 +264,7 @@ describe("/api/actions/[id] API Routes", () => {
         }),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 
@@ -283,7 +281,7 @@ describe("/api/actions/[id] API Routes", () => {
         body: JSON.stringify({}),
       });
 
-      const params = Promise.resolve({ id: "test-id" });
+      const params = Promise.resolve({ id: "550e8400-e29b-41d4-a716-446655440000" });
       const response = await DELETE(request, { params });
       const data = await response.json();
 

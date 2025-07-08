@@ -1,6 +1,6 @@
 {
-  "id": "00000000-0000-0000-0000-000000000012",
-  "prevId": "00000000-0000-0000-0000-000000000011",
+  "id": "4580ff08-1326-438c-9efa-465a83216ecb",
+  "prevId": "8e3475e6-ecfe-41f6-ad6b-a2267e931a13",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -100,7 +100,10 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.completion_contexts": {
       "name": "completion_contexts",
@@ -155,44 +158,38 @@
           "primaryKey": false,
           "notNull": false
         },
-        "git_commit_hash": {
-          "name": "git_commit_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_message": {
-          "name": "git_commit_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_branch": {
-          "name": "git_branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_author": {
-          "name": "git_commit_author",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_timestamp": {
-          "name": "git_commit_timestamp",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_diff_stats": {
-          "name": "git_diff_stats",
+        "git_context": {
+          "name": "git_context",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
-        "git_related_commits": {
-          "name": "git_related_commits",
+        "template_content": {
+          "name": "template_content",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "technical_changes": {
+          "name": "technical_changes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outcomes": {
+          "name": "outcomes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "challenges": {
+          "name": "challenges",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "alignment_reflection": {
+          "name": "alignment_reflection",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -224,12 +221,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "structured_data": {
-          "name": "structured_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -238,14 +229,21 @@
           "name": "completion_contexts_action_id_actions_id_fk",
           "tableFrom": "completion_contexts",
           "tableTo": "actions",
-          "columnsFrom": ["action_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "action_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.edges": {
       "name": "edges",
@@ -290,8 +288,12 @@
           "name": "edges_src_actions_id_fk",
           "tableFrom": "edges",
           "tableTo": "actions",
-          "columnsFrom": ["src"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "src"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -299,8 +301,12 @@
           "name": "edges_dst_actions_id_fk",
           "tableFrom": "edges",
           "tableTo": "actions",
-          "columnsFrom": ["dst"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "dst"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -308,10 +314,17 @@
       "compositePrimaryKeys": {
         "edges_src_dst_kind_pk": {
           "name": "edges_src_dst_kind_pk",
-          "columns": ["src", "dst", "kind"]
+          "columns": [
+            "src",
+            "dst",
+            "kind"
+          ]
         }
       },
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
     "public.waitlist": {
       "name": "waitlist",
@@ -358,19 +371,64 @@
         "waitlist_email_unique": {
           "name": "waitlist_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
-      }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.work_log": {
+      "name": "work_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {},
   "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
     "tables": {}
   }
 }

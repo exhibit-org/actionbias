@@ -141,7 +141,7 @@ describe('generateParentSummariesAsync Function', () => {
       };
 
       // Mock the module
-      jest.doMock("../../lib/services/parent-summary", () => ({
+      jest.doMock("../../lib/services/family-summary", () => ({
         FamilySummaryService: mockFamilySummaryService
       }));
 
@@ -184,7 +184,7 @@ describe('generateParentSummariesAsync Function', () => {
         updateFamilySummaries: jest.fn()
       };
 
-      jest.doMock("../../lib/services/parent-summary", () => ({
+      jest.doMock("../../lib/services/family-summary", () => ({
         FamilySummaryService: mockFamilySummaryService
       }));
 
@@ -233,7 +233,7 @@ describe('generateParentSummariesAsync Function', () => {
         updateFamilySummaries: jest.fn().mockResolvedValue(undefined)
       };
 
-      jest.doMock("../../lib/services/parent-summary", () => ({
+      jest.doMock("../../lib/services/family-summary", () => ({
         FamilySummaryService: mockFamilySummaryService
       }));
 
@@ -291,7 +291,7 @@ describe('generateParentSummariesAsync Function', () => {
         updateFamilySummaries: jest.fn()
       };
 
-      jest.doMock("../../lib/services/parent-summary", () => ({
+      jest.doMock("../../lib/services/family-summary", () => ({
         FamilySummaryService: mockFamilySummaryService
       }));
 

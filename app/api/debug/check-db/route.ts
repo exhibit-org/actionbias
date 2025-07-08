@@ -7,39 +7,36 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const actionId = searchParams.get('actionId') || 'fc37de88-37ae-41d2-84f7-5bb230fac631';
-    
     const db = getDb();
     
-    // Get the raw database values without any fallbacks
+    // Simple database connectivity test - just count total actions
     const result = await db
       .select({
         id: actions.id,
-        title: actions.title,
-        family_context_summary: actions.familyContextSummary,
-        family_vision_summary: actions.familyVisionSummary
+        data: actions.data,
+        done: actions.done,
+        createdAt: actions.createdAt
       })
       .from(actions)
-      .where(eq(actions.id, actionId))
-      .limit(1);
-    
-    if (result.length === 0) {
-      return NextResponse.json({ error: 'Action not found' }, { status: 404 });
-    }
-    
-    const action = result[0];
+      .limit(5);
     
     return NextResponse.json({
-      actionId: action.id,
-      title: action.title,
-      parent_context_summary_raw: action.parent_context_summary,
-      parent_vision_summary_raw: action.parent_vision_summary,
-      parent_context_is_null: action.parent_context_summary === null,
-      parent_vision_is_null: action.parent_vision_summary === null
+      status: 'success',
+      message: 'Database connection working',
+      totalActionsFound: result.length,
+      sampleActions: result.map((action: typeof result[0]) => ({
+        id: action.id,
+        title: action.data?.title || 'No title',
+        done: action.done,
+        createdAt: action.createdAt
+      }))
     });
     
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json({ 
+      status: 'error',
+      error: `Failed query: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      details: error
+    }, { status: 500 });
   }
 }

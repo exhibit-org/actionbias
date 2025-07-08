@@ -66,45 +66,24 @@
       "breakpoints": true
     },
     {
-      "idx": 12,
+      "idx": 18,
       "version": "7",
-      "when": 1751100000000,
-      "tag": "0012_add_git_commit_fields",
+      "when": 1751500000000,
+      "tag": "0018_add_work_log_table",
       "breakpoints": true
     },
     {
-      "idx": 13,
+      "idx": 19,
       "version": "7",
-      "when": 1751069481680,
-      "tag": "0013_tiny_adam_warlock",
+      "when": 1751595000000,
+      "tag": "0019_add_template_content",
       "breakpoints": true
     },
     {
-      "idx": 14,
+      "idx": 20,
       "version": "7",
-      "when": 1751079600000,
-      "tag": "0014_refactor_git_context",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1751080200000,
-      "tag": "0015_fix_git_context_migration",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1751080800000,
-      "tag": "0016_git_context_final",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1751082000000,
-      "tag": "0017_remove_structured_data",
+      "when": 1751601145159,
+      "tag": "0020_early_tyger_tiger",
       "breakpoints": true
     }
   ]

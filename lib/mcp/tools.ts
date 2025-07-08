@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ActionsService } from "../services/actions";
 import { VectorPlacementService } from "../services/vector-placement";
 import { ActionSearchService } from "../services/action-search";
+import { WorkLogService } from "../services/work-log";
 import { getDb } from "../db/adapter";
 import { actions, edges, actionDataSchema } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
@@ -69,12 +70,12 @@ export function registerTools(server: any) {
   // create_action - Create a new action
   server.tool(
     "create_action",
-    "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+    "Create a new action in the database with a required family",
     {
       title: z.string().min(1).describe("The title for the action"),
       description: z.string().optional().describe("Detailed instructions or context describing how the action should be performed"),
       vision: z.string().optional().describe("A clear communication of the state of the world when the action is complete"),
-      family_id: z.string().uuid().describe("Required family action ID to create a family relationship (use suggest_family tool to find appropriate family)"),
+      family_id: z.string().uuid().describe("Required family action ID to create a family relationship"),
       depends_on_ids: z.array(z.string().uuid()).optional().describe("Optional array of action IDs that this action depends on"),
       override_duplicate_check: z.boolean().optional().describe("Override duplicate detection check if you intentionally want to create a similar action"),
     },
@@ -87,7 +88,7 @@ export function registerTools(server: any) {
         const familyAction = await db.select().from(actions).where(eq(actions.id, family_id)).limit(1);
         
         if (familyAction.length === 0) {
-          throw new Error(`Family action with ID ${family_id} not found. Use suggest_family tool to find a valid family.`);
+          throw new Error(`Family action with ID ${family_id} not found. Use search_actions or work://tree to find a valid family.`);
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues
@@ -257,14 +258,16 @@ export function registerTools(server: any) {
     },
     async ({ action_id, depends_on_id }: { action_id: string; depends_on_id: string }, extra: any) => {
       try {
-        console.log(`Removing dependency: ${action_id} no longer depends on ${depends_on_id}`);
+        console.log(`[MCP TOOL] remove_dependency called with action_id: ${action_id}, depends_on_id: ${depends_on_id}`);
+        console.log(`[MCP TOOL] Starting dependency removal...`);
         
         // Call ActionsService directly to avoid HTTP authentication issues
         const result = await ActionsService.removeDependency({ action_id, depends_on_id });
+        console.log(`[MCP TOOL] ActionsService.removeDependency completed successfully`);
 
         const { action, depends_on, deleted_edge } = result;
 
-        return {
+        const response = {
           content: [
             {
               type: "text",
@@ -272,9 +275,12 @@ export function registerTools(server: any) {
             },
           ],
         };
+        
+        console.log(`[MCP TOOL] Returning successful response`);
+        return response;
       } catch (error) {
-        console.error('Error removing dependency:', error);
-        return {
+        console.error('[MCP TOOL] Error removing dependency:', error);
+        const errorResponse = {
           content: [
             {
               type: "text",
@@ -282,6 +288,8 @@ export function registerTools(server: any) {
             },
           ],
         };
+        console.log(`[MCP TOOL] Returning error response`);
+        return errorResponse;
       }
     },
   );
@@ -351,20 +359,49 @@ export function registerTools(server: any) {
     },
   );
 
-  // complete_action - Mark an action as completed with required completion context
+  // complete_action - Mark an action as completed with objective completion data for server-side editorial generation
   server.tool(
     "complete_action",
-    "Mark an action as completed with REQUIRED completion context for dynamic changelog generation. ALL parameters are REQUIRED including editorial content (headline, deck, pull_quotes). Write detailed stories with code snippets where relevant. Format technical terms with backticks (`) for proper rendering. Adopt a measured, analytical tone similar to The Economist or scientific journals. Optionally include git commit information to link completed work with code changes.",
+    "Mark an action as completed with REQUIRED objective completion data. Provide concrete, factual information about what was changed, accomplished, and challenges encountered. The server will generate editorial content from this objective data combined with hook activity logs.",
     {
       action_id: z.string().uuid().describe("The ID of the action to complete"),
-      implementation_story: z.string().min(1).describe("How was this action implemented? What approach was taken, what tools were used, what challenges were overcome? Supports markdown formatting. IMPORTANT: Use backticks (`) around ALL technical terms including file paths (e.g., `/api/actions`), function names (e.g., `generateText()`), APIs, libraries, commands, and code-related terms."),
-      impact_story: z.string().min(1).describe("What was accomplished by completing this action? What impact did it have on the project or users? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical terms like metrics, API endpoints, database fields, etc."),
-      learning_story: z.string().min(1).describe("What insights were gained? What worked well or poorly? What would be done differently? Supports markdown formatting. IMPORTANT: Use backticks (`) around technical concepts, tools, and code-related terms."),
-      changelog_visibility: z.enum(["private", "team", "public"]).describe("REQUIRED: Who should see this completion context in changelog generation (default: 'team')"),
-      // Required editorial content for magazine-style display
-      headline: z.string().describe("REQUIRED: AI-generated headline in the style of The Economist or Nature (e.g., 'Search latency reduced by 70% through architectural improvements', 'New caching strategy improves database performance')"),
-      deck: z.string().describe("REQUIRED: AI-generated standfirst in the style of The Economist - a measured 2-3 sentence summary that provides context and key findings without hyperbole"),
-      pull_quotes: z.array(z.string()).describe("REQUIRED: AI-extracted notable quotes from the completion stories that highlight key findings, technical insights, or lessons learned - avoid superlatives"),
+      changelog_visibility: z.enum(["private", "team", "public"]).describe("REQUIRED: Who should see this completion context in changelog generation"),
+      
+      // Objective technical data (replaces implementation_story)
+      technical_changes: z.object({
+        files_modified: z.array(z.string()).default([]).describe("List of file paths that were modified (e.g., ['/lib/services/actions.ts', '/db/schema.ts'])"),
+        files_created: z.array(z.string()).default([]).describe("List of new file paths that were created (e.g., ['/api/new-endpoint/route.ts'])"),
+        functions_added: z.array(z.string()).default([]).describe("List of new function names added (e.g., ['createAction', 'updateMetadata'])"),
+        apis_modified: z.array(z.string()).default([]).describe("List of API endpoints modified (e.g., ['/api/actions', '/mcp/tools'])"),
+        dependencies_added: z.array(z.string()).default([]).describe("List of new dependencies added with versions (e.g., ['zod@3.22.0', '@vercel/ai@2.1.0'])"),
+        config_changes: z.array(z.string()).default([]).describe("List of configuration changes made (e.g., ['Updated eslint.config.js', 'Added DATABASE_URL env var'])"),
+      }).describe("Objective technical changes made during implementation"),
+      
+      // Objective outcomes (replaces impact_story)
+      outcomes: z.object({
+        features_implemented: z.array(z.string()).default([]).describe("List of user-facing features implemented (e.g., ['User authentication', 'File upload'])"),
+        bugs_fixed: z.array(z.string()).default([]).describe("List of specific bugs fixed (e.g., ['Memory leak in upload handler'])"),
+        performance_improvements: z.array(z.string()).default([]).describe("List of measurable performance improvements (e.g., ['Query speed improved 40%'])"),
+        tests_passing: z.boolean().optional().describe("Whether all tests are passing after completion"),
+        build_status: z.enum(["success", "failed", "unknown"]).optional().describe("Final build status"),
+      }).describe("Objective outcomes and results achieved"),
+      
+      // Objective challenges (replaces learning_story)
+      challenges: z.object({
+        blockers_encountered: z.array(z.string()).default([]).describe("List of blockers encountered (e.g., ['TypeScript compilation errors'])"),
+        blockers_resolved: z.array(z.string()).default([]).describe("List of how blockers were resolved (e.g., ['Fixed import path issues'])"),
+        approaches_tried: z.array(z.string()).default([]).describe("List of different approaches attempted (e.g., ['Tried Redis first, switched to PGlite'])"),
+        discoveries: z.array(z.string()).default([]).describe("List of insights or discoveries made (e.g., ['Found existing util function for validation'])"),
+      }).describe("Objective challenges and problem-solving information"),
+      
+      // Alignment reflection - agent's understanding of purpose fulfillment
+      alignment_reflection: z.object({
+        purpose_interpretation: z.string().describe("How the agent interpreted the action's goal/vision/description - what did you understand the purpose to be?"),
+        goal_achievement_assessment: z.string().describe("Agent's assessment of how well the intended goal was achieved - did you accomplish what was asked?"),
+        context_influence: z.string().describe("How family/dependency/project context influenced your approach - what context shaped your decisions?"),
+        assumptions_made: z.array(z.string()).default([]).describe("Key assumptions made during implementation that weren't explicitly specified"),
+      }).describe("REQUIRED: Agent reflection on purpose understanding and goal alignment for feedback loop"),
+      
       // Optional git context information
       git_context: z.object({
         commits: z.array(z.object({
@@ -410,15 +447,36 @@ export function registerTools(server: any) {
         })).optional().describe("Repositories involved in this work")
       }).optional().describe("Flexible git context including commits, pull requests, and repository information. Provide whatever information you have available."),
     },
-    async ({ action_id, implementation_story, impact_story, learning_story, changelog_visibility, headline, deck, pull_quotes, git_context }: { 
+    async ({ action_id, changelog_visibility, technical_changes, outcomes, challenges, alignment_reflection, git_context }: { 
       action_id: string; 
-      implementation_story: string;
-      impact_story: string;
-      learning_story: string;
       changelog_visibility: "private" | "team" | "public";
-      headline: string;
-      deck: string;
-      pull_quotes: string[];
+      technical_changes: {
+        files_modified: string[];
+        files_created: string[];
+        functions_added: string[];
+        apis_modified: string[];
+        dependencies_added: string[];
+        config_changes: string[];
+      };
+      outcomes: {
+        features_implemented: string[];
+        bugs_fixed: string[];
+        performance_improvements: string[];
+        tests_passing?: boolean;
+        build_status?: "success" | "failed" | "unknown";
+      };
+      challenges: {
+        blockers_encountered: string[];
+        blockers_resolved: string[];
+        approaches_tried: string[];
+        discoveries: string[];
+      };
+      alignment_reflection: {
+        purpose_interpretation: string;
+        goal_achievement_assessment: string;
+        context_influence: string;
+        assumptions_made: string[];
+      };
       git_context?: {
         commits?: Array<{
           hash?: string;
@@ -471,23 +529,53 @@ export function registerTools(server: any) {
           action_id,
           done: true,
           completion_context: {
-            implementation_story,
-            impact_story,
-            learning_story,
             changelog_visibility,
-            headline,
-            deck,
-            pull_quotes,
+            technical_changes,
+            outcomes,
+            challenges,
+            alignment_reflection,
             git_context
           }
         });
         
         let message = `✅ Completed action: ${action.data?.title}\nID: ${action.id}\nCompleted: ${action.updatedAt}`;
-        message += `\n\n📋 Completion Context Captured:`;
-        message += `\n• Implementation: ${implementation_story.substring(0, 100)}${implementation_story.length > 100 ? '...' : ''}`;
-        message += `\n• Impact: ${impact_story.substring(0, 100)}${impact_story.length > 100 ? '...' : ''}`;
-        message += `\n• Learning: ${learning_story.substring(0, 100)}${learning_story.length > 100 ? '...' : ''}`;
+        message += `\n\n📋 Objective Completion Data Captured:`;
+        
+        // Technical changes summary
+        const totalTechnicalChanges = technical_changes.files_modified.length + 
+                                    technical_changes.files_created.length + 
+                                    technical_changes.functions_added.length + 
+                                    technical_changes.apis_modified.length + 
+                                    technical_changes.dependencies_added.length + 
+                                    technical_changes.config_changes.length;
+        message += `\n• Technical Changes: ${totalTechnicalChanges} items`;
+        if (technical_changes.files_modified.length > 0) message += ` (${technical_changes.files_modified.length} files modified)`;
+        if (technical_changes.files_created.length > 0) message += ` (${technical_changes.files_created.length} files created)`;
+        
+        // Outcomes summary
+        const totalOutcomes = outcomes.features_implemented.length + 
+                            outcomes.bugs_fixed.length + 
+                            outcomes.performance_improvements.length;
+        message += `\n• Outcomes: ${totalOutcomes} achievements`;
+        if (outcomes.features_implemented.length > 0) message += ` (${outcomes.features_implemented.length} features)`;
+        if (outcomes.bugs_fixed.length > 0) message += ` (${outcomes.bugs_fixed.length} bugs fixed)`;
+        if (outcomes.tests_passing !== undefined) message += ` (tests: ${outcomes.tests_passing ? 'passing' : 'failing'})`;
+        
+        // Challenges summary
+        const totalChallenges = challenges.blockers_encountered.length + 
+                              challenges.approaches_tried.length + 
+                              challenges.discoveries.length;
+        message += `\n• Challenges: ${totalChallenges} items documented`;
+        if (challenges.blockers_encountered.length > 0) message += ` (${challenges.blockers_encountered.length} blockers)`;
+        if (challenges.discoveries.length > 0) message += ` (${challenges.discoveries.length} discoveries)`;
+        
         message += `\n• Visibility: ${changelog_visibility}`;
+        
+        // Alignment reflection summary
+        message += `\n\n🎯 Alignment Reflection:`;
+        message += `\n• Purpose: ${alignment_reflection.purpose_interpretation.substring(0, 80)}${alignment_reflection.purpose_interpretation.length > 80 ? '...' : ''}`;
+        message += `\n• Achievement: ${alignment_reflection.goal_achievement_assessment.substring(0, 80)}${alignment_reflection.goal_achievement_assessment.length > 80 ? '...' : ''}`;
+        if (alignment_reflection.assumptions_made.length > 0) message += `\n• Assumptions: ${alignment_reflection.assumptions_made.length} documented`;
         
         if (git_context?.commits && git_context.commits.length > 0) {
           message += `\n\n🔗 Git Information:`;
@@ -506,6 +594,8 @@ export function registerTools(server: any) {
             message += `\n• Pull Requests: ${git_context.pullRequests.length}`;
           }
         }
+        
+        message += `\n\n🤖 Server will generate editorial content from this objective data combined with hook activity logs.`;
 
         return {
           content: [
@@ -622,7 +712,7 @@ export function registerTools(server: any) {
   // search_actions - Search for actions using vector embeddings and keyword matching
   server.tool(
     "search_actions",
-    "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+    "Search for actions using vector embeddings, keyword matching, or ID-based relationship search. When query is a UUID, returns the target action plus all related actions (dependencies, dependents, family members). For text queries, uses semantic similarity and keyword matching.",
     {
       query: z.string().min(1).describe("Search query - can be keywords, phrases, or natural language description of what you're looking for"),
       limit: z.number().min(1).max(50).default(10).optional().describe("Maximum number of results to return (default: 10)"),
@@ -651,67 +741,110 @@ export function registerTools(server: any) {
         });
 
         let message = `🔍 **Search Results for:** "${query}"\n`;
-        message += `🎯 **Mode:** ${search_mode} search\n`;
-        message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total`;
         
-        if (searchResult.metadata.embeddingTimeMs) {
-          message += ` (${searchResult.metadata.embeddingTimeMs.toFixed(1)}ms embedding, ${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
-        } else {
-          message += ` (${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
-        }
-        message += `\n`;
-        
-        message += `📊 **Found:** ${searchResult.totalMatches} result${searchResult.totalMatches !== 1 ? 's' : ''}`;
-        if (searchResult.metadata.vectorMatches > 0 || searchResult.metadata.keywordMatches > 0) {
-          message += ` (${searchResult.metadata.vectorMatches} vector, ${searchResult.metadata.keywordMatches} keyword, ${searchResult.metadata.hybridMatches} hybrid)`;
-        }
-        message += `\n\n`;
-        
-        if (searchResult.results.length > 0) {
-          message += `✅ **Results:**\n\n`;
-          
-          searchResult.results.forEach((result, index) => {
-            const matchIcon = result.matchType === 'vector' ? '🧠' : result.matchType === 'keyword' ? '🔤' : '🎯';
-            const scoreDisplay = result.matchType === 'vector' ? 
-              `${(result.similarity! * 100).toFixed(1)}% similarity` : 
-              `score: ${result.score.toFixed(2)}`;
-            
-            message += `${index + 1}. ${matchIcon} **${result.title}** (${scoreDisplay})${result.done ? ' ✅' : ''}\n`;
-            message += `   ID: ${result.id}\n`;
-            
-            if (result.description) {
-              message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
-            }
-            
-            if (result.keywordMatches && result.keywordMatches.length > 0) {
-              message += `   Keywords: ${result.keywordMatches.join(', ')}\n`;
-            }
-            
-            if (result.hierarchyPath && result.hierarchyPath.length > 1) {
-              message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
-            }
-            
-            message += `   ${result.matchType} match\n`;
-            message += `\n`;
-          });
+        // Special handling for ID-based searches
+        if (searchResult.searchMode === 'id-based') {
+          message += `🎯 **Mode:** ID-based relationship search\n`;
+          message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total\n`;
           
           if (searchResult.results.length > 0) {
-            const topResult = searchResult.results[0];
-            message += `🏆 **Top Result:** "${topResult.title}" (ID: ${topResult.id})\n`;
-            message += `📈 **Best Match:** ${topResult.matchType} search with `;
-            if (topResult.matchType === 'vector') {
-              message += `${(topResult.similarity! * 100).toFixed(1)}% semantic similarity`;
-            } else {
-              message += `score ${topResult.score.toFixed(2)}`;
-            }
+            message += `📊 **Found:** Action and ${searchResult.totalMatches - 1} related actions\n\n`;
+            message += `✅ **Action and Relationships:**\n\n`;
+            
+            searchResult.results.forEach((result, index) => {
+              const isTarget = result.keywordMatches?.includes('TARGET ACTION');
+              const relationship = result.keywordMatches?.[0] || 'RELATED';
+              
+              let relationshipIcon = '🔗';
+              if (isTarget) relationshipIcon = '🎯';
+              else if (relationship === 'PARENT') relationshipIcon = '⬆️';
+              else if (relationship === 'CHILD') relationshipIcon = '⬇️';
+              else if (relationship === 'SIBLING') relationshipIcon = '↔️';
+              else if (relationship === 'DEPENDS ON TARGET') relationshipIcon = '📨';
+              else if (relationship === 'TARGET DEPENDS ON') relationshipIcon = '📩';
+              
+              message += `${index + 1}. ${relationshipIcon} **${result.title}**${result.done ? ' ✅' : ''}\n`;
+              message += `   ID: ${result.id}\n`;
+              message += `   Relationship: ${relationship}\n`;
+              
+              if (result.description) {
+                message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
+              }
+              
+              if (result.hierarchyPath && result.hierarchyPath.length > 1) {
+                message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
+              }
+              
+              message += `\n`;
+            });
+          } else {
+            message += `❌ **Action not found** - ID "${query}" does not exist\n`;
           }
         } else {
-          message += `❌ **No results found**\n`;
-          message += `   Try:\n`;
-          message += `   • Different keywords or phrases\n`;
-          message += `   • Lower similarity threshold (current: ${similarity_threshold})\n`;
-          message += `   • Including completed actions (--include_completed=true)\n`;
-          message += `   • Different search mode (vector, keyword, or hybrid)\n`;
+          // Regular search mode formatting
+          message += `🎯 **Mode:** ${search_mode} search\n`;
+          message += `⚡ **Performance:** ${searchResult.metadata.processingTimeMs.toFixed(1)}ms total`;
+          
+          if (searchResult.metadata.embeddingTimeMs) {
+            message += ` (${searchResult.metadata.embeddingTimeMs.toFixed(1)}ms embedding, ${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+          } else {
+            message += ` (${searchResult.metadata.searchTimeMs.toFixed(1)}ms search)`;
+          }
+          message += `\n`;
+          
+          message += `📊 **Found:** ${searchResult.totalMatches} result${searchResult.totalMatches !== 1 ? 's' : ''}`;
+          if (searchResult.metadata.vectorMatches > 0 || searchResult.metadata.keywordMatches > 0) {
+            message += ` (${searchResult.metadata.vectorMatches} vector, ${searchResult.metadata.keywordMatches} keyword, ${searchResult.metadata.hybridMatches} hybrid)`;
+          }
+          message += `\n\n`;
+          
+          if (searchResult.results.length > 0) {
+            message += `✅ **Results:**\n\n`;
+            
+            searchResult.results.forEach((result, index) => {
+              const matchIcon = result.matchType === 'vector' ? '🧠' : result.matchType === 'keyword' ? '🔤' : '🎯';
+              const scoreDisplay = result.matchType === 'vector' ? 
+                `${(result.similarity! * 100).toFixed(1)}% similarity` : 
+                `score: ${result.score.toFixed(2)}`;
+              
+              message += `${index + 1}. ${matchIcon} **${result.title}** (${scoreDisplay})${result.done ? ' ✅' : ''}\n`;
+              message += `   ID: ${result.id}\n`;
+              
+              if (result.description) {
+                message += `   Description: ${result.description.substring(0, 100)}${result.description.length > 100 ? '...' : ''}\n`;
+              }
+              
+              if (result.keywordMatches && result.keywordMatches.length > 0) {
+                message += `   Keywords: ${result.keywordMatches.join(', ')}\n`;
+              }
+              
+              if (result.hierarchyPath && result.hierarchyPath.length > 1) {
+                message += `   Path: ${result.hierarchyPath.join(' → ')}\n`;
+              }
+              
+              message += `   ${result.matchType} match\n`;
+              message += `\n`;
+            });
+          } else {
+            message += `❌ **No results found**\n`;
+            message += `   Try:\n`;
+            message += `   • Different keywords or phrases\n`;
+            message += `   • Lower similarity threshold (current: ${similarity_threshold})\n`;
+            message += `   • Including completed actions (--include_completed=true)\n`;
+            message += `   • Different search mode (vector, keyword, or hybrid)\n`;
+          }
+        }
+        
+        // Add top result summary for regular searches
+        if (searchResult.searchMode !== 'id-based' && searchResult.results.length > 0) {
+          const topResult = searchResult.results[0];
+          message += `🏆 **Top Result:** "${topResult.title}" (ID: ${topResult.id})\n`;
+          message += `📈 **Best Match:** ${topResult.matchType} search with `;
+          if (topResult.matchType === 'vector') {
+            message += `${(topResult.similarity! * 100).toFixed(1)}% semantic similarity`;
+          } else {
+            message += `score ${topResult.score.toFixed(2)}`;
+          }
         }
         
         message += `\n\n🧠 **Powered by:** OpenAI embeddings + PostgreSQL pgvector + fuzzy text matching`;
@@ -738,12 +871,164 @@ export function registerTools(server: any) {
     },
   );
 
+  // log_work - Add entry to work log
+  server.tool(
+    "log_work",
+    "Add an entry to the work log to track agent activity and collaboration",
+    {
+      content: z.string().min(1).describe("Rich narrative description of the work activity, including action IDs, blockers, discoveries, handoffs, etc."),
+      metadata: z.record(z.any()).optional().describe("Optional structured metadata like agent_id, action_ids, event_type, etc."),
+    },
+    async ({ content, metadata }: { content: string; metadata?: Record<string, any> }, extra: any) => {
+      try {
+        console.log(`Adding work log entry: ${content.substring(0, 100)}...`);
+        
+        const entry = await WorkLogService.addEntry({
+          content,
+          metadata,
+        });
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Added work log entry\nID: ${entry.id}\nTimestamp: ${entry.timestamp}\nContent: ${content}`,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error adding work log entry:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error adding work log entry: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // get_work_log - Retrieve recent work log entries
+  server.tool(
+    "get_work_log",
+    "Get recent work log entries to understand current activity and context",
+    {
+      limit: z.number().min(1).max(100).optional().describe("Number of entries to retrieve (default: 20)"),
+      search: z.string().optional().describe("Search term to filter entries by content"),
+      agent_id: z.string().optional().describe("Filter entries by specific agent ID"),
+    },
+    async ({ limit = 20, search, agent_id }: { limit?: number; search?: string; agent_id?: string }, extra: any) => {
+      try {
+        console.log(`Retrieving work log entries: limit=${limit}, search=${search}, agent_id=${agent_id}`);
+        
+        let entries;
+        if (search) {
+          entries = await WorkLogService.searchEntries(search, limit);
+        } else if (agent_id) {
+          entries = await WorkLogService.getEntriesByAgent(agent_id, limit);
+        } else {
+          entries = await WorkLogService.getRecentEntries(limit);
+        }
+
+        let message = `📋 **Work Log Entries** (${entries.length} found)\n\n`;
+        
+        if (entries.length === 0) {
+          message += "No work log entries found.";
+        } else {
+          entries.forEach((entry, index) => {
+            const timeAgo = new Date(Date.now() - entry.timestamp.getTime()).toISOString().substring(11, 19);
+            message += `**${index + 1}.** ${entry.content}\n`;
+            message += `   Time: ${entry.timestamp.toISOString()}\n`;
+            message += `   ID: ${entry.id}\n`;
+            if (entry.metadata && Object.keys(entry.metadata).length > 0) {
+              message += `   Metadata: ${JSON.stringify(entry.metadata)}\n`;
+            }
+            message += `\n`;
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error retrieving work log entries:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error retrieving work log entries: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  // get_action_work_log - Get work log entries for a specific action
+  server.tool(
+    "get_action_work_log",
+    "Get work log entries related to a specific action",
+    {
+      action_id: z.string().uuid().describe("ID of the action to get work log for"),
+      limit: z.number().min(1).max(50).optional().describe("Number of entries to retrieve (default: 10)"),
+    },
+    async ({ action_id, limit = 10 }: { action_id: string; limit?: number }, extra: any) => {
+      try {
+        console.log(`Getting work log for action: ${action_id}`);
+        
+        const entries = await WorkLogService.getEntriesForAction(action_id, limit);
+
+        let message = `📋 **Work Log for Action ${action_id}** (${entries.length} entries)\n\n`;
+        
+        if (entries.length === 0) {
+          message += "No work log entries found for this action.";
+        } else {
+          entries.forEach((entry, index) => {
+            message += `**${index + 1}.** ${entry.content}\n`;
+            message += `   Time: ${entry.timestamp.toISOString()}\n`;
+            message += `   ID: ${entry.id}\n`;
+            if (entry.metadata && Object.keys(entry.metadata).length > 0) {
+              message += `   Metadata: ${JSON.stringify(entry.metadata)}\n`;
+            }
+            message += `\n`;
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('Error getting action work log:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting action work log: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 
 }
 
 export const toolCapabilities = {
   create_action: {
-    description: "Create a new action in the database with a required family (use suggest_family to find appropriate placement)",
+    description: "Create a new action in the database with a required family",
   },
   add_dependency: {
     description: "Create a dependency relationship between two existing actions",
@@ -767,6 +1052,15 @@ export const toolCapabilities = {
     description: "Update an action's family relationship by having it join a new family or making it independent",
   },
   search_actions: {
-    description: "Search for actions using a combination of vector embeddings (semantic search) and keyword matching. Supports exact phrase search, semantic similarity, and hybrid approaches for finding relevant actions quickly.",
+    description: "Search for actions using vector embeddings, keyword matching, or ID-based relationship search. When query is a UUID, returns the target action plus all related actions (dependencies, dependents, family members). For text queries, uses semantic similarity and keyword matching.",
+  },
+  log_work: {
+    description: "Add an entry to the work log to track agent activity and collaboration",
+  },
+  get_work_log: {
+    description: "Get recent work log entries to understand current activity and context",
+  },
+  get_action_work_log: {
+    description: "Get work log entries related to a specific action",
   },
 };

@@ -1,6 +1,6 @@
 {
-  "id": "c0148262-ecda-4359-8ad3-e0d3c5847d7c",
-  "prevId": "00000000-0000-0000-0000-000000000012",
+  "id": "d1234567-89ab-cdef-0123-456789abcdef",
+  "prevId": "e1234567-89ab-cdef-0123-456789abcdef",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -158,50 +158,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "git_commit_hash": {
-          "name": "git_commit_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_message": {
-          "name": "git_commit_message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_branch": {
-          "name": "git_branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_author": {
-          "name": "git_commit_author",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_author_username": {
-          "name": "git_commit_author_username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_commit_timestamp": {
-          "name": "git_commit_timestamp",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_diff_stats": {
-          "name": "git_diff_stats",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "git_related_commits": {
-          "name": "git_related_commits",
+        "git_context": {
+          "name": "git_context",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
@@ -233,12 +191,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "structured_data": {
-          "name": "structured_data",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
@@ -394,6 +346,45 @@
           ]
         }
       },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.work_log": {
+      "name": "work_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

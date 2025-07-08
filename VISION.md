@@ -1,162 +1,63 @@
-# ActionBias Vision
+# DONE Vision
 
-## DONE: The Magazine of Completed Work
+## The same way you can vibe code, you can now vibe plan.
 
-ActionBias is evolving from a task management system into a comprehensive work historiographer - capturing, transforming, and preserving the complete story of how ideas become reality.
+Done keeps engineers in flow by making planning as intuitive as coding - natural, contextual, and collaborative with AI.
 
 **Done is the engine of more.**
 
-## The Three-Part Value Chain
+## The Three-Part Flow
 
-### A. Dreams → Structured Plans
-**Transform natural language aspirations into actionable hierarchies**
+### 1. Vibe Planning
+**Transform fuzzy ideas into executable work**
 
-- Capture vague ideas and transform them into concrete, hierarchical action plans
-- Automatically identify dependencies and relationships
-- Maintain context as plans evolve and adapt
-- Enable organic, flexible planning that grows with the project
+Natural language becomes structured plans through AI collaboration. No more rigid frameworks - just describe what you want and let the system organize dependencies, suggest next steps, and maintain context as ideas evolve.
 
-### B. Plans → Agent Work → Work Logs
-**Bridge between human intent and AI execution**
+### 2. Flow Execution  
+**AI agents work with perfect context**
 
-- Send structured plans to AI agents (Claude Code, GPTs, etc.)
-- Agents execute with full conversation history and context
-- Every command, error, decision, and iteration is logged
-- The work log becomes the raw material for knowledge transfer
+Send plans to Claude Code, GPTs, or any AI agent. They execute with full project history, conversation context, and understanding of what came before. Every decision and iteration is captured automatically.
 
-### C. Work Logs → Work Summaries
-**Transform verbose execution logs into organizational knowledge**
+### 3. Story Generation
+**Work becomes knowledge**
 
-- Convert thousands of lines of agent logs into digestible stories
-- Extract patterns, learnings, and impact from the noise
-- Create work journals that capture both what and why
-- Build institutional memory that persists across team changes
+Execution logs transform into completion stories that teams can learn from. Technical decisions, challenges overcome, and impact achieved - all preserved for future reference and team learning.
 
-## The Key Insight: Two Completion Paradigms
+## Three Core Principles
 
-### Agent Completion (Current Reality)
-When AI agents like Claude Code complete actions, they have perfect memory:
-- Complete conversation history
-- Every file examined
-- Every error encountered
-- Every decision's rationale
+### LLM-First Intelligence
+Intelligence belongs in the language model, not the server. The system provides rich context through MCP resources and lets AI agents reason about what to do next. No rigid algorithms - just collaborative intelligence.
 
-This allows for rich, detailed completion stories generated automatically from the work itself.
+### Context Preservation
+Every action connects to what came before and what comes next. Dependencies, relationships, and project history flow seamlessly between human planning and AI execution, keeping everyone in the loop.
 
-### Human Completion (The Challenge)
-Humans completing actions face different constraints:
-- Imperfect memory of what was done
-- Context switching erases details
-- Typing lengthy stories is friction
-- Mobile/keyboard input is limiting
+### Flow State Protection
+Minimize context switching through natural interfaces. Voice input, conversational completion, and AI-suggested next steps keep engineers focused on creating rather than managing overhead.
 
-## The Future: Differentiated Completion Experiences
+## Three Execution Modes
 
-### 1. Conversational Completion Mode
-Instead of blank textareas, guide humans through their work:
-- "What files did you change?" → Link GitHub commits
-- "What was the hardest part?" → Capture challenges
-- "What surprised you?" → Extract learnings
-- "Who will this help?" → Identify impact
+### Solo Flow
+Individual engineers plan and execute with AI assistance. Natural language planning transforms into structured work. AI agents execute with full context while the engineer stays focused on high-level direction.
 
-### 2. Mobile-First Human Experience
-- Voice input for natural storytelling
-- Swipe through guided prompts
-- Photo/screenshot attachments for context
-- GitHub/GitLab integration for automatic commit linking
-- Quick capture in the moment, not after the fact
+### Team Coordination
+Shared project context across team members. Everyone sees the full picture - what's been done, what's in progress, and what's next. No more status meetings or context reconstruction.
 
-### 3. Visual Distinction
-- **Agent completions**: Technical logs, command histories, systematic execution
-- **Human completions**: Narrative stories, emotional journey, experiential insights
-- Different styling in the work journal to honor both types
+### Organizational Memory
+Completed work becomes institutional knowledge. Technical decisions, implementation approaches, and lessons learned persist across team changes and project evolution.
 
-### 4. Hybrid Intelligence
-- Start with AI draft based on available signals (commits, PRs, calendar)
-- Human validates and enriches with experience
-- AI helps structure and extract insights
-- Result: Best of both systematic and experiential knowledge
+## Three-Phase Evolution
 
-## The Bigger Picture
+### Phase 1: Engineering Flow
+Perfect the core experience for technical teams. Natural planning interfaces, seamless AI agent integration, and rich completion stories that capture both the what and the why of engineering work.
 
-ActionBias becomes more than project management - it's a system for:
+### Phase 2: Cross-Functional Teams  
+Expand to product, design, and business teams. Different templates and workflows while maintaining the core flow principles. Each discipline gets appropriate context and tooling.
 
-1. **Organizational Learning**: Every action completed adds to collective knowledge
-2. **Context Preservation**: Future team members understand not just what but why
-3. **Work Attribution**: Clear record of human creativity vs. AI execution
-4. **Pattern Recognition**: Identify what types of work suit agents vs. humans
+### Phase 3: Organization-Wide Adoption
+Full company deployment with role-based access, multiple project streams, and sophisticated analytics. The system becomes the central nervous system for all meaningful work.
 
-## Near-Term Evolution
+## The Future of Work
 
-1. **Voice Interfaces**: Natural completion through conversation
-2. **Commit Integration**: Automatic work detection from version control
-3. **Multi-Modal Capture**: Screenshots, sketches, voice memos as completion context
-4. **Completion Analytics**: Understand velocity, quality, and patterns
+Done becomes the bridge between human creativity and AI capability. Engineers dream and direct while AI executes and documents. The result: teams that ship faster, learn continuously, and never lose context.
 
-## Template Strategy: Start Focused, Expand Systematically
-
-### Launch with Engineering Focus
-- Technical, clean design with monospace elements
-- Fields: Implementation details, performance metrics, technical decisions
-- Tone: Precise, systematic, peer-to-peer
-
-### Then Expand with Templates for Different Work
-
-**Business Strategy Template**
-- Professional design, executive feel
-- Fields: Market impact, competitive advantage, ROI
-- Tone: Strategic, outcomes-focused
-
-**Creative Work Template**
-- Visual, magazine-style, bold typography
-- Fields: Inspiration sources, creative process, audience impact
-- Tone: Narrative, emotional journey
-
-**Research Template**
-- Academic styling, citation-friendly
-- Fields: Methodology, findings, implications
-- Tone: Analytical, evidence-based
-
-### Internal vs. External Variants
-
-**Internal Templates Include:**
-- Technical debt acknowledged
-- Risks being monitored
-- Follow-on work deferred
-- Resource constraints faced
-- Honest retrospectives
-
-**External Templates Emphasize:**
-- Success metrics achieved
-- Value delivered to users
-- Innovation demonstrated
-- Team accomplishments
-- Future possibilities
-
-The same completed action generates different outputs for different audiences.
-
-## Architectural Philosophy: LLM-First Intelligence
-
-ActionBias embraces a fundamental architectural principle: **Intelligence belongs in the LLM, not the server.**
-
-Rather than building complex recommendation algorithms, scoring systems, and decision engines into our backend, we provide rich data through MCP resources and let LLMs apply their reasoning capabilities. This approach:
-
-- **Leverages LLM Strengths**: Each AI model can apply its unique reasoning capabilities to understand context and make recommendations
-- **Reduces Complexity**: The server focuses on data storage and retrieval, not decision-making logic
-- **Increases Flexibility**: Users can customize their prioritization through prompts rather than rigid algorithms
-- **Enables Evolution**: As LLMs improve, the system automatically gets smarter without code changes
-- **Supports Diversity**: Different users can apply different reasoning strategies through their choice of prompts
-
-The server provides the map; the LLM navigates the territory.
-
-## Long-Term Vision
-
-ActionBias becomes the bridge between human creativity and AI capability:
-- Humans dream and direct
-- AI executes and logs
-- System captures and transforms
-- Organization learns and evolves
-
-The future of work isn't human OR AI - it's human AND AI, with ActionBias as the historiographer capturing the full story of their collaboration.
-
-**DONE** becomes the universal magazine of meaningful work - where every completion is a story worth telling.
+The future isn't human OR AI - it's human AND AI, staying in flow together.
