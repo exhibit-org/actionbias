@@ -47,3 +47,4 @@ custom-adapter-test-*/
 dev.log
 test-*.mjs
 .claude-trace/
+.mcp.json
