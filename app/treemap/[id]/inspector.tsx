@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Copy, Link, Square, CheckSquare } from 'react-feather';
+import { Check, Copy, Link, Square, CheckSquare, Trash2 } from 'react-feather';
 import EditableField from '../../next/components/EditableField';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
@@ -22,6 +22,8 @@ interface TreemapInspectorProps {
   inspectorWidth?: number;
   isDragging?: boolean;
   setIsDragging?: (dragging: boolean) => void;
+  onDelete?: (actionId: string, childHandling: 'reparent' | 'delete_recursive') => void;
+  deleting?: boolean;
 }
 
 // Dark theme colors for the inspector
@@ -50,9 +52,13 @@ export default function TreemapInspector({
   isMobile,
   inspectorWidth = 320,
   isDragging,
-  setIsDragging
+  setIsDragging,
+  onDelete,
+  deleting = false
 }: TreemapInspectorProps) {
   const [savingField, setSavingField] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [childHandling, setChildHandling] = useState<'reparent' | 'delete_recursive'>('reparent');
 
   const handleUpdateField = async (field: 'title' | 'description' | 'vision', value: string) => {
     if (!selectedActionDetail) return;
@@ -160,6 +166,20 @@ export default function TreemapInspector({
               >
                 {selectedActionDetail.done ? <CheckSquare size={14} /> : <Square size={14} />}
               </button>
+              {onDelete && (
+                <button 
+                  onClick={() => {
+                    // Reset child handling to default when opening modal
+                    setChildHandling(selectedActionDetail.parent_id ? 'reparent' : 'delete_recursive');
+                    setShowDeleteModal(true);
+                  }}
+                  disabled={deleting}
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-red-400 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Delete action"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
             </div>
             
             {/* Editable fields */}
@@ -265,6 +285,98 @@ export default function TreemapInspector({
           </div>
         )}
       </div>
+      
+      {/* Delete confirmation modal */}
+      {showDeleteModal && selectedActionDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold text-gray-100 mb-4">Delete Action</h2>
+            <p className="text-sm text-gray-300 mb-4">
+              Are you sure you want to delete "{selectedActionDetail.title}"? This action cannot be undone.
+            </p>
+            
+            {/* Child handling options */}
+            {selectedActionDetail.children.length > 0 && (
+              <div className="bg-gray-700 border border-gray-600 rounded p-4 mb-4">
+                <p className="text-sm text-gray-300 mb-3">
+                  This action has {selectedActionDetail.children.length} child action{selectedActionDetail.children.length !== 1 ? 's' : ''}. 
+                  What should happen to them?
+                </p>
+                
+                {/* Child action list */}
+                <div className="mb-3 p-3 bg-gray-800 rounded border border-gray-600">
+                  <div className="text-xs text-gray-400 font-mono mb-2">Child actions:</div>
+                  <div className="space-y-1">
+                    {selectedActionDetail.children.map((child) => (
+                      <div key={child.id} className="text-xs text-gray-300 font-mono flex items-center">
+                        <span className={`mr-2 ${child.done ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {child.done ? '✓' : '○'}
+                        </span>
+                        <span className="truncate">{child.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {selectedActionDetail.parent_id && (
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="childHandling"
+                        value="reparent"
+                        checked={childHandling === 'reparent'}
+                        onChange={(e) => setChildHandling(e.target.value as 'reparent')}
+                        className="mt-1 text-blue-500 bg-gray-800 border-gray-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <div className="text-sm text-gray-200">Move to parent action</div>
+                        <div className="text-xs text-gray-400">Child actions will be moved to the parent level</div>
+                      </div>
+                    </label>
+                  )}
+                  
+                  <label className="flex items-start space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="childHandling"
+                      value="delete_recursive"
+                      checked={childHandling === 'delete_recursive'}
+                      onChange={(e) => setChildHandling(e.target.value as 'delete_recursive')}
+                      className="mt-1 text-blue-500 bg-gray-800 border-gray-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <div className="text-sm text-gray-200">Delete all children</div>
+                      <div className="text-xs text-gray-400">All child actions will also be permanently deleted</div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-sm bg-gray-700 text-gray-200 hover:bg-gray-600 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (onDelete) {
+                    onDelete(selectedActionDetail.id, childHandling);
+                    setShowDeleteModal(false);
+                  }
+                }}
+                disabled={deleting}
+                className="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed rounded transition-colors"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -131,6 +131,7 @@ function TreemapIdPageContent() {
   const [copyingUrl, setCopyingUrl] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(320); // Default width in pixels
   const [isDragging, setIsDragging] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -365,6 +366,67 @@ function TreemapIdPageContent() {
     }
   };
 
+  // Delete action handler
+  const handleDelete = async (actionId: string, childHandling: 'reparent' | 'delete_recursive') => {
+    if (!selectedActionDetail) return;
+    
+    try {
+      setDeleting(true);
+      
+      // Prepare delete parameters
+      const deleteParams: { child_handling: string; new_parent_id?: string } = {
+        child_handling: childHandling,
+      };
+      
+      // If using reparent mode and action has children and a parent, provide the parent ID
+      if (childHandling === 'reparent' && selectedActionDetail.children.length > 0 && selectedActionDetail.parent_id) {
+        deleteParams.new_parent_id = selectedActionDetail.parent_id;
+      }
+      
+      const response = await fetch(`/api/actions/${actionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(deleteParams),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete action: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete action');
+      }
+      
+      // Clear selection
+      setSelectedNodeId(null);
+      setLastClickedNodeId(null);
+      setSelectedActionDetail(null);
+      
+      // Refresh tree data
+      const treeResponse = await fetch('/api/tree');
+      const treeResult = await treeResponse.json();
+      if (treeResult.success) {
+        setTreeData(treeResult.data);
+        
+        // Update target action if needed
+        if (!isRootView) {
+          const foundAction = findActionInTree(treeResult.data.rootActions, actionId);
+          if (foundAction) {
+            setTargetAction(foundAction);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete action:', err);
+      // TODO: Show user-friendly error message
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-black">
@@ -526,6 +588,8 @@ function TreemapIdPageContent() {
             inspectorWidth={inspectorWidth}
             isDragging={isDragging}
             setIsDragging={setIsDragging}
+            onDelete={handleDelete}
+            deleting={deleting}
           />
         </div>
       </div>
