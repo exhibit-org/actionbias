@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
@@ -435,18 +435,28 @@ function TreemapIdPageContent() {
   const displayNodes = displayAction ? displayAction.children : treeData.rootActions;
   const displayTitle = displayAction ? displayAction.title : 'Actions';
   
-  // Find the highlight subtree root within the display nodes
+  // Create base treemap data without highlighting (memoized for performance)
+  const baseTreemapData = useMemo(() => {
+    return displayNodes.length > 0 ? {
+      name: displayTitle,
+      children: transformToTreemapData(displayNodes, undefined, undefined, 0, maxDepth)
+    } : {
+      name: displayTitle,
+      value: 1,
+      color: '#4b5563'
+    };
+  }, [displayNodes, displayTitle, maxDepth]);
+
+  // Apply highlighting to the memoized data
   const highlightSubtreeRoot = highlightNodeId ? findNodeInTree(displayNodes, highlightNodeId) : null;
-  
-  // Create treemap data
-  const treemapData = displayNodes.length > 0 ? {
-    name: displayTitle,
-    children: transformToTreemapData(displayNodes, highlightNodeId || undefined, highlightSubtreeRoot || undefined, 0, maxDepth)
-  } : {
-    name: displayTitle,
-    value: 1,
-    color: '#4b5563'
-  };
+  const treemapData = useMemo(() => {
+    if (!highlightNodeId || !baseTreemapData.children) return baseTreemapData;
+    
+    return {
+      ...baseTreemapData,
+      children: transformToTreemapData(displayNodes, highlightNodeId, highlightSubtreeRoot || undefined, 0, maxDepth)
+    };
+  }, [baseTreemapData, displayNodes, highlightNodeId, highlightSubtreeRoot, maxDepth]);
 
 
   return (
