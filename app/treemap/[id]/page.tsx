@@ -25,7 +25,8 @@ const MemoizedTreemap = memo(({
   selectedNodeId,
   hoveredNodeId,
   setHoveredNodeId,
-  displayNodes 
+  displayNodes,
+  dataRevision
 }: {
   treemapData: any;
   actionId: string;
@@ -35,10 +36,11 @@ const MemoizedTreemap = memo(({
   hoveredNodeId: string | null;
   setHoveredNodeId: (id: string | null) => void;
   displayNodes: ActionNode[];
+  dataRevision: number;
 }) => {
   return (
     <ResponsiveTreeMapHtml
-      key={`treemap-${actionId}-${maxDepth || 'unlimited'}`}
+      key={`treemap-${actionId}-${maxDepth || 'unlimited'}-rev${dataRevision}`}
       data={treemapData}
       identity="id"
       value="value"
@@ -132,6 +134,7 @@ function TreemapIdPageContent() {
   const [inspectorWidth, setInspectorWidth] = useState(320); // Default width in pixels
   const [isDragging, setIsDragging] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [dataRevision, setDataRevision] = useState(0);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -165,6 +168,7 @@ function TreemapIdPageContent() {
         
         if (result.success) {
           setTreeData(result.data);
+          setDataRevision(prev => prev + 1); // Force treemap re-render
           
           if (!isRootView) {
             // Find the target action in the tree
@@ -410,12 +414,16 @@ function TreemapIdPageContent() {
       const treeResult = await treeResponse.json();
       if (treeResult.success) {
         setTreeData(treeResult.data);
+        setDataRevision(prev => prev + 1); // Force treemap re-render
         
-        // Update target action if needed
+        // Update target action if needed - use the page's actionId, not the deleted action's ID
         if (!isRootView) {
-          const foundAction = findActionInTree(treeResult.data.rootActions, actionId);
+          const foundAction = findActionInTree(treeResult.data.rootActions, params.id as string);
           if (foundAction) {
             setTargetAction(foundAction);
+          } else {
+            // If the current page's action was deleted, navigate back to root
+            router.push('/treemap/root');
           }
         }
       }
@@ -553,6 +561,7 @@ function TreemapIdPageContent() {
               hoveredNodeId={hoveredNodeId}
               setHoveredNodeId={setHoveredNodeId}
               displayNodes={displayNodes}
+              dataRevision={dataRevision}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
