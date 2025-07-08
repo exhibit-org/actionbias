@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
-import { Copy, Link, Check, Square, CheckSquare } from 'react-feather';
+import TreemapInspector from './inspector';
 import { 
   TreemapData, 
   countDescendants, 
@@ -286,10 +286,6 @@ function TreemapIdPageContent() {
     }
   };
   
-  // Find selected node data
-  const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
-  const hoveredNode = hoveredNodeId ? findNodeInTree(treeData?.rootActions || [], hoveredNodeId) : null;
-  const inspectorNode = selectedNode || hoveredNode;
 
   // Fetch detailed action data when a node is selected
   useEffect(() => {
@@ -344,121 +340,30 @@ function TreemapIdPageContent() {
     }
   };
 
-  // Inspector component
-  const Inspector = () => (
-    <div 
-      className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} transition-all duration-300 flex flex-col`} 
-      style={{ 
-        ...getInspectorStyle(),
-        maxHeight: '100vh', 
-        overflow: 'hidden' 
-      }}
-    >
-      {/* Inspector header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-700">
-        {!isInspectorMinimized && (
-          <div className="flex items-center space-x-2">
-            <h3 className="text-sm font-mono text-gray-200">Inspector</h3>
-            {selectedNodeId && (
-              <button
-                onClick={() => {
-                  setSelectedNodeId(null);
-                  setLastClickedNodeId(null);
-                }}
-                className="text-xs text-gray-400 hover:text-gray-200 transition-colors px-2 py-1 rounded bg-gray-800 hover:bg-gray-700"
-                title="Clear selection"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        )}
-        <button
-          onClick={() => setIsInspectorMinimized(!isInspectorMinimized)}
-          className="text-gray-400 hover:text-gray-200 transition-colors p-1"
-          title={isInspectorMinimized ? 'Expand inspector' : 'Minimize inspector'}
-        >
-          {isInspectorMinimized ? (
-            !isMobile ? '◀' : '▲'
-          ) : (
-            !isMobile ? '▶' : '▼'
-          )}
-        </button>
-      </div>
+  // Toggle complete handler
+  const handleToggleComplete = async () => {
+    if (!selectedActionDetail) return;
+    
+    try {
+      const endpoint = selectedActionDetail.done 
+        ? `/api/actions/${selectedActionDetail.id}/uncomplete`
+        : `/api/actions/${selectedActionDetail.id}/complete`;
       
-      {/* Inspector content */}
-      {!isInspectorMinimized && (
-        <div className="flex-1 overflow-y-auto flex flex-col h-full">
-          {selectedNodeId && selectedActionDetail ? (
-            <>
-              {/* Action buttons */}
-              <div className="p-3 border-b border-gray-700 flex gap-2">
-                <button 
-                  onClick={copyPromptToClipboard} 
-                  disabled={copying} 
-                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                  title="Copy prompt to clipboard"
-                >
-                  {copying ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-                <button 
-                  onClick={copyActionUrl} 
-                  disabled={copyingUrl} 
-                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                  title="Copy action URL"
-                >
-                  {copyingUrl ? <Check size={14} /> : <Link size={14} />}
-                </button>
-                <button 
-                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                  title={selectedActionDetail.done ? "Reopen action" : "Complete action"}
-                >
-                  {selectedActionDetail.done ? <CheckSquare size={14} /> : <Square size={14} />}
-                </button>
-              </div>
-              
-              {/* Action details */}
-              <div className="flex-1 p-3 overflow-y-auto">
-                {loadingActionDetail ? (
-                  <div className="text-xs text-gray-400 font-mono">Loading action details...</div>
-                ) : (
-                  <div className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-words">
-                    {buildActionPrompt(selectedActionDetail)}
-                  </div>
-                )}
-              </div>
-            </>
-          ) : inspectorNode ? (
-            <div className="p-3 space-y-3">
-              <div>
-                <div className="text-xs text-gray-400 font-mono mb-1">Title</div>
-                <div className="text-sm text-gray-200 font-mono">{inspectorNode.title}</div>
-              </div>
-              
-              <div>
-                <div className="text-xs text-gray-400 font-mono mb-1">Status</div>
-                <div className="text-xs text-gray-300 font-mono">
-                  {selectedNodeId === inspectorNode.id ? 'Click again to focus and view details' : 'Hovered - click to select'}
-                </div>
-              </div>
-              
-              {inspectorNode.children.length > 0 && (
-                <div>
-                  <div className="text-xs text-gray-400 font-mono mb-1">Children</div>
-                  <div className="text-xs text-gray-300 font-mono">{inspectorNode.children.length} child{inspectorNode.children.length !== 1 ? 'ren' : ''}</div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="p-3 text-xs text-gray-500 font-mono space-y-2">
-              <div>Click a node to select and inspect</div>
-              <div>Click again to focus and view full details</div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+      const response = await fetch(endpoint, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to toggle completion');
+      
+      // Refetch action details
+      const detailResponse = await fetch(`/api/actions/${selectedActionDetail.id}`);
+      if (detailResponse.ok) {
+        const data = await detailResponse.json();
+        if (data.success) {
+          setSelectedActionDetail(data.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to toggle completion:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -601,17 +506,27 @@ function TreemapIdPageContent() {
           )}
           </div>
           
-          {/* Resize handle - only show on desktop when inspector is expanded */}
-          {!isMobile && !isInspectorMinimized && (
-            <div
-              className="w-1 bg-gray-700 hover:bg-gray-600 cursor-col-resize flex-shrink-0 transition-colors"
-              onMouseDown={() => setIsDragging(true)}
-              title="Drag to resize inspector"
-            />
-          )}
-          
-          {/* Inspector */}
-          <Inspector />
+          {/* Inspector with resize handle */}
+          <TreemapInspector 
+            selectedActionDetail={selectedActionDetail}
+            loadingActionDetail={loadingActionDetail}
+            copying={copying}
+            copyingUrl={copyingUrl}
+            onCopyPrompt={copyPromptToClipboard}
+            onCopyUrl={copyActionUrl}
+            onToggleComplete={handleToggleComplete}
+            onClearSelection={() => {
+              setSelectedNodeId(null);
+              setLastClickedNodeId(null);
+              setSelectedActionDetail(null);
+            }}
+            isMinimized={isInspectorMinimized}
+            onToggleMinimize={() => setIsInspectorMinimized(!isInspectorMinimized)}
+            isMobile={isMobile}
+            inspectorWidth={inspectorWidth}
+            isDragging={isDragging}
+            setIsDragging={setIsDragging}
+          />
         </div>
       </div>
     </div>
