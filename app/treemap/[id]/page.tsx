@@ -560,9 +560,13 @@ function TreemapIdPageContent() {
                   const parent = findParentOfNode(displayNodes, nodeId);
                   const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
                   if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
-                    // Use hash-based color for siblings
+                    // Use new color palette for siblings
                     const siblingColors = [
-                      '#3b82f6', '#1d4ed8', '#1e40af', '#60a5fa', '#2563eb', '#93c5fd'
+                      '#22C55E', // Bright green
+                      '#152614', // Very dark green
+                      '#1E441E', // Dark green  
+                      '#E54B4B', // Red/coral
+                      '#FFA987', // Peach/salmon
                     ];
                     const hash = nodeId.split('').reduce((a: number, b: string) => {
                       a = ((a << 5) - a) + b.charCodeAt(0);
