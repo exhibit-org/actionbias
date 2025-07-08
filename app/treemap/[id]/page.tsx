@@ -174,6 +174,36 @@ function TreemapIdPageContent() {
             // Find the target action in the tree
             const foundAction = findActionInTree(result.data.rootActions, actionId);
             if (foundAction) {
+              // Check if this is a leaf node (no children)
+              if (foundAction.children.length === 0) {
+                // This is a leaf node - redirect to parent
+                // First try to find the parent by searching for actions that have this as a child
+                const findParentAction = (nodes: ActionNode[], targetId: string): ActionNode | null => {
+                  for (const node of nodes) {
+                    if (node.children.some(child => child.id === targetId)) {
+                      return node;
+                    }
+                    const parentInChildren = findParentAction(node.children, targetId);
+                    if (parentInChildren) return parentInChildren;
+                  }
+                  return null;
+                };
+                
+                const parentAction = findParentAction(result.data.rootActions, actionId);
+                if (parentAction) {
+                  // Redirect to parent action
+                  const params = new URLSearchParams();
+                  if (maxDepth) params.set('depth', maxDepth.toString());
+                  router.replace(`/treemap/${parentAction.id}?${params.toString()}`);
+                  return;
+                } else {
+                  // No parent found, redirect to root
+                  const params = new URLSearchParams();
+                  if (maxDepth) params.set('depth', maxDepth.toString());
+                  router.replace(`/treemap/root?${params.toString()}`);
+                  return;
+                }
+              }
               setTargetAction(foundAction);
             } else {
               setError(`Action with ID ${actionId} not found`);
@@ -192,7 +222,7 @@ function TreemapIdPageContent() {
     if (actionId) {
       fetchTreeData();
     }
-  }, [actionId, isRootView]);
+  }, [actionId, isRootView, maxDepth, router]);
 
   // Window resize handler for responsive inspector
   useEffect(() => {
@@ -246,14 +276,18 @@ function TreemapIdPageContent() {
     const currentTime = Date.now();
     const doubleClickDelay = 500; // ms
     
+    // Find the node to check if it's a leaf
+    const actionNode = findNodeInTree(displayNodes, nodeId);
+    const isLeaf = actionNode && actionNode.children.length === 0;
+    
     // Check if this is a second click on the same node within the delay
     const isSecondClick = lastClickedNodeId === nodeId && 
                          (currentTime - lastClickTime) < doubleClickDelay;
     
-    console.log('CLICK DEBUG:', { nodeId, isSecondClick, lastClickedNodeId, timeDiff: currentTime - lastClickTime });
+    console.log('CLICK DEBUG:', { nodeId, isSecondClick, lastClickedNodeId, timeDiff: currentTime - lastClickTime, isLeaf });
     
-    if (isSecondClick) {
-      // Second click: navigate to focus on this node
+    if (isSecondClick && !isLeaf) {
+      // Second click: navigate to focus on this node (only if not a leaf)
       console.log('NAVIGATING to:', nodeId);
       const params = new URLSearchParams();
       if (maxDepth) params.set('depth', maxDepth.toString());

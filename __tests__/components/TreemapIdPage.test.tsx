@@ -4,12 +4,14 @@ import { ActionTreeResource } from '../../lib/types/resources';
 
 // Mock Next.js navigation
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockParams = { id: '1' };
 const mockGet = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
   useParams: () => mockParams,
   useSearchParams: () => ({
@@ -84,6 +86,7 @@ describe('TreemapIdPage', () => {
   beforeEach(() => {
     (global.fetch as jest.Mock).mockClear();
     mockPush.mockClear();
+    mockReplace.mockClear();
     mockGet.mockClear();
   });
 
@@ -121,8 +124,28 @@ describe('TreemapIdPage', () => {
     expect(screen.getByText('← Back to Full Tree')).toBeInTheDocument();
   });
 
-  it('renders message for action with no children', async () => {
-    // Mock params to point to an action with no children
+  it('redirects leaf nodes to parent when they have one', async () => {
+    // Mock params to point to an action with no children (leaf node with parent)
+    mockParams.id = '3';
+    
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: mockTreeData
+      })
+    });
+
+    mockGet.mockReturnValue(null); // No depth parameter
+    render(<TreemapIdPage />);
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/treemap/1?');
+    });
+  });
+
+  it('redirects leaf nodes to root when they have no parent', async () => {
+    // Mock params to point to an action with no children (leaf node)
     mockParams.id = '5';
     
     (global.fetch as jest.Mock).mockResolvedValue({
@@ -137,10 +160,8 @@ describe('TreemapIdPage', () => {
     render(<TreemapIdPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('This action has no children')).toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/treemap/root?');
     });
-
-    expect(screen.getByText('Root Action 3')).toBeInTheDocument();
   });
 
   it('renders error when action not found', async () => {
