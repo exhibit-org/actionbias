@@ -116,20 +116,9 @@ function TreemapIdPageContent() {
   const displayAction = isRootView ? null : targetAction;
   const displayNodes = displayAction ? displayAction.children : treeData?.rootActions || [];
   const displayTitle = displayAction ? displayAction.title : 'Actions';
-  
-  // Debug logging for dependencies
-  console.log('=== Treemap Dependencies Debug ===');
-  console.log('treeData changed:', treeData ? 'exists' : 'null');
-  console.log('targetAction changed:', targetAction ? targetAction.id : 'null');
-  console.log('displayAction changed:', displayAction ? displayAction.id : 'null');
-  console.log('displayNodes length:', displayNodes.length);
-  console.log('displayTitle:', displayTitle);
-  console.log('selectedNodeId:', selectedNodeId);
-  console.log('selectedActionDetail:', selectedActionDetail ? 'exists' : 'null');
 
   // Create stable treemap data that never changes structure (only for layout)
   const stableTreemapData = useMemo(() => {
-    console.log('Recalculating stable treemap data - displayNodes length:', displayNodes.length, 'displayTitle:', displayTitle, 'maxDepth:', maxDepth);
     return displayNodes.length > 0 ? {
       name: displayTitle,
       children: transformToTreemapData(displayNodes, 0, maxDepth)
@@ -144,27 +133,20 @@ function TreemapIdPageContent() {
   const treemapData = stableTreemapData;
 
   useEffect(() => {
-    console.log('=== Tree Data Fetch useEffect triggered ===');
-    console.log('actionId:', actionId, 'isRootView:', isRootView);
-    
     const fetchTreeData = async () => {
       try {
-        console.log('Starting to fetch tree data');
         const response = await fetch('/api/tree');
         const result = await response.json();
         
         if (result.success) {
-          console.log('Successfully fetched tree data');
           setTreeData(result.data);
           
           if (!isRootView) {
             // Find the target action in the tree
             const foundAction = findActionInTree(result.data.rootActions, actionId);
             if (foundAction) {
-              console.log('Found target action:', foundAction.id);
               setTargetAction(foundAction);
             } else {
-              console.error(`Action with ID ${actionId} not found`);
               setError(`Action with ID ${actionId} not found`);
             }
           }
@@ -175,7 +157,6 @@ function TreemapIdPageContent() {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
-        console.log('Finished fetching tree data');
       }
     };
 
@@ -208,17 +189,13 @@ function TreemapIdPageContent() {
     const isSecondClick = lastClickedNodeId === nodeId && 
                          (currentTime - lastClickTime) < doubleClickDelay;
     
-    console.log('Node clicked:', nodeId, 'isSecondClick:', isSecondClick);
-    
     if (isSecondClick) {
       // Second click: navigate to focus on this node
-      console.log('Double click detected - navigating to:', nodeId);
       const params = new URLSearchParams();
       if (maxDepth) params.set('depth', maxDepth.toString());
       router.push(`/treemap/${nodeId}?${params.toString()}`);
     } else {
       // First click: select node and freeze highlighting
-      console.log('Single click - selecting node:', nodeId);
       setSelectedNodeId(nodeId);
       setLastClickedNodeId(nodeId);
       setLastClickTime(currentTime);
@@ -242,32 +219,25 @@ function TreemapIdPageContent() {
 
   // Fetch detailed action data when a node is selected
   useEffect(() => {
-    console.log('=== Action Detail Fetch useEffect triggered ===');
-    console.log('selectedNodeId:', selectedNodeId);
-    
     const fetchActionDetail = async (actionId: string) => {
       try {
-        console.log('Starting to fetch action details for:', actionId);
         setLoadingActionDetail(true);
         const response = await fetch(`/api/actions/${actionId}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.error || 'Failed to fetch action details');
-        console.log('Successfully fetched action details for:', actionId);
         setSelectedActionDetail(data.data);
       } catch (err) {
         console.error('Error fetching action details:', err);
         setSelectedActionDetail(null);
       } finally {
         setLoadingActionDetail(false);
-        console.log('Finished fetching action details for:', actionId);
       }
     };
 
     if (selectedNodeId) {
       fetchActionDetail(selectedNodeId);
     } else {
-      console.log('Clearing selected action detail');
       setSelectedActionDetail(null);
       setLoadingActionDetail(false);
     }
