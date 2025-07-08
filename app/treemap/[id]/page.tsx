@@ -189,13 +189,17 @@ function TreemapIdPageContent() {
     const isSecondClick = lastClickedNodeId === nodeId && 
                          (currentTime - lastClickTime) < doubleClickDelay;
     
+    console.log('CLICK DEBUG:', { nodeId, isSecondClick, lastClickedNodeId, timeDiff: currentTime - lastClickTime });
+    
     if (isSecondClick) {
       // Second click: navigate to focus on this node
+      console.log('NAVIGATING to:', nodeId);
       const params = new URLSearchParams();
       if (maxDepth) params.set('depth', maxDepth.toString());
       router.push(`/treemap/${nodeId}?${params.toString()}`);
     } else {
       // First click: select node and freeze highlighting
+      console.log('SELECTING node:', nodeId);
       setSelectedNodeId(nodeId);
       setLastClickedNodeId(nodeId);
       setLastClickTime(currentTime);
