@@ -142,6 +142,35 @@ function TreemapIdPageContent() {
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
 
+  // Determine what to display (computed values for memoization)
+  const displayAction = isRootView ? null : targetAction;
+  const displayNodes = displayAction ? displayAction.children : treeData?.rootActions || [];
+  const displayTitle = displayAction ? displayAction.title : 'Actions';
+
+  // Create base treemap data without highlighting (memoized for performance)
+  const baseTreemapData = useMemo(() => {
+    return displayNodes.length > 0 ? {
+      name: displayTitle,
+      children: transformToTreemapData(displayNodes, undefined, undefined, 0, maxDepth)
+    } : {
+      name: displayTitle,
+      value: 1,
+      color: '#4b5563'
+    };
+  }, [displayNodes, displayTitle, maxDepth]);
+
+  // Apply highlighting to the memoized data
+  const highlightNodeId = selectedNodeId || hoveredNodeId;
+  const highlightSubtreeRoot = highlightNodeId ? findNodeInTree(displayNodes, highlightNodeId) : null;
+  const treemapData = useMemo(() => {
+    if (!highlightNodeId || !baseTreemapData.children) return baseTreemapData;
+    
+    return {
+      ...baseTreemapData,
+      children: transformToTreemapData(displayNodes, highlightNodeId, highlightSubtreeRoot || undefined, 0, maxDepth)
+    };
+  }, [baseTreemapData, displayNodes, highlightNodeId, highlightSubtreeRoot, maxDepth]);
+
   useEffect(() => {
     const fetchTreeData = async () => {
       try {
@@ -226,9 +255,6 @@ function TreemapIdPageContent() {
   const selectedNode = selectedNodeId ? findNodeInTree(treeData?.rootActions || [], selectedNodeId) : null;
   const hoveredNode = hoveredNodeId ? findNodeInTree(treeData?.rootActions || [], hoveredNodeId) : null;
   const inspectorNode = selectedNode || hoveredNode;
-  
-  // Use selected node for highlighting if available, otherwise use hovered node
-  const highlightNodeId = selectedNodeId || hoveredNodeId;
 
   // Fetch detailed action data when a node is selected
   useEffect(() => {
@@ -430,33 +456,6 @@ function TreemapIdPageContent() {
     );
   }
 
-  // Determine what to display
-  const displayAction = isRootView ? null : targetAction;
-  const displayNodes = displayAction ? displayAction.children : treeData.rootActions;
-  const displayTitle = displayAction ? displayAction.title : 'Actions';
-  
-  // Create base treemap data without highlighting (memoized for performance)
-  const baseTreemapData = useMemo(() => {
-    return displayNodes.length > 0 ? {
-      name: displayTitle,
-      children: transformToTreemapData(displayNodes, undefined, undefined, 0, maxDepth)
-    } : {
-      name: displayTitle,
-      value: 1,
-      color: '#4b5563'
-    };
-  }, [displayNodes, displayTitle, maxDepth]);
-
-  // Apply highlighting to the memoized data
-  const highlightSubtreeRoot = highlightNodeId ? findNodeInTree(displayNodes, highlightNodeId) : null;
-  const treemapData = useMemo(() => {
-    if (!highlightNodeId || !baseTreemapData.children) return baseTreemapData;
-    
-    return {
-      ...baseTreemapData,
-      children: transformToTreemapData(displayNodes, highlightNodeId, highlightSubtreeRoot || undefined, 0, maxDepth)
-    };
-  }, [baseTreemapData, displayNodes, highlightNodeId, highlightSubtreeRoot, maxDepth]);
 
 
   return (
