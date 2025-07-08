@@ -23,31 +23,14 @@ function countDescendants(node: ActionNode): number {
   return node.children.reduce((sum, child) => sum + countDescendants(child), 0);
 }
 
-function transformToTreemapData(actionNodes: ActionNode[], hoveredNodeId?: string, hoveredSubtreeRoot?: ActionNode, currentDepth: number = 0, maxDepth?: number): TreemapData[] {
-  return actionNodes.map((node, index) => {
+function transformToTreemapData(actionNodes: ActionNode[], currentDepth: number = 0, maxDepth?: number): TreemapData[] {
+  return actionNodes.map((node) => {
     const shouldShowChildren = maxDepth === undefined || currentDepth < maxDepth;
-    const childrenData = node.children.length > 0 && shouldShowChildren ? transformToTreemapData(node.children, hoveredNodeId, hoveredSubtreeRoot, currentDepth + 1, maxDepth) : [];
-    
-    // Determine if this node should be highlighted
-    let isHighlighted = false;
-    let siblingIndex = -1;
-    if (hoveredNodeId && hoveredSubtreeRoot) {
-      // Only highlight if this node is the hovered node or a descendant of it
-      isHighlighted = node.id === hoveredNodeId || isDescendantOf(node, hoveredSubtreeRoot);
-      
-      // Check if this node is a sibling of the hovered node
-      if (!isHighlighted && hoveredNodeId !== node.id) {
-        const isSibling = actionNodes.some(sibling => sibling.id === hoveredNodeId) && actionNodes.some(sibling => sibling.id === node.id);
-        if (isSibling) {
-          siblingIndex = index;
-        }
-      }
-    }
+    const childrenData = node.children.length > 0 && shouldShowChildren ? transformToTreemapData(node.children, currentDepth + 1, maxDepth) : [];
     
     const result: TreemapData = {
       id: node.id,
       name: node.title,
-      color: getNodeColor(node, childrenData.length > 0, isHighlighted, siblingIndex),
       depth: currentDepth,
     };
     
@@ -68,32 +51,6 @@ function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
   return ancestor.children.some(child => isDescendantOf(node, child));
 }
 
-function getNodeColor(node: ActionNode, isParent: boolean, isHighlighted: boolean, siblingIndex: number = -1): string {
-  if (isHighlighted) {
-    return '#22c55e'; // light green for focused action
-  }
-  if (siblingIndex >= 0) {
-    // Bright blue shades for sibling highlighting
-    const siblingColors = [
-      '#3b82f6', // blue-500
-      '#1d4ed8', // blue-700
-      '#1e40af', // blue-800
-      '#60a5fa', // blue-400
-      '#2563eb', // blue-600
-      '#93c5fd', // blue-300
-    ];
-    
-    // Use node ID to generate a consistent random-like assignment
-    const hash = node.id.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    const colorIndex = Math.abs(hash) % siblingColors.length;
-    
-    return siblingColors[colorIndex];
-  }
-  return isParent ? '#374151' : '#4b5563'; // gray-700 for parents, gray-600 for leaves
-}
 
 
 function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
@@ -165,7 +122,7 @@ function TreemapIdPageContent() {
     console.log('Recalculating stable treemap data'); // Debug log
     return displayNodes.length > 0 ? {
       name: displayTitle,
-      children: transformToTreemapData(displayNodes, undefined, undefined, 0, maxDepth)
+      children: transformToTreemapData(displayNodes, 0, maxDepth)
     } : {
       name: displayTitle,
       value: 1,
