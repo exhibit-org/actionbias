@@ -563,10 +563,10 @@ function TreemapIdPageContent() {
                     // Use new color palette for siblings
                     const siblingColors = [
                       '#22C55E', // Bright green
-                      '#152614', // Very dark green
-                      '#1E441E', // Dark green  
-                      '#E54B4B', // Red/coral
-                      '#FFA987', // Peach/salmon
+                      '#5DA9E9', // Light blue
+                      '#EAC435', // Golden yellow
+                      '#EA9E8D', // Coral pink
+                      '#C84C09', // Orange/rust
                     ];
                     const hash = nodeId.split('').reduce((a: number, b: string) => {
                       a = ((a << 5) - a) + b.charCodeAt(0);
