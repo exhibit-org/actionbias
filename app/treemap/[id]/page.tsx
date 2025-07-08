@@ -1,92 +1,113 @@
 'use client';
 
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, memo } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
 import { Copy, Link, Check, Square, CheckSquare } from 'react-feather';
+import { 
+  TreemapData, 
+  countDescendants, 
+  transformToTreemapData, 
+  isDescendantOf, 
+  findActionInTree, 
+  findNodeInTree, 
+  findParentOfNode 
+} from './utils';
 
-interface TreemapData {
-  id: string;
-  name: string;
-  value?: number;
-  color?: string;
-  children?: TreemapData[];
-  depth?: number;
-}
+// Stable treemap component that never re-renders once mounted
+const MemoizedTreemap = memo(({ 
+  treemapData, 
+  actionId, 
+  maxDepth, 
+  handleNodeClick, 
+  selectedNodeId,
+  hoveredNodeId,
+  setHoveredNodeId,
+  displayNodes 
+}: {
+  treemapData: any;
+  actionId: string;
+  maxDepth?: number;
+  handleNodeClick: (node: any) => void;
+  selectedNodeId: string | null;
+  hoveredNodeId: string | null;
+  setHoveredNodeId: (id: string | null) => void;
+  displayNodes: ActionNode[];
+}) => {
+  return (
+    <ResponsiveTreeMapHtml
+      key={`treemap-${actionId}-${maxDepth || 'unlimited'}`}
+      data={treemapData}
+      identity="id"
+      value="value"
+      colors={({ data, id }) => {
+        const nodeId = (data as any).id || id;
+        const highlightNodeId = selectedNodeId || hoveredNodeId;
+        
+        // Find the node in the tree to get more info
+        const node = findNodeInTree(displayNodes, nodeId);
+        if (!node) return '#4b5563';
+        
+        // Check if highlighted
+        if (highlightNodeId === nodeId) {
+          return '#22c55e'; // light green for focused action
+        }
+        
+        // Check if sibling (same parent level)
+        if (highlightNodeId) {
+          const parent = findParentOfNode(displayNodes, nodeId);
+          const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
+          if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
+            // Use rich color palette for siblings
+            const siblingColors = [
+              '#ffba08', // selective_yellow
+              '#faa307', // orange_(web)
+              '#f48c06', // princeton_orange
+              '#e85d04', // persimmon
+              '#dc2f02', // sinopia
+              '#d00000', // engineering_orange
+              '#9d0208', // penn_red
+              '#6a040f', // rosewood
+              '#370617', // chocolate_cosmos
+              '#03071e', // rich_black
+            ];
+            return siblingColors[Math.floor(Math.random() * siblingColors.length)];
+          }
+        }
+        
+        // Default colors
+        return node.children.length > 0 ? '#374151' : '#4b5563';
+      }}
+      margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+      leavesOnly={false}
+      tile="squarify"
+      innerPadding={0}
+      outerPadding={0}
+      labelSkipSize={12}
+      parentLabelSize={16}
+      enableParentLabel={true}
+      labelTextColor="#d1d5db"
+      parentLabelTextColor="#f3f4f6"
+      borderWidth={1}
+      borderColor="rgba(0, 0, 0, 0)"
+      animate={false}
+      onClick={handleNodeClick}
+      onMouseEnter={(node) => {
+        // Only show hover highlighting if no node is selected
+        if (!selectedNodeId) {
+          setHoveredNodeId((node as any).data.id);
+        }
+      }}
+      label={({ data }) => (data as any).name}
+      parentLabel={({ data }) => (data as any).name}
+      tooltip={() => null}
+    />
+  );
+});
 
-function countDescendants(node: ActionNode): number {
-  if (node.children.length === 0) {
-    return 1; // Leaf node counts as 1
-  }
-  return node.children.reduce((sum, child) => sum + countDescendants(child), 0);
-}
-
-function transformToTreemapData(actionNodes: ActionNode[], currentDepth: number = 0, maxDepth?: number): TreemapData[] {
-  return actionNodes.map((node) => {
-    const shouldShowChildren = maxDepth === undefined || currentDepth < maxDepth;
-    const childrenData = node.children.length > 0 && shouldShowChildren ? transformToTreemapData(node.children, currentDepth + 1, maxDepth) : [];
-    
-    const result: TreemapData = {
-      id: node.id,
-      name: node.title,
-      depth: currentDepth,
-    };
-    
-    if (childrenData.length > 0) {
-      result.children = childrenData;
-    } else {
-      // This is either a true leaf node or a node at max depth
-      // Weight by total descendant count
-      result.value = countDescendants(node);
-    }
-    
-    return result;
-  });
-}
-
-function isDescendantOf(node: ActionNode, ancestor: ActionNode): boolean {
-  if (node.id === ancestor.id) return true;
-  return ancestor.children.some(child => isDescendantOf(node, child));
-}
-
-
-
-function findActionInTree(actionNodes: ActionNode[], targetId: string): ActionNode | null {
-  for (const node of actionNodes) {
-    if (node.id === targetId) {
-      return node;
-    }
-    if (node.children.length > 0) {
-      const found = findActionInTree(node.children, targetId);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function findNodeInTree(nodes: ActionNode[], targetId: string): ActionNode | null {
-  for (const node of nodes) {
-    if (node.id === targetId) return node;
-    const found = findNodeInTree(node.children, targetId);
-    if (found) return found;
-  }
-  return null;
-}
-
-function findParentOfNode(nodes: ActionNode[], targetId: string): ActionNode | null {
-  for (const node of nodes) {
-    // Check if target is a direct child
-    if (node.children.some(child => child.id === targetId)) {
-      return node;
-    }
-    // Search recursively
-    const found = findParentOfNode(node.children, targetId);
-    if (found) return found;
-  }
-  return null;
-}
+MemoizedTreemap.displayName = 'MemoizedTreemap';
 
 function TreemapIdPageContent() {
   const router = useRouter();
@@ -118,6 +139,7 @@ function TreemapIdPageContent() {
   const displayTitle = displayAction ? displayAction.title : 'Actions';
 
   // Create stable treemap data that never changes structure (only for layout)
+  // This must NEVER depend on selectedActionDetail or any API response data
   const stableTreemapData = useMemo(() => {
     return displayNodes.length > 0 ? {
       name: displayTitle,
@@ -276,7 +298,7 @@ function TreemapIdPageContent() {
 
   // Inspector component
   const Inspector = () => (
-    <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`}>
+    <div className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} ${inspectorSize} transition-all duration-300 flex flex-col`} style={{ maxHeight: '100vh', overflow: 'hidden' }}>
       {/* Inspector header */}
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         {!isInspectorMinimized && (
@@ -311,7 +333,7 @@ function TreemapIdPageContent() {
       
       {/* Inspector content */}
       {!isInspectorMinimized && (
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto flex flex-col h-full">
           {selectedNodeId && selectedActionDetail ? (
             <>
               {/* Action buttons */}
@@ -460,7 +482,7 @@ function TreemapIdPageContent() {
         
         /* Sibling highlighting with bright blue colors */
       `}</style>
-      <div className="w-full h-full flex flex-col">
+      <div className="w-full h-screen flex flex-col">
         {/* Header with breadcrumb - only show if we have a focused action */}
         {displayAction && (
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
@@ -482,7 +504,9 @@ function TreemapIdPageContent() {
         <div className={`flex-1 flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
           {/* Treemap */}
           <div 
+            key="treemap-container" 
             className="flex-1 p-4"
+            style={{ maxHeight: '100vh', overflow: 'hidden' }}
             onClick={(e) => {
               // Clear selection if clicking on empty area
               if (e.target === e.currentTarget) {
@@ -498,70 +522,15 @@ function TreemapIdPageContent() {
             }}
           >
           {displayNodes.length > 0 ? (
-            <ResponsiveTreeMapHtml
-              data={treemapData}
-              identity="id"
-              value="value"
-              colors={({ data, id }) => {
-                const nodeId = (data as any).id || id;
-                const highlightNodeId = selectedNodeId || hoveredNodeId;
-                
-                // Find the node in the tree to get more info
-                const node = findNodeInTree(displayNodes, nodeId);
-                if (!node) return '#4b5563';
-                
-                // Check if highlighted
-                if (highlightNodeId === nodeId) {
-                  return '#22c55e'; // light green for focused action
-                }
-                
-                // Check if sibling (same parent level)
-                if (highlightNodeId) {
-                  const parent = findParentOfNode(displayNodes, nodeId);
-                  const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
-                  if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
-                    // Use new color palette for siblings
-                    const siblingColors = [
-                      '#22C55E', // Bright green
-                      '#5DA9E9', // Light blue
-                      '#EAC435', // Golden yellow
-                      '#EA9E8D', // Coral pink
-                      '#C84C09', // Orange/rust
-                    ];
-                    const hash = nodeId.split('').reduce((a: number, b: string) => {
-                      a = ((a << 5) - a) + b.charCodeAt(0);
-                      return a & a;
-                    }, 0);
-                    return siblingColors[Math.abs(hash) % siblingColors.length];
-                  }
-                }
-                
-                // Default colors
-                return node.children.length > 0 ? '#374151' : '#4b5563';
-              }}
-              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-              leavesOnly={false}
-              tile="squarify"
-              innerPadding={0}
-              outerPadding={0}
-              labelSkipSize={12}
-              parentLabelSize={16}
-              enableParentLabel={true}
-              labelTextColor="#d1d5db"
-              parentLabelTextColor="#f3f4f6"
-              borderWidth={1}
-              borderColor="rgba(0, 0, 0, 0)"
-              animate={false}
-              onClick={handleNodeClick}
-              onMouseEnter={(node) => {
-                // Only show hover highlighting if no node is selected
-                if (!selectedNodeId) {
-                  setHoveredNodeId((node as any).data.id);
-                }
-              }}
-              label={({ data }) => (data as any).name}
-              parentLabel={({ data }) => (data as any).name}
-              tooltip={() => null}
+            <MemoizedTreemap
+              treemapData={treemapData}
+              actionId={actionId}
+              maxDepth={maxDepth}
+              handleNodeClick={handleNodeClick}
+              selectedNodeId={selectedNodeId}
+              hoveredNodeId={hoveredNodeId}
+              setHoveredNodeId={setHoveredNodeId}
+              displayNodes={displayNodes}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
