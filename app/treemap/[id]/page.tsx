@@ -118,6 +118,19 @@ function findNodeInTree(nodes: ActionNode[], targetId: string): ActionNode | nul
   return null;
 }
 
+function findParentOfNode(nodes: ActionNode[], targetId: string): ActionNode | null {
+  for (const node of nodes) {
+    // Check if target is a direct child
+    if (node.children.some(child => child.id === targetId)) {
+      return node;
+    }
+    // Search recursively
+    const found = findParentOfNode(node.children, targetId);
+    if (found) return found;
+  }
+  return null;
+}
+
 function TreemapIdPageContent() {
   const router = useRouter();
   const params = useParams();
@@ -147,8 +160,9 @@ function TreemapIdPageContent() {
   const displayNodes = displayAction ? displayAction.children : treeData?.rootActions || [];
   const displayTitle = displayAction ? displayAction.title : 'Actions';
 
-  // Create base treemap data without highlighting (memoized for performance)
-  const baseTreemapData = useMemo(() => {
+  // Create stable treemap data that never changes structure (only for layout)
+  const stableTreemapData = useMemo(() => {
+    console.log('Recalculating stable treemap data'); // Debug log
     return displayNodes.length > 0 ? {
       name: displayTitle,
       children: transformToTreemapData(displayNodes, undefined, undefined, 0, maxDepth)
@@ -159,17 +173,8 @@ function TreemapIdPageContent() {
     };
   }, [displayNodes, displayTitle, maxDepth]);
 
-  // Apply highlighting to the memoized data
-  const highlightNodeId = selectedNodeId || hoveredNodeId;
-  const highlightSubtreeRoot = highlightNodeId ? findNodeInTree(displayNodes, highlightNodeId) : null;
-  const treemapData = useMemo(() => {
-    if (!highlightNodeId || !baseTreemapData.children) return baseTreemapData;
-    
-    return {
-      ...baseTreemapData,
-      children: transformToTreemapData(displayNodes, highlightNodeId, highlightSubtreeRoot || undefined, 0, maxDepth)
-    };
-  }, [baseTreemapData, displayNodes, highlightNodeId, highlightSubtreeRoot, maxDepth]);
+  // Use the stable data for the treemap component
+  const treemapData = stableTreemapData;
 
   useEffect(() => {
     const fetchTreeData = async () => {
@@ -537,7 +542,39 @@ function TreemapIdPageContent() {
               data={treemapData}
               identity="id"
               value="value"
-              colors={({ data }) => (data as any).color || '#4b5563'}
+              colors={({ data, id }) => {
+                const nodeId = (data as any).id || id;
+                const highlightNodeId = selectedNodeId || hoveredNodeId;
+                
+                // Find the node in the tree to get more info
+                const node = findNodeInTree(displayNodes, nodeId);
+                if (!node) return '#4b5563';
+                
+                // Check if highlighted
+                if (highlightNodeId === nodeId) {
+                  return '#22c55e'; // light green for focused action
+                }
+                
+                // Check if sibling (same parent level)
+                if (highlightNodeId) {
+                  const parent = findParentOfNode(displayNodes, nodeId);
+                  const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
+                  if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
+                    // Use hash-based color for siblings
+                    const siblingColors = [
+                      '#3b82f6', '#1d4ed8', '#1e40af', '#60a5fa', '#2563eb', '#93c5fd'
+                    ];
+                    const hash = nodeId.split('').reduce((a: number, b: string) => {
+                      a = ((a << 5) - a) + b.charCodeAt(0);
+                      return a & a;
+                    }, 0);
+                    return siblingColors[Math.abs(hash) % siblingColors.length];
+                  }
+                }
+                
+                // Default colors
+                return node.children.length > 0 ? '#374151' : '#4b5563';
+              }}
               margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
               leavesOnly={false}
               tile="squarify"
