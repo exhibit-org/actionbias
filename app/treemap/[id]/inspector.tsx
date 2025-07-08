@@ -95,6 +95,14 @@ export default function TreemapInspector({
 
   return (
     <>
+      {/* Resize handle - only show on desktop when inspector is expanded */}
+      {!isMobile && !isMinimized && setIsDragging && (
+        <div
+          className="w-1 bg-gray-700 hover:bg-gray-600 cursor-col-resize flex-shrink-0 transition-colors"
+          onMouseDown={() => setIsDragging(true)}
+          title="Drag to resize inspector"
+        />
+      )}
       <div 
         className={`bg-gray-900 border-gray-700 ${!isMobile ? 'border-l' : 'border-t'} transition-all duration-300 flex flex-col`} 
         style={{ 
@@ -257,15 +265,6 @@ export default function TreemapInspector({
           </div>
         )}
       </div>
-      
-      {/* Resize handle - only show on desktop when inspector is expanded */}
-      {!isMobile && !isMinimized && setIsDragging && (
-        <div
-          className="w-1 bg-gray-700 hover:bg-gray-600 cursor-col-resize flex-shrink-0 transition-colors"
-          onMouseDown={() => setIsDragging(true)}
-          title="Drag to resize inspector"
-        />
-      )}
     </>
   );
 }
