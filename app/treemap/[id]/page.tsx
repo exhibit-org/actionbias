@@ -69,18 +69,18 @@ const MemoizedTreemap = memo(({
           const sameParent = parent && highlightedParent && parent.id === highlightedParent.id;
           
           if ((bothAtRoot || sameParent) && highlightNodeId !== nodeId) {
-            // Use rich color palette for siblings
+            // Use very light green palette for siblings
             const siblingColors = [
-              '#ffba08', // selective_yellow
-              '#faa307', // orange_(web)
-              '#f48c06', // princeton_orange
-              '#e85d04', // persimmon
-              '#dc2f02', // sinopia
-              '#d00000', // engineering_orange
-              '#9d0208', // penn_red
-              '#6a040f', // rosewood
-              '#370617', // chocolate_cosmos
-              '#03071e', // rich_black
+              '#f0fdf4', // green-50
+              '#dcfce7', // green-100
+              '#bbf7d0', // green-200
+              '#86efac', // green-300
+              '#6ee7b7', // emerald-300
+              '#a7f3d0', // emerald-200
+              '#d1fae5', // emerald-100
+              '#ecfdf5', // emerald-50
+              '#f3f4f6', // gray-100 (very light)
+              '#e5e7eb', // gray-200 (light)
             ];
             return siblingColors[Math.floor(Math.random() * siblingColors.length)];
           }
@@ -109,123 +109,18 @@ const MemoizedTreemap = memo(({
           setHoveredNodeId((node as any).data.id);
         }
       }}
-      label={({ data, node }) => {
+      label={({ data }) => {
         const nodeData = (data as any);
         const actionNode = findNodeInTree(displayNodes, nodeData.id);
         
-        // Get actual node dimensions with proper fallbacks
-        const nodeObj = node as any;
-        const width = nodeObj?.width || (nodeObj?.x1 && nodeObj?.x0 ? nodeObj.x1 - nodeObj.x0 : 100);
-        const height = nodeObj?.height || (nodeObj?.y1 && nodeObj?.y0 ? nodeObj.y1 - nodeObj.y0 : 100);
-        const area = width * height;
+        if (!actionNode || !actionNode.children || actionNode.children.length === 0) {
+          return nodeData.name;
+        }
         
-        // Get node depth for hierarchical font sizing (default to 0 if not available)
-        const nodeDepth = (nodeData as any).depth || 0;
-        
-        // Calculate density-based scaling factors
-        const totalNodes = countDescendants({ id: 'root', title: 'root', done: false, created_at: '', children: displayNodes, dependencies: [] });
-        const containerArea = windowDimensions.width * windowDimensions.height * 0.6; // Approximate treemap area
-        const averageNodeArea = containerArea / Math.max(1, totalNodes);
-        
-        // Density scaling factor: more nodes = smaller fonts
-        const densityFactor = Math.max(0.4, Math.min(1.0, Math.sqrt(averageNodeArea / 3000)));
-        
-        // Area-based scaling factor: smaller individual rectangles = smaller fonts
-        const areaFactor = Math.max(0.5, Math.min(1.2, Math.sqrt(area / 2000)));
-        
-        // Combined scaling factor
-        const scalingFactor = densityFactor * areaFactor;
-        
-        // Base font sizes that increase with shallower depth (reverse relationship)
-        // Depth 0 (root level): largest fonts, Depth 3+: smallest fonts
-        // Now applying density and area scaling
-        const baseTitleSize = Math.max(8, (16 - (nodeDepth * 2)) * scalingFactor); // 16, 14, 12, 10, 8... scaled
-        const baseDescSize = Math.max(7, (12 - (nodeDepth * 1.5)) * scalingFactor); // 12, 10.5, 9, 7.5... scaled
-        const baseMetaSize = Math.max(6, (10 - (nodeDepth * 1)) * scalingFactor); // 10, 9, 8, 7, 6... scaled
-        
-        // Apply final constraints
-        const titleSize = Math.max(8, Math.min(16, baseTitleSize)); // 8-16px range
-        const descSize = Math.max(7, Math.min(14, baseDescSize)); // 7-14px range
-        const metaSize = Math.max(6, Math.min(12, baseMetaSize)); // 6-12px range
-        
-        
-        // More conservative content visibility - prioritize title always
-        const showDescription = area > 8000 && actionNode?.description && nodeDepth <= 2;
-        const showVision = area > 12000 && actionNode?.vision && nodeDepth <= 1;
-        const showMetadata = area > 2000 && actionNode?.children && actionNode.children.length > 0;
-        
-        return (
-          <div className="action-label" style={{
-            fontSize: `${titleSize}px`,
-            lineHeight: height < 40 ? '1.1' : '1.3'
-          }}>
-            <div className="title" style={{ fontSize: `${titleSize}px` }}>
-              {nodeData.name}
-            </div>
-            {actionNode && (
-              <>
-                {showDescription && (
-                  <div className="description" style={{ fontSize: `${descSize}px` }}>
-                    {actionNode.description}
-                  </div>
-                )}
-                {showVision && (
-                  <div className="vision" style={{ fontSize: `${descSize}px` }}>
-                    {actionNode.vision}
-                  </div>
-                )}
-                {showMetadata && (
-                  <div className="metadata" style={{ fontSize: `${metaSize}px` }}>
-                    <div className="children-count">{countDescendants(actionNode)} actions</div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
+        const descendantCount = countDescendants(actionNode);
+        return `${nodeData.name} (${descendantCount} actions)`;
       }}
-      parentLabel={({ data, node }) => {
-        const nodeData = (data as any);
-        
-        // Get actual node dimensions for parent with proper fallbacks
-        const nodeObj = node as any;
-        const width = nodeObj?.width || (nodeObj?.x1 && nodeObj?.x0 ? nodeObj.x1 - nodeObj.x0 : 100);
-        const height = nodeObj?.height || (nodeObj?.y1 && nodeObj?.y0 ? nodeObj.y1 - nodeObj.y0 : 100);
-        const area = width * height;
-        
-        // Get node depth for hierarchical font sizing (default to 0 if not available)
-        const nodeDepth = (nodeData as any).depth || 0;
-        
-        // Calculate density-based scaling factors (same as regular labels)
-        const totalNodes = countDescendants({ id: 'root', title: 'root', done: false, created_at: '', children: displayNodes, dependencies: [] });
-        const containerArea = windowDimensions.width * windowDimensions.height * 0.6; // Approximate treemap area
-        const averageNodeArea = containerArea / Math.max(1, totalNodes);
-        
-        // Density scaling factor: more nodes = smaller fonts
-        const densityFactor = Math.max(0.4, Math.min(1.0, Math.sqrt(averageNodeArea / 3000)));
-        
-        // Area-based scaling factor: smaller individual rectangles = smaller fonts
-        const areaFactor = Math.max(0.5, Math.min(1.2, Math.sqrt(area / 2000)));
-        
-        // Combined scaling factor
-        const scalingFactor = densityFactor * areaFactor;
-        
-        // Base font size for parents that increases with shallower depth
-        const baseParentSize = Math.max(10, (18 - (nodeDepth * 2)) * scalingFactor); // 18, 16, 14, 12, 10... scaled
-        
-        // Apply final constraints for parents
-        const parentTitleSize = Math.max(10, Math.min(18, baseParentSize)); // 10-18px range
-        
-        return (
-          <div style={{
-            fontSize: `${parentTitleSize}px`,
-            fontWeight: '700',
-            lineHeight: '1.1'
-          }}>
-            {nodeData.name}
-          </div>
-        );
-      }}
+      parentLabel={({ data }) => (data as any).name}
       tooltip={() => null}
     />
   );
