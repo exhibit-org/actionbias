@@ -1023,6 +1023,108 @@ export function registerTools(server: any) {
     },
   );
 
+  // suggest_parent - Get multiple parent suggestions with confidence scores
+  server.tool(
+    "suggest_parent",
+    "Get multiple parent suggestions with confidence scores for placing a new action in the hierarchy",
+    {
+      title: z.string().min(1).describe("Title of the action to place"),
+      description: z.string().optional().describe("Description of the action to place"),
+      limit: z.number().min(1).max(10).default(5).optional().describe("Maximum number of suggestions to return (default: 5)"),
+      confidence_threshold: z.number().min(0).max(100).default(40).optional().describe("Minimum confidence threshold for suggestions (0-100, default: 40)"),
+      include_create_new: z.boolean().default(true).optional().describe("Whether to include 'create new parent' suggestions (default: true)"),
+    },
+    async ({ title, description, limit = 5, confidence_threshold = 40, include_create_new = true }: { 
+      title: string; 
+      description?: string; 
+      limit?: number; 
+      confidence_threshold?: number; 
+      include_create_new?: boolean; 
+    }, extra: any) => {
+      try {
+        console.log(`[MCP suggest_parent] Getting parent suggestions for: "${title}"`);
+        
+        const { ParentSuggestionService } = await import('../services/parent-suggestion');
+        
+        const result = await ParentSuggestionService.suggestParents({
+          title,
+          description
+        }, {
+          limit,
+          confidenceThreshold: confidence_threshold,
+          includeCreateNew: include_create_new
+        });
+
+        let message = `🎯 **Parent Suggestions for:** "${title}"\n`;
+        message += `⚡ **Performance:** ${result.metadata.totalProcessingTimeMs.toFixed(1)}ms total (${result.metadata.vectorTimeMs.toFixed(1)}ms vector, ${result.metadata.classificationTimeMs.toFixed(1)}ms classification)\n`;
+        message += `📊 **Found:** ${result.suggestions.length} suggestion${result.suggestions.length !== 1 ? 's' : ''}\n\n`;
+
+        if (result.suggestions.length === 0) {
+          message += `❌ **No suitable parents found**\n`;
+          message += `   Try:\n`;
+          message += `   • Lower confidence threshold (current: ${confidence_threshold})\n`;
+          message += `   • Enable create new parent suggestions\n`;
+          message += `   • Provide more detailed description\n`;
+        } else {
+          message += `✅ **Suggestions:**\n\n`;
+          
+          result.suggestions.forEach((suggestion, index) => {
+            const sourceIcon = suggestion.source === 'vector' ? '🧠' : 
+                             suggestion.source === 'classification' ? '🤖' : '✨';
+            const confidenceBar = '█'.repeat(Math.floor(suggestion.confidence / 10)) + 
+                                '░'.repeat(10 - Math.floor(suggestion.confidence / 10));
+            
+            message += `${index + 1}. ${sourceIcon} **${suggestion.title}** (${suggestion.confidence}% confidence)\n`;
+            message += `   ${confidenceBar} ${suggestion.confidence}/100\n`;
+            message += `   ID: ${suggestion.id}\n`;
+            
+            if (suggestion.description) {
+              message += `   Description: ${suggestion.description.substring(0, 100)}${suggestion.description.length > 100 ? '...' : ''}\n`;
+            }
+            
+            message += `   Path: ${suggestion.hierarchyPath.join(' → ')}\n`;
+            message += `   Source: ${suggestion.source} search\n`;
+            message += `   Reasoning: ${suggestion.reasoning}\n`;
+            
+            if (suggestion.canCreateNewParent) {
+              message += `   🆕 **This will create a new parent category**\n`;
+            }
+            
+            message += `\n`;
+          });
+          
+          // Add usage instructions
+          message += `📝 **Usage Instructions:**\n`;
+          message += `• Use the ID from your preferred suggestion as family_id in create_action\n`;
+          message += `• For 'CREATE_NEW_PARENT' suggestions, create the parent action first\n`;
+          message += `• Higher confidence scores indicate better semantic fit\n`;
+          message += `• Consider the hierarchy path when choosing placement\n`;
+        }
+
+        message += `\n🔬 **Powered by:** Vector embeddings + AI classification`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('[MCP suggest_parent] Error:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error getting parent suggestions: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 
 }
 
@@ -1062,5 +1164,8 @@ export const toolCapabilities = {
   },
   get_action_work_log: {
     description: "Get work log entries related to a specific action",
+  },
+  suggest_parent: {
+    description: "Get multiple parent suggestions with confidence scores for placing a new action in the hierarchy",
   },
 };
