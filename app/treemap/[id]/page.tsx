@@ -26,7 +26,8 @@ const MemoizedTreemap = memo(({
   hoveredNodeId,
   setHoveredNodeId,
   displayNodes,
-  dataRevision
+  dataRevision,
+  windowDimensions
 }: {
   treemapData: any;
   actionId: string;
@@ -37,6 +38,7 @@ const MemoizedTreemap = memo(({
   setHoveredNodeId: (id: string | null) => void;
   displayNodes: ActionNode[];
   dataRevision: number;
+  windowDimensions: { width: number; height: number };
 }) => {
   return (
     <ResponsiveTreeMapHtml
@@ -61,7 +63,12 @@ const MemoizedTreemap = memo(({
         if (highlightNodeId) {
           const parent = findParentOfNode(displayNodes, nodeId);
           const highlightedParent = findParentOfNode(displayNodes, highlightNodeId);
-          if (parent && highlightedParent && parent.id === highlightedParent.id && highlightNodeId !== nodeId) {
+          
+          // Handle case where both nodes are at root level (no parent)
+          const bothAtRoot = parent === null && highlightedParent === null;
+          const sameParent = parent && highlightedParent && parent.id === highlightedParent.id;
+          
+          if ((bothAtRoot || sameParent) && highlightNodeId !== nodeId) {
             // Use rich color palette for siblings
             const siblingColors = [
               '#ffba08', // selective_yellow
@@ -87,8 +94,8 @@ const MemoizedTreemap = memo(({
       tile="squarify"
       innerPadding={0}
       outerPadding={0}
-      labelSkipSize={12}
-      parentLabelSize={16}
+      labelSkipSize={0}
+      parentLabelSize={40}
       enableParentLabel={true}
       labelTextColor="#d1d5db"
       parentLabelTextColor="#f3f4f6"
@@ -102,8 +109,123 @@ const MemoizedTreemap = memo(({
           setHoveredNodeId((node as any).data.id);
         }
       }}
-      label={({ data }) => (data as any).name}
-      parentLabel={({ data }) => (data as any).name}
+      label={({ data, node }) => {
+        const nodeData = (data as any);
+        const actionNode = findNodeInTree(displayNodes, nodeData.id);
+        
+        // Get actual node dimensions with proper fallbacks
+        const nodeObj = node as any;
+        const width = nodeObj?.width || (nodeObj?.x1 && nodeObj?.x0 ? nodeObj.x1 - nodeObj.x0 : 100);
+        const height = nodeObj?.height || (nodeObj?.y1 && nodeObj?.y0 ? nodeObj.y1 - nodeObj.y0 : 100);
+        const area = width * height;
+        
+        // Get node depth for hierarchical font sizing (default to 0 if not available)
+        const nodeDepth = (nodeData as any).depth || 0;
+        
+        // Calculate density-based scaling factors
+        const totalNodes = countDescendants({ id: 'root', title: 'root', done: false, created_at: '', children: displayNodes, dependencies: [] });
+        const containerArea = windowDimensions.width * windowDimensions.height * 0.6; // Approximate treemap area
+        const averageNodeArea = containerArea / Math.max(1, totalNodes);
+        
+        // Density scaling factor: more nodes = smaller fonts
+        const densityFactor = Math.max(0.4, Math.min(1.0, Math.sqrt(averageNodeArea / 3000)));
+        
+        // Area-based scaling factor: smaller individual rectangles = smaller fonts
+        const areaFactor = Math.max(0.5, Math.min(1.2, Math.sqrt(area / 2000)));
+        
+        // Combined scaling factor
+        const scalingFactor = densityFactor * areaFactor;
+        
+        // Base font sizes that increase with shallower depth (reverse relationship)
+        // Depth 0 (root level): largest fonts, Depth 3+: smallest fonts
+        // Now applying density and area scaling
+        const baseTitleSize = Math.max(8, (16 - (nodeDepth * 2)) * scalingFactor); // 16, 14, 12, 10, 8... scaled
+        const baseDescSize = Math.max(7, (12 - (nodeDepth * 1.5)) * scalingFactor); // 12, 10.5, 9, 7.5... scaled
+        const baseMetaSize = Math.max(6, (10 - (nodeDepth * 1)) * scalingFactor); // 10, 9, 8, 7, 6... scaled
+        
+        // Apply final constraints
+        const titleSize = Math.max(8, Math.min(16, baseTitleSize)); // 8-16px range
+        const descSize = Math.max(7, Math.min(14, baseDescSize)); // 7-14px range
+        const metaSize = Math.max(6, Math.min(12, baseMetaSize)); // 6-12px range
+        
+        
+        // More conservative content visibility - prioritize title always
+        const showDescription = area > 8000 && actionNode?.description && nodeDepth <= 2;
+        const showVision = area > 12000 && actionNode?.vision && nodeDepth <= 1;
+        const showMetadata = area > 2000 && actionNode?.children && actionNode.children.length > 0;
+        
+        return (
+          <div className="action-label" style={{
+            fontSize: `${titleSize}px`,
+            lineHeight: height < 40 ? '1.1' : '1.3'
+          }}>
+            <div className="title" style={{ fontSize: `${titleSize}px` }}>
+              {nodeData.name}
+            </div>
+            {actionNode && (
+              <>
+                {showDescription && (
+                  <div className="description" style={{ fontSize: `${descSize}px` }}>
+                    {actionNode.description}
+                  </div>
+                )}
+                {showVision && (
+                  <div className="vision" style={{ fontSize: `${descSize}px` }}>
+                    {actionNode.vision}
+                  </div>
+                )}
+                {showMetadata && (
+                  <div className="metadata" style={{ fontSize: `${metaSize}px` }}>
+                    <div className="children-count">{countDescendants(actionNode)} actions</div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      }}
+      parentLabel={({ data, node }) => {
+        const nodeData = (data as any);
+        
+        // Get actual node dimensions for parent with proper fallbacks
+        const nodeObj = node as any;
+        const width = nodeObj?.width || (nodeObj?.x1 && nodeObj?.x0 ? nodeObj.x1 - nodeObj.x0 : 100);
+        const height = nodeObj?.height || (nodeObj?.y1 && nodeObj?.y0 ? nodeObj.y1 - nodeObj.y0 : 100);
+        const area = width * height;
+        
+        // Get node depth for hierarchical font sizing (default to 0 if not available)
+        const nodeDepth = (nodeData as any).depth || 0;
+        
+        // Calculate density-based scaling factors (same as regular labels)
+        const totalNodes = countDescendants({ id: 'root', title: 'root', done: false, created_at: '', children: displayNodes, dependencies: [] });
+        const containerArea = windowDimensions.width * windowDimensions.height * 0.6; // Approximate treemap area
+        const averageNodeArea = containerArea / Math.max(1, totalNodes);
+        
+        // Density scaling factor: more nodes = smaller fonts
+        const densityFactor = Math.max(0.4, Math.min(1.0, Math.sqrt(averageNodeArea / 3000)));
+        
+        // Area-based scaling factor: smaller individual rectangles = smaller fonts
+        const areaFactor = Math.max(0.5, Math.min(1.2, Math.sqrt(area / 2000)));
+        
+        // Combined scaling factor
+        const scalingFactor = densityFactor * areaFactor;
+        
+        // Base font size for parents that increases with shallower depth
+        const baseParentSize = Math.max(10, (18 - (nodeDepth * 2)) * scalingFactor); // 18, 16, 14, 12, 10... scaled
+        
+        // Apply final constraints for parents
+        const parentTitleSize = Math.max(10, Math.min(18, baseParentSize)); // 10-18px range
+        
+        return (
+          <div style={{
+            fontSize: `${parentTitleSize}px`,
+            fontWeight: '700',
+            lineHeight: '1.1'
+          }}>
+            {nodeData.name}
+          </div>
+        );
+      }}
       tooltip={() => null}
     />
   );
@@ -135,9 +257,15 @@ function TreemapIdPageContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [dataRevision, setDataRevision] = useState(0);
+  const [depthSliderValue, setDepthSliderValue] = useState<number>(10);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
+
+  // Initialize depth slider value from URL params
+  useEffect(() => {
+    setDepthSliderValue(maxDepth || 10);
+  }, [maxDepth]);
 
   // Determine what to display (computed values for memoization)
   const displayAction = isRootView ? null : targetAction;
@@ -305,6 +433,16 @@ function TreemapIdPageContent() {
     const params = new URLSearchParams();
     if (maxDepth) params.set('depth', maxDepth.toString());
     router.push(`/treemap/root?${params.toString()}`);
+  };
+
+  const handleDepthChange = (newDepth: number) => {
+    setDepthSliderValue(newDepth);
+    const params = new URLSearchParams();
+    if (newDepth < 10) { // Only set depth param if it's not the default maximum
+      params.set('depth', newDepth.toString());
+    }
+    const newUrl = `/treemap/${actionId}?${params.toString()}`;
+    router.push(newUrl);
   };
 
   // Determine inspector layout based on mobile form factors
@@ -514,10 +652,11 @@ function TreemapIdPageContent() {
       <style jsx global>{`
         /* Override the centering transform and dimensions */
         [data-testid^="label."] {
-          transform: translate(6px, 6px) !important;
-          width: calc(100% - 12px) !important;
+          transform: translate(8px, 8px) !important;
+          width: calc(100% - 16px) !important;
           height: auto !important;
-          max-width: calc(100% - 12px) !important;
+          min-height: 12px !important;
+          max-width: calc(100% - 16px) !important;
           justify-content: flex-start !important;
           align-items: flex-start !important;
           text-align: left !important;
@@ -525,44 +664,172 @@ function TreemapIdPageContent() {
           word-wrap: break-word !important;
           overflow-wrap: break-word !important;
           font-family: ui-monospace, SFMono-Regular, monospace !important;
-          line-height: 1.3 !important;
+          line-height: 1.4 !important;
           color: #d1d5db !important;
           pointer-events: none !important;
+          display: flex !important;
+          flex-direction: column !important;
+          overflow: visible !important;
+          min-font-size: 8px !important;
         }
         
-        /* Parent label styling - bolder and different color */
+        /* Action label styling */
+        .action-label {
+          display: flex !important;
+          flex-direction: column !important;
+          height: auto !important;
+          min-height: 12px !important;
+          overflow: visible !important;
+        }
+        
+        .action-label .title {
+          font-weight: 600;
+          color: #f3f4f6;
+          margin-bottom: 4px;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          display: block !important;
+          -webkit-line-clamp: unset !important;
+          -webkit-box-orient: unset !important;
+          min-font-size: 8px !important;
+          min-height: 12px !important;
+          height: auto !important;
+          line-height: 1.2 !important;
+        }
+        
+        .action-label .description {
+          color: #e5e7eb;
+          margin-bottom: 3px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          font-style: italic;
+        }
+        
+        .action-label .vision {
+          color: #22c55e;
+          margin-bottom: 3px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          font-weight: 500;
+        }
+        
+        .action-label .metadata {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          color: #9ca3af;
+          margin-top: auto;
+        }
+        
+        .action-label .children-count {
+          font-weight: 500;
+          color: #9ca3af;
+        }
+        
+        /* Parent label styling - simpler, just for title */
         [data-testid^="label."][data-testid*="parent"] {
-          font-weight: 600 !important;
-          color: #f3f4f6 !important;
           pointer-events: auto !important;
           cursor: pointer !important;
-          padding: 4px 6px !important;
-          margin: 2px !important;
-          background-color: rgba(55, 65, 81, 0.8) !important;
-          border-radius: 4px !important;
+          padding: 6px 12px !important;
+          margin: 4px !important;
+          background-color: rgba(55, 65, 81, 0.9) !important;
+          border-radius: 6px !important;
           width: auto !important;
-          max-width: 50% !important;
+          max-width: 95% !important;
+          min-width: 80px !important;
+          border: 1px solid rgba(75, 85, 99, 0.5) !important;
+          color: #f9fafb !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          white-space: nowrap !important;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          box-sizing: border-box !important;
         }
         
         /* Sibling highlighting with bright blue colors */
+        
+        /* Custom slider styles */
+        .slider {
+          -webkit-appearance: none;
+          appearance: none;
+          background: #374151;
+          outline: none;
+          border-radius: 8px;
+        }
+        
+        .slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          background: #22c55e;
+          border-radius: 50%;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+          background: #16a34a;
+        }
+        
+        .slider::-moz-range-thumb {
+          width: 16px;
+          height: 16px;
+          background: #22c55e;
+          border-radius: 50%;
+          cursor: pointer;
+          border: none;
+          transition: background 0.2s;
+        }
+        
+        .slider::-moz-range-thumb:hover {
+          background: #16a34a;
+        }
       `}</style>
       <div className="w-full h-screen flex flex-col">
-        {/* Header with breadcrumb - only show if we have a focused action */}
-        {displayAction && (
-          <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <div className="flex items-center space-x-2">
+        {/* Header with breadcrumb and depth slider */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+          <div className="flex items-center space-x-2">
+            {displayAction && (
               <button
                 onClick={handleBackClick}
                 className="px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-sm"
               >
                 ← Back to Full Tree
               </button>
-              <div className="text-gray-400 font-mono text-sm">
-                / {displayAction.title}
-              </div>
+            )}
+            <div className="text-gray-400 font-mono text-sm">
+              {displayAction ? `/ ${displayAction.title}` : 'Actions'}
             </div>
           </div>
-        )}
+          
+          {/* Depth slider */}
+          <div className="flex items-center space-x-3">
+            <label htmlFor="depth-slider" className="text-gray-400 font-mono text-sm">
+              Depth:
+            </label>
+            <input
+              id="depth-slider"
+              type="range"
+              min="1"
+              max="10"
+              value={depthSliderValue}
+              onChange={(e) => handleDepthChange(parseInt(e.target.value))}
+              className="w-24 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+            />
+            <span className="text-gray-400 font-mono text-sm min-w-[20px]">
+              {depthSliderValue === 10 ? '∞' : depthSliderValue}
+            </span>
+          </div>
+        </div>
 
         {/* Main content area with treemap and inspector */}
         <div className={`flex-1 flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
@@ -596,6 +863,7 @@ function TreemapIdPageContent() {
               setHoveredNodeId={setHoveredNodeId}
               displayNodes={displayNodes}
               dataRevision={dataRevision}
+              windowDimensions={windowDimensions}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

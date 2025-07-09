@@ -1271,6 +1271,8 @@ export class ActionsService {
         return {
           id: actionId,
           title: action.data?.title || 'untitled',
+          description: action.description || action.data?.description,
+          vision: action.vision || action.data?.vision,
           done: action.done,
           created_at: action.createdAt.toISOString(),
           children: filteredMembers,
@@ -1478,6 +1480,8 @@ export class ActionsService {
         return {
           id: actionId,
           title: action.data?.title || 'untitled',
+          description: action.description || action.data?.description,
+          vision: action.vision || action.data?.vision,
           done: action.done,
           created_at: action.createdAt.toISOString(),
           children: filteredMembers,

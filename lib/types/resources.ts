@@ -38,6 +38,8 @@ export interface ActionTreeResource {
 export interface ActionNode {
   id: string;
   title: string;
+  description?: string;
+  vision?: string;
   done: boolean;
   created_at: string;
   children: ActionNode[];
