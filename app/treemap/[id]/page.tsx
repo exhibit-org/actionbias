@@ -95,7 +95,7 @@ const MemoizedTreemap = memo(({
       innerPadding={0}
       outerPadding={0}
       labelSkipSize={0}
-      parentLabelSize={40}
+      parentLabelSize={60}
       enableParentLabel={true}
       labelTextColor="#d1d5db"
       parentLabelTextColor="#f3f4f6"
@@ -120,7 +120,17 @@ const MemoizedTreemap = memo(({
         const descendantCount = countDescendants(actionNode);
         return `${nodeData.name} (${descendantCount} actions)`;
       }}
-      parentLabel={({ data }) => (data as any).name}
+      parentLabel={({ data }) => {
+        const nodeData = (data as any);
+        const actionNode = findNodeInTree(displayNodes, nodeData.id);
+        
+        if (!actionNode || !actionNode.children || actionNode.children.length === 0) {
+          return nodeData.name;
+        }
+        
+        const descendantCount = countDescendants(actionNode);
+        return `${nodeData.name} (${descendantCount})`;
+      }}
       tooltip={() => null}
     />
   );
@@ -183,60 +193,69 @@ function TreemapIdPageContent() {
   // Use the stable data for the treemap component
   const treemapData = stableTreemapData;
 
+  // Separate function to refresh tree data that can be called from multiple places
+  const refreshTreeData = async () => {
+    try {
+      const response = await fetch('/api/tree');
+      const result = await response.json();
+      
+      if (result.success) {
+        setTreeData(result.data);
+        setDataRevision(prev => prev + 1); // Force treemap re-render
+        
+        if (!isRootView) {
+          // Find the target action in the tree
+          const foundAction = findActionInTree(result.data.rootActions, actionId);
+          if (foundAction) {
+            // Check if this is a leaf node (no children)
+            if (foundAction.children.length === 0) {
+              // This is a leaf node - redirect to parent
+              // First try to find the parent by searching for actions that have this as a child
+              const findParentAction = (nodes: ActionNode[], targetId: string): ActionNode | null => {
+                for (const node of nodes) {
+                  if (node.children.some(child => child.id === targetId)) {
+                    return node;
+                  }
+                  const parentInChildren = findParentAction(node.children, targetId);
+                  if (parentInChildren) return parentInChildren;
+                }
+                return null;
+              };
+              
+              const parentAction = findParentAction(result.data.rootActions, actionId);
+              if (parentAction) {
+                // Redirect to parent action
+                const params = new URLSearchParams();
+                if (maxDepth) params.set('depth', maxDepth.toString());
+                router.replace(`/treemap/${parentAction.id}?${params.toString()}`);
+                return;
+              } else {
+                // No parent found, redirect to root
+                const params = new URLSearchParams();
+                if (maxDepth) params.set('depth', maxDepth.toString());
+                router.replace(`/treemap/root?${params.toString()}`);
+                return;
+              }
+            }
+            setTargetAction(foundAction);
+          } else {
+            setError(`Action with ID ${actionId} not found`);
+          }
+        }
+      } else {
+        setError(result.error || 'Failed to fetch tree data');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
   useEffect(() => {
     const fetchTreeData = async () => {
       try {
-        const response = await fetch('/api/tree');
-        const result = await response.json();
-        
-        if (result.success) {
-          setTreeData(result.data);
-          setDataRevision(prev => prev + 1); // Force treemap re-render
-          
-          if (!isRootView) {
-            // Find the target action in the tree
-            const foundAction = findActionInTree(result.data.rootActions, actionId);
-            if (foundAction) {
-              // Check if this is a leaf node (no children)
-              if (foundAction.children.length === 0) {
-                // This is a leaf node - redirect to parent
-                // First try to find the parent by searching for actions that have this as a child
-                const findParentAction = (nodes: ActionNode[], targetId: string): ActionNode | null => {
-                  for (const node of nodes) {
-                    if (node.children.some(child => child.id === targetId)) {
-                      return node;
-                    }
-                    const parentInChildren = findParentAction(node.children, targetId);
-                    if (parentInChildren) return parentInChildren;
-                  }
-                  return null;
-                };
-                
-                const parentAction = findParentAction(result.data.rootActions, actionId);
-                if (parentAction) {
-                  // Redirect to parent action
-                  const params = new URLSearchParams();
-                  if (maxDepth) params.set('depth', maxDepth.toString());
-                  router.replace(`/treemap/${parentAction.id}?${params.toString()}`);
-                  return;
-                } else {
-                  // No parent found, redirect to root
-                  const params = new URLSearchParams();
-                  if (maxDepth) params.set('depth', maxDepth.toString());
-                  router.replace(`/treemap/root?${params.toString()}`);
-                  return;
-                }
-              }
-              setTargetAction(foundAction);
-            } else {
-              setError(`Action with ID ${actionId} not found`);
-            }
-          }
-        } else {
-          setError(result.error || 'Failed to fetch tree data');
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        setLoading(true);
+        setError(null);
+        await refreshTreeData();
       } finally {
         setLoading(false);
       }
@@ -432,9 +451,28 @@ function TreemapIdPageContent() {
           setSelectedActionDetail(data.data);
         }
       }
+      
+      // Refresh tree data to update treemap
+      await refreshTreeData();
     } catch (err) {
       console.error('Failed to toggle completion:', err);
     }
+  };
+
+  // Handle action updates (including title changes)
+  const handleActionUpdate = async (actionId: string, field: string, value: string) => {
+    // Update the selected action detail if it matches the updated action
+    if (selectedActionDetail && selectedActionDetail.id === actionId) {
+      setSelectedActionDetail(prev => prev ? { ...prev, [field]: value } : null);
+    }
+    
+    // Refresh tree data to update treemap
+    await refreshTreeData();
+    
+    // Notify the sidebar to refresh (using window custom event)
+    window.dispatchEvent(new CustomEvent('actionUpdated', { 
+      detail: { actionId, field, value } 
+    }));
   };
 
   // Delete action handler
@@ -796,6 +834,7 @@ function TreemapIdPageContent() {
             setIsDragging={setIsDragging}
             onDelete={handleDelete}
             deleting={deleting}
+            onActionUpdate={handleActionUpdate}
           />
         </div>
       </div>

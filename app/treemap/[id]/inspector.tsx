@@ -24,6 +24,7 @@ interface TreemapInspectorProps {
   setIsDragging?: (dragging: boolean) => void;
   onDelete?: (actionId: string, childHandling: 'reparent' | 'delete_recursive') => void;
   deleting?: boolean;
+  onActionUpdate?: (actionId: string, field: string, value: string) => void;
 }
 
 // Dark theme colors for the inspector
@@ -54,7 +55,8 @@ export default function TreemapInspector({
   isDragging,
   setIsDragging,
   onDelete,
-  deleting = false
+  deleting = false,
+  onActionUpdate
 }: TreemapInspectorProps) {
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -75,8 +77,10 @@ export default function TreemapInspector({
         throw new Error('Failed to update action');
       }
       
-      // Note: In a real app, you'd want to update the local state or refetch
-      // For now, the parent component should handle refreshing the data
+      // Notify parent about the update
+      if (onActionUpdate) {
+        onActionUpdate(selectedActionDetail.id, field, value);
+      }
     } catch (error) {
       console.error(`Error updating ${field}:`, error);
       throw error;

@@ -30,31 +30,46 @@ export default function TreeSidebarLayout({ children, colors }: TreeSidebarLayou
   // Extract current action ID from pathname
   const currentActionId = pathname?.split('/')[1] || '';
 
-  useEffect(() => {
-    const fetchTreeData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/actions/tree?includeCompleted=false');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch tree: ${response.status}`);
-        }
-        const result = await response.json();
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch tree');
-        }
-        
-        setTreeData(result.data);
-      } catch (err) {
-        console.error('Error fetching tree:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch tree');
-      } finally {
-        setLoading(false);
+  // Extract tree data fetching into a separate function
+  const fetchTreeData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch('/api/actions/tree?includeCompleted=false');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tree: ${response.status}`);
       }
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch tree');
+      }
+      
+      setTreeData(result.data);
+    } catch (err) {
+      console.error('Error fetching tree:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch tree');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTreeData();
+  }, []);
+
+  // Listen for action updates from treemap and refresh tree data
+  useEffect(() => {
+    const handleActionUpdate = (event: CustomEvent) => {
+      // Refresh tree data when any action is updated
+      fetchTreeData();
     };
 
-    fetchTreeData();
+    window.addEventListener('actionUpdated', handleActionUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('actionUpdated', handleActionUpdate as EventListener);
+    };
   }, []);
 
   // Calculate path to current action and merge with existing expanded nodes
