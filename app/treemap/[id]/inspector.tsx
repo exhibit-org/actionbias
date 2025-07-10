@@ -6,6 +6,8 @@ import EditableField from '../../next/components/EditableField';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
 import { ColorScheme } from '../../next/components/types';
+import ActionBreakdownButton from '../../next/components/ActionBreakdownButton';
+import ActionBreakdownModal from '../../next/components/ActionBreakdownModal';
 
 interface TreemapInspectorProps {
   selectedActionDetail: ActionDetailResource | null;
@@ -61,6 +63,7 @@ export default function TreemapInspector({
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [childHandling, setChildHandling] = useState<'reparent' | 'delete_recursive'>('reparent');
+  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
   const handleUpdateField = async (field: 'title' | 'description' | 'vision', value: string) => {
     if (!selectedActionDetail) return;
@@ -154,7 +157,7 @@ export default function TreemapInspector({
         {!isMinimized && selectedActionDetail && (
           <div className="flex-1 overflow-y-auto flex flex-col">
             {/* Action buttons */}
-            <div className="p-3 border-b border-gray-700 flex gap-2">
+            <div className="p-3 border-b border-gray-700 flex gap-2 flex-wrap">
               <button 
                 onClick={onCopyUrl} 
                 disabled={copyingUrl} 
@@ -183,6 +186,16 @@ export default function TreemapInspector({
                 >
                   <Trash2 size={14} />
                 </button>
+              )}
+              {/* Break Down Action Button - styled to match other buttons */}
+              {!selectedActionDetail.done && (!selectedActionDetail.children || selectedActionDetail.children.length === 0) && (
+                <div className="flex-shrink-0">
+                  <ActionBreakdownButton 
+                    action={selectedActionDetail}
+                    colors={darkColors}
+                    onBreakdownClick={() => setIsBreakdownModalOpen(true)}
+                  />
+                </div>
               )}
             </div>
             
@@ -380,6 +393,16 @@ export default function TreemapInspector({
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Action Breakdown Modal */}
+      {selectedActionDetail && (
+        <ActionBreakdownModal
+          isOpen={isBreakdownModalOpen}
+          onClose={() => setIsBreakdownModalOpen(false)}
+          action={selectedActionDetail}
+          colors={darkColors}
+        />
       )}
     </>
   );
