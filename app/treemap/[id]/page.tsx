@@ -20,18 +20,20 @@ import {
 const MemoizedTreemap = memo(({ 
   treemapData, 
   actionId, 
-  maxDepth, 
+  currentDepth, 
   handleNodeClick, 
   selectedNodeId,
   hoveredNodeId,
   setHoveredNodeId,
   displayNodes,
   dataRevision,
-  windowDimensions
+  windowDimensions,
+  displayTitle,
+  displayAction
 }: {
   treemapData: any;
   actionId: string;
-  maxDepth?: number;
+  currentDepth: number;
   handleNodeClick: (node: any) => void;
   selectedNodeId: string | null;
   hoveredNodeId: string | null;
@@ -39,10 +41,12 @@ const MemoizedTreemap = memo(({
   displayNodes: ActionNode[];
   dataRevision: number;
   windowDimensions: { width: number; height: number };
+  displayTitle: string;
+  displayAction: ActionNode | null;
 }) => {
   return (
     <ResponsiveTreeMapHtml
-      key={`treemap-${actionId}-${maxDepth || 'unlimited'}-rev${dataRevision}`}
+      key={`treemap-${actionId}-${currentDepth === 10 ? 'unlimited' : currentDepth}-rev${dataRevision}`}
       data={treemapData}
       identity="id"
       value="value"
@@ -101,7 +105,8 @@ const MemoizedTreemap = memo(({
       parentLabelTextColor="#f3f4f6"
       borderWidth={1}
       borderColor="rgba(0, 0, 0, 0)"
-      animate={false}
+      animate={true}
+      motionConfig="gentle"
       onClick={handleNodeClick}
       onMouseEnter={(node) => {
         // Only show hover highlighting if no node is selected
@@ -129,6 +134,14 @@ const MemoizedTreemap = memo(({
         }
         
         const descendantCount = countDescendants(actionNode);
+        const isRootNode = nodeData.name === displayTitle;
+        
+        if (isRootNode) {
+          // For the root node, show breadcrumb info as text (depth shown in overlay)
+          const breadcrumbText = displayAction ? `/ ${displayAction.title}` : 'Actions';
+          return `${breadcrumbText} (${descendantCount})`;
+        }
+        
         return `${nodeData.name} (${descendantCount})`;
       }}
       tooltip={() => null}
@@ -177,18 +190,18 @@ function TreemapIdPageContent() {
   const displayNodes = displayAction ? displayAction.children : treeData?.rootActions || [];
   const displayTitle = displayAction ? displayAction.title : 'Actions';
 
-  // Create stable treemap data that never changes structure (only for layout)
-  // This must NEVER depend on selectedActionDetail or any API response data
+  // Create stable treemap data that responds to depth changes smoothly
   const stableTreemapData = useMemo(() => {
+    const effectiveDepth = depthSliderValue === 10 ? undefined : depthSliderValue;
     return displayNodes.length > 0 ? {
       name: displayTitle,
-      children: transformToTreemapData(displayNodes, 0, maxDepth)
+      children: transformToTreemapData(displayNodes, 0, effectiveDepth)
     } : {
       name: displayTitle,
       value: 1,
       color: '#4b5563'
     };
-  }, [displayNodes, displayTitle, maxDepth]);
+  }, [displayNodes, displayTitle, depthSliderValue]);
 
   // Use the stable data for the treemap component
   const treemapData = stableTreemapData;
@@ -351,12 +364,8 @@ function TreemapIdPageContent() {
 
   const handleDepthChange = (newDepth: number) => {
     setDepthSliderValue(newDepth);
-    const params = new URLSearchParams();
-    if (newDepth < 10) { // Only set depth param if it's not the default maximum
-      params.set('depth', newDepth.toString());
-    }
-    const newUrl = `/treemap/${actionId}?${params.toString()}`;
-    router.push(newUrl);
+    // Don't navigate immediately - just update the local state
+    // The treemap will re-render smoothly with the new depth
   };
 
   // Determine inspector layout based on mobile form factors
@@ -687,6 +696,46 @@ function TreemapIdPageContent() {
           box-sizing: border-box !important;
         }
         
+        /* Special styling for the root header with navigation and controls */
+        .treemap-root-header {
+          width: calc(100% - 8px) !important;
+          height: auto !important;
+          min-height: 56px !important;
+          background-color: rgba(17, 24, 39, 0.95) !important;
+          border: 1px solid rgba(75, 85, 99, 0.8) !important;
+          border-radius: 8px !important;
+          margin: 4px !important;
+          padding: 12px !important;
+          pointer-events: auto !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+        }
+        
+        .treemap-root-header input[type="range"] {
+          background: #4b5563 !important;
+          -webkit-appearance: none !important;
+          appearance: none !important;
+        }
+        
+        .treemap-root-header input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none !important;
+          background: #22c55e !important;
+          width: 12px !important;
+          height: 12px !important;
+          border-radius: 50% !important;
+          cursor: pointer !important;
+        }
+        
+        .treemap-root-header input[type="range"]::-moz-range-thumb {
+          background: #22c55e !important;
+          width: 12px !important;
+          height: 12px !important;
+          border-radius: 50% !important;
+          cursor: pointer !important;
+          border: none !important;
+        }
+        
         /* Sibling highlighting with bright blue colors */
         
         /* Custom slider styles */
@@ -727,50 +776,43 @@ function TreemapIdPageContent() {
           background: #16a34a;
         }
       `}</style>
-      <div className="w-full h-screen flex flex-col">
-        {/* Header with breadcrumb and depth slider */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800">
-          <div className="flex items-center space-x-2">
+      <div className={`w-full h-screen flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
+        {/* Left side: Treemap (full height) */}
+        <div className="flex-1 relative">
+          {/* Small floating controls for depth and back button */}
+          <div className="absolute top-6 right-6 z-10 flex items-center space-x-3 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-lg px-3 py-2">
             {displayAction && (
               <button
                 onClick={handleBackClick}
-                className="px-3 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-sm"
+                className="px-2 py-1 bg-gray-700 text-gray-200 rounded hover:bg-gray-600 font-mono text-xs transition-colors"
               >
-                ← Back to Full Tree
+                ← Back
               </button>
             )}
-            <div className="text-gray-400 font-mono text-sm">
-              {displayAction ? `/ ${displayAction.title}` : 'Actions'}
+            <div className="flex items-center space-x-2">
+              <label htmlFor="depth-slider" className="text-gray-300 font-mono text-xs">
+                Depth:
+              </label>
+              <input
+                id="depth-slider"
+                type="range"
+                min="1"
+                max="10"
+                value={depthSliderValue}
+                onChange={(e) => handleDepthChange(parseInt(e.target.value))}
+                className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+              />
+              <span className="text-gray-300 font-mono text-xs min-w-[16px]">
+                {depthSliderValue === 10 ? '∞' : depthSliderValue}
+              </span>
             </div>
           </div>
-          
-          {/* Depth slider */}
-          <div className="flex items-center space-x-3">
-            <label htmlFor="depth-slider" className="text-gray-400 font-mono text-sm">
-              Depth:
-            </label>
-            <input
-              id="depth-slider"
-              type="range"
-              min="1"
-              max="10"
-              value={depthSliderValue}
-              onChange={(e) => handleDepthChange(parseInt(e.target.value))}
-              className="w-24 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-            />
-            <span className="text-gray-400 font-mono text-sm min-w-[20px]">
-              {depthSliderValue === 10 ? '∞' : depthSliderValue}
-            </span>
-          </div>
-        </div>
 
-        {/* Main content area with treemap and inspector */}
-        <div className={`flex-1 flex ${!isMobile ? 'flex-row' : 'flex-col'}`}>
-          {/* Treemap */}
+          {/* Treemap (full area) */}
           <div 
             key="treemap-container" 
-            className="flex-1 p-4"
-            style={{ maxHeight: '100vh', overflow: 'hidden' }}
+            className="w-full h-full p-4"
+            style={{ overflow: 'hidden' }}
             onClick={(e) => {
               // Clear selection if clicking on empty area
               if (e.target === e.currentTarget) {
@@ -789,7 +831,7 @@ function TreemapIdPageContent() {
             <MemoizedTreemap
               treemapData={treemapData}
               actionId={actionId}
-              maxDepth={maxDepth}
+              currentDepth={depthSliderValue}
               handleNodeClick={handleNodeClick}
               selectedNodeId={selectedNodeId}
               hoveredNodeId={hoveredNodeId}
@@ -797,6 +839,8 @@ function TreemapIdPageContent() {
               displayNodes={displayNodes}
               dataRevision={dataRevision}
               windowDimensions={windowDimensions}
+              displayTitle={displayTitle}
+              displayAction={displayAction}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -811,32 +855,32 @@ function TreemapIdPageContent() {
             </div>
           )}
           </div>
-          
-          {/* Inspector with resize handle */}
-          <TreemapInspector 
-            selectedActionDetail={selectedActionDetail}
-            loadingActionDetail={loadingActionDetail}
-            copying={copying}
-            copyingUrl={copyingUrl}
-            onCopyPrompt={copyPromptToClipboard}
-            onCopyUrl={copyActionUrl}
-            onToggleComplete={handleToggleComplete}
-            onClearSelection={() => {
-              setSelectedNodeId(null);
-              setLastClickedNodeId(null);
-              setSelectedActionDetail(null);
-            }}
-            isMinimized={isInspectorMinimized}
-            onToggleMinimize={() => setIsInspectorMinimized(!isInspectorMinimized)}
-            isMobile={isMobile}
-            inspectorWidth={inspectorWidth}
-            isDragging={isDragging}
-            setIsDragging={setIsDragging}
-            onDelete={handleDelete}
-            deleting={deleting}
-            onActionUpdate={handleActionUpdate}
-          />
         </div>
+        
+        {/* Right side: Inspector with full height */}
+        <TreemapInspector 
+          selectedActionDetail={selectedActionDetail}
+          loadingActionDetail={loadingActionDetail}
+          copying={copying}
+          copyingUrl={copyingUrl}
+          onCopyPrompt={copyPromptToClipboard}
+          onCopyUrl={copyActionUrl}
+          onToggleComplete={handleToggleComplete}
+          onClearSelection={() => {
+            setSelectedNodeId(null);
+            setLastClickedNodeId(null);
+            setSelectedActionDetail(null);
+          }}
+          isMinimized={isInspectorMinimized}
+          onToggleMinimize={() => setIsInspectorMinimized(!isInspectorMinimized)}
+          isMobile={isMobile}
+          inspectorWidth={inspectorWidth}
+          isDragging={isDragging}
+          setIsDragging={setIsDragging}
+          onDelete={handleDelete}
+          deleting={deleting}
+          onActionUpdate={handleActionUpdate}
+        />
       </div>
     </div>
   );

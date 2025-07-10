@@ -117,11 +117,11 @@ describe('TreemapIdPage', () => {
       expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
     });
 
-    // Check that the action title appears in breadcrumb
-    expect(screen.getByText('/ Root Action 1')).toBeInTheDocument();
+    // Check that the action title appears in breadcrumb (now in treemap root node)
+    expect(screen.getByText('/ Root Action 1 (2)')).toBeInTheDocument();
     
     // Check that back button is present
-    expect(screen.getByText('← Back to Full Tree')).toBeInTheDocument();
+    expect(screen.getByText('← Back')).toBeInTheDocument();
   });
 
   it('redirects leaf nodes to parent when they have one', async () => {
@@ -198,11 +198,11 @@ describe('TreemapIdPage', () => {
     render(<TreemapIdPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('← Back to Full Tree')).toBeInTheDocument();
+      expect(screen.getByText('← Back')).toBeInTheDocument();
     });
 
     // Click the back button
-    const backButton = screen.getByText('← Back to Full Tree');
+    const backButton = screen.getByText('← Back');
     backButton.click();
 
     expect(mockPush).toHaveBeenCalledWith('/treemap/root?');
