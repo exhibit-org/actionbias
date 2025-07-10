@@ -216,7 +216,8 @@ export class ActionSearchService {
 
     // Exclude specific IDs
     if (excludeIds.length > 0) {
-      whereConditions.push(sql`${actions.id} NOT IN (${excludeIds.map(id => `'${id}'`).join(',')})`);
+      // Use Drizzle's inArray with negation for proper parameterization
+      whereConditions.push(sql`${actions.id} NOT IN (${sql.join(excludeIds.map(id => sql`${id}`), sql`, `)})`);
     }
 
     // Create keyword search conditions
@@ -225,24 +226,28 @@ export class ActionSearchService {
     // Exact phrase search (highest priority)
     const escapedQuery = this.escapePostgresPattern(query);
     console.log(`[ActionSearchService] Original query: "${query}", Escaped query: "${escapedQuery}"`);
+    
+    // Use raw SQL to ensure proper escaping
     keywordConditions.push(
-      or(
-        ilike(actions.title, `%${escapedQuery}%`),
-        ilike(actions.description, `%${escapedQuery}%`),
-        ilike(actions.vision, `%${escapedQuery}%`)
-      )
+      sql`(
+        ${actions.title} ILIKE '%' || ${escapedQuery} || '%' OR
+        ${actions.description} ILIKE '%' || ${escapedQuery} || '%' OR
+        ${actions.vision} ILIKE '%' || ${escapedQuery} || '%'
+      )`
     );
 
     // Individual keyword searches
     for (const keyword of keywords) {
       const escapedKeyword = this.escapePostgresPattern(keyword);
       console.log(`[ActionSearchService] Original keyword: "${keyword}", Escaped keyword: "${escapedKeyword}"`);
+      
+      // Use raw SQL to ensure proper escaping
       keywordConditions.push(
-        or(
-          ilike(actions.title, `%${escapedKeyword}%`),
-          ilike(actions.description, `%${escapedKeyword}%`),
-          ilike(actions.vision, `%${escapedKeyword}%`)
-        )
+        sql`(
+          ${actions.title} ILIKE '%' || ${escapedKeyword} || '%' OR
+          ${actions.description} ILIKE '%' || ${escapedKeyword} || '%' OR
+          ${actions.vision} ILIKE '%' || ${escapedKeyword} || '%'
+        )`
       );
     }
 
