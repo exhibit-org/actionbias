@@ -2458,6 +2458,7 @@ export class ActionsService {
     metadata: {
       processingTimeMs: number;
       analyzedCount: number;
+      fallbackMode?: boolean;
     };
   }> {
     const startTime = Date.now();
@@ -2600,11 +2601,20 @@ export class ActionsService {
       const { createOpenAI } = await import("@ai-sdk/openai");
 
       const provider = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
-      const result = await generateText({
+      
+      // Add timeout to prevent Vercel function timeout
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('AI analysis timed out after 20 seconds')), 20000)
+      );
+      
+      const aiPromise = generateText({
         model: provider('gpt-4o-mini'),
         prompt,
         maxTokens: 2000,
+        temperature: 0.7,
       });
+      
+      const result = await Promise.race([aiPromise, timeoutPromise]) as any;
 
       // Parse the AI response
       let suggestions: any[] = [];
@@ -2644,6 +2654,60 @@ export class ActionsService {
       };
     } catch (error) {
       console.error('[ActionsService] Error in organizeAction:', error);
+      
+      // If AI times out or fails, provide basic suggestions based on search results
+      if (error instanceof Error && error.message.includes('timed out')) {
+        const fallbackSuggestions: Array<{
+          type: 'move' | 'rename' | 'split' | 'merge' | 'reorder';
+          title: string;
+          description: string;
+          confidence: number;
+          reasoning?: string;
+          targetId?: string;
+          targetTitle?: string;
+          newParentId?: string | null;
+          newParentTitle?: string;
+        }> = [];
+        
+        // If we found very similar actions, suggest merge
+        const firstResult = searchResults.results[0];
+        if (searchResults.results.length > 0 && firstResult && firstResult.similarity && firstResult.similarity > 0.8) {
+          fallbackSuggestions.push({
+            type: 'merge' as const,
+            title: `Merge with "${firstResult.title}"`,
+            description: 'This action appears to be very similar to an existing action',
+            confidence: firstResult.similarity,
+            targetId: firstResult.id,
+            targetTitle: firstResult.title,
+          });
+        }
+        
+        // If action has no parent but similar actions exist with parents, suggest move
+        if (!currentParent && searchResults.results.length > 0) {
+          const withParent = searchResults.results.find((r: any) => r.hierarchyPath && r.hierarchyPath.length > 1);
+          if (withParent && withParent.hierarchyPath) {
+            fallbackSuggestions.push({
+              type: 'move' as const,
+              title: `Move under "${withParent.hierarchyPath[withParent.hierarchyPath.length - 2]}"`,
+              description: 'Similar actions are organized under this parent',
+              confidence: 0.6,
+              newParentId: null, // We don't have the parent ID readily available
+              newParentTitle: withParent.hierarchyPath[withParent.hierarchyPath.length - 2],
+            });
+          }
+        }
+        
+        return {
+          action,
+          suggestions: fallbackSuggestions.slice(0, limit),
+          metadata: {
+            processingTimeMs: Date.now() - startTime,
+            analyzedCount: 1 + contextActions.length + searchResults.results.length,
+            fallbackMode: true,
+          },
+        };
+      }
+      
       throw new Error(`Failed to analyze organization: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
