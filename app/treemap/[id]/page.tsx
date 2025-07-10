@@ -6,6 +6,7 @@ import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
 import TreemapInspector from './inspector';
+import TreemapBreadcrumbs from './TreemapBreadcrumbs';
 import { 
   TreemapData, 
   countDescendants, 
@@ -29,7 +30,8 @@ const MemoizedTreemap = memo(({
   dataRevision,
   windowDimensions,
   displayTitle,
-  displayAction
+  displayAction,
+  actionDetail
 }: {
   treemapData: any;
   actionId: string;
@@ -43,6 +45,7 @@ const MemoizedTreemap = memo(({
   windowDimensions: { width: number; height: number };
   displayTitle: string;
   displayAction: ActionNode | null;
+  actionDetail: ActionDetailResource | null;
 }) => {
   return (
     <ResponsiveTreeMapHtml
@@ -118,6 +121,35 @@ const MemoizedTreemap = memo(({
         const nodeData = (data as any);
         const actionNode = findNodeInTree(displayNodes, nodeData.id);
         
+        // Check if this is the main/root node of the current view
+        const isMainNode = nodeData.name === displayTitle;
+        
+        console.log('label called:', { 
+          nodeDataName: nodeData.name, 
+          displayTitle, 
+          isMainNode,
+          hasChildren: actionNode?.children?.length || 0 
+        });
+        
+        if (isMainNode && displayAction) {
+          // For the main focused node, show breadcrumb
+          console.log('Building breadcrumb for main node:', { displayAction, actionDetail, hasParentChain: actionDetail?.parent_chain?.length });
+          if (actionDetail && actionDetail.parent_chain) {
+            const breadcrumbParts = ['Actions'];
+            actionDetail.parent_chain.forEach(parent => {
+              breadcrumbParts.push(parent.title);
+            });
+            breadcrumbParts.push(displayAction.title);
+            const breadcrumbText = breadcrumbParts.join(' / ');
+            console.log('Full breadcrumb:', breadcrumbText);
+            return breadcrumbText;
+          } else {
+            const breadcrumbText = `Actions / ${displayAction.title}`;
+            console.log('Simple breadcrumb:', breadcrumbText);
+            return breadcrumbText;
+          }
+        }
+        
         if (!actionNode || !actionNode.children || actionNode.children.length === 0) {
           return nodeData.name;
         }
@@ -128,20 +160,42 @@ const MemoizedTreemap = memo(({
       parentLabel={({ data }) => {
         const nodeData = (data as any);
         const actionNode = findNodeInTree(displayNodes, nodeData.id);
+        const isRootNode = nodeData.name === displayTitle;
         
+        console.log('parentLabel called:', { 
+          nodeDataName: nodeData.name, 
+          displayTitle, 
+          isRootNode,
+          actionNode: !!actionNode,
+          displayAction: !!displayAction,
+          actionDetail: !!actionDetail 
+        });
+        
+        // For the root node (focused action), show breadcrumb
+        if (isRootNode && displayAction) {
+          console.log('Building breadcrumb for root node:', { hasParentChain: actionDetail?.parent_chain?.length });
+          if (actionDetail && actionDetail.parent_chain && actionDetail.parent_chain.length > 0) {
+            const breadcrumbParts = ['Actions'];
+            actionDetail.parent_chain.forEach(parent => {
+              breadcrumbParts.push(parent.title);
+            });
+            breadcrumbParts.push(displayAction.title);
+            const breadcrumbText = breadcrumbParts.join(' / ');
+            console.log('Full breadcrumb:', breadcrumbText);
+            return `${breadcrumbText} (${displayNodes.length})`;
+          } else {
+            const breadcrumbText = `Actions / ${displayAction.title}`;
+            console.log('Simple breadcrumb:', breadcrumbText);
+            return `${breadcrumbText} (${displayNodes.length})`;
+          }
+        }
+        
+        // For child nodes, use normal logic
         if (!actionNode || !actionNode.children || actionNode.children.length === 0) {
           return nodeData.name;
         }
         
         const descendantCount = countDescendants(actionNode);
-        const isRootNode = nodeData.name === displayTitle;
-        
-        if (isRootNode) {
-          // For the root node, show breadcrumb info as text (depth shown in overlay)
-          const breadcrumbText = displayAction ? `/ ${displayAction.title}` : 'Actions';
-          return `${breadcrumbText} (${descendantCount})`;
-        }
-        
         return `${nodeData.name} (${descendantCount})`;
       }}
       tooltip={() => null}
@@ -176,6 +230,7 @@ function TreemapIdPageContent() {
   const [deleting, setDeleting] = useState(false);
   const [dataRevision, setDataRevision] = useState(0);
   const [depthSliderValue, setDepthSliderValue] = useState<number>(10);
+  const [actionDetail, setActionDetail] = useState<ActionDetailResource | null>(null);
   
   const maxDepth = searchParams.get('depth') ? parseInt(searchParams.get('depth')!) : undefined;
   const isRootView = actionId === 'root';
@@ -251,6 +306,21 @@ function TreemapIdPageContent() {
               }
             }
             setTargetAction(foundAction);
+            
+            // Also fetch the action detail to get parent_chain for breadcrumbs
+            if (!isRootView) {
+              try {
+                const detailResponse = await fetch(`/api/actions/${actionId}`);
+                if (detailResponse.ok) {
+                  const detailData = await detailResponse.json();
+                  if (detailData.success) {
+                    setActionDetail(detailData.data);
+                  }
+                }
+              } catch (err) {
+                console.error('Failed to fetch action detail for breadcrumbs:', err);
+              }
+            }
           } else {
             setError(`Action with ID ${actionId} not found`);
           }
@@ -808,6 +878,13 @@ function TreemapIdPageContent() {
             </div>
           </div>
 
+          {/* Breadcrumbs overlay inside treemap - temporarily disabled to test in-label breadcrumbs */}
+          {/* <TreemapBreadcrumbs 
+            actionId={actionId}
+            isRootView={isRootView}
+            maxDepth={maxDepth}
+          /> */}
+
           {/* Treemap (full area) */}
           <div 
             key="treemap-container" 
@@ -841,6 +918,7 @@ function TreemapIdPageContent() {
               windowDimensions={windowDimensions}
               displayTitle={displayTitle}
               displayAction={displayAction}
+              actionDetail={actionDetail}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

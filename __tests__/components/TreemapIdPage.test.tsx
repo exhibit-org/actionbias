@@ -21,9 +21,15 @@ jest.mock('next/navigation', () => ({
 
 // Mock the @nivo/treemap component
 jest.mock('@nivo/treemap', () => ({
-  ResponsiveTreeMapHtml: ({ data, onClick, onMouseEnter, onMouseLeave, ...props }: any) => (
+  ResponsiveTreeMapHtml: ({ data, onClick, onMouseEnter, onMouseLeave, parentLabel, ...props }: any) => (
     <div data-testid="treemap-container" {...props}>
       <div data-testid="treemap-data">{JSON.stringify(data)}</div>
+      {/* Render parent label if available */}
+      {parentLabel && data && (
+        <div data-testid="treemap-parent-label">
+          {parentLabel({ data })}
+        </div>
+      )}
       {data.children && data.children.map((child: any) => (
         <div 
           key={child.id} 
@@ -102,23 +108,44 @@ describe('TreemapIdPage', () => {
 
   it('renders treemap for action with children', async () => {
     mockGet.mockReturnValue(null); // No depth parameter
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        success: true,
-        data: mockTreeData
-      })
+    
+    // Mock both the tree API call and the action details API call for breadcrumbs
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === '/api/tree') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: mockTreeData
+          })
+        });
+      } else if (url === '/api/actions/1') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              id: '1',
+              title: 'Root Action 1',
+              parent_chain: [], // No parents since this is a root action
+              children: [],
+              dependencies: [],
+              dependents: []
+            }
+          })
+        });
+      }
+      return Promise.reject(new Error('Unexpected fetch call'));
     });
 
-    mockGet.mockReturnValue(null); // No depth parameter
     render(<TreemapIdPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
     });
 
-    // Check that the action title appears in breadcrumb (now in treemap root node)
-    expect(screen.getByText('/ Root Action 1 (2)')).toBeInTheDocument();
+    // Check that the action title appears in parent label with breadcrumb
+    expect(screen.getByText('Actions / Root Action 1 (2)')).toBeInTheDocument();
     
     // Check that back button is present
     expect(screen.getByText('← Back')).toBeInTheDocument();

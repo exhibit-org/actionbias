@@ -216,7 +216,7 @@ export default function QuickActionModal() {
           title: aiPreview?.fields.title || actionText.trim(),
           description: aiPreview?.fields.description,
           vision: aiPreview?.fields.vision,
-          parent_id: selectedParentId === 'CREATE_NEW_PARENT' ? null : selectedParentId,
+          ...(selectedParentId && selectedParentId !== 'CREATE_NEW_PARENT' && { parent_id: selectedParentId }),
         }),
       });
 
