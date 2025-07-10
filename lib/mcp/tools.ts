@@ -1162,7 +1162,7 @@ export function registerTools(server: any) {
         let message = `🔍 **Decomposition Suggestions for:** "${action.data?.title}"\n`;
         message += `📋 **Action ID:** ${action_id}\n`;
         message += `⚡ **Performance:** ${result.metadata.processingTimeMs.toFixed(1)}ms total\n`;
-        message += `📊 **Generated:** ${result.suggestions.length} suggestion${result.suggestions.length !== 1 ? 's' : ''}\n\n`;
+        message += `📊 **Generated:** ${result.suggestions.length} suggestion${result.suggestions.length !== 1 ? 's' : ''} with ${result.dependencies.length} dependenc${result.dependencies.length !== 1 ? 'ies' : 'y'}\n\n`;
 
         if (result.suggestions.length === 0) {
           message += `❌ **No decomposition suggestions generated**\n`;
@@ -1173,11 +1173,11 @@ export function registerTools(server: any) {
         } else {
           message += `✅ **Suggested Child Actions:**\n\n`;
           
-          result.suggestions.forEach((suggestion, index) => {
+          result.suggestions.forEach((suggestion) => {
             const confidenceBar = '█'.repeat(Math.floor(suggestion.confidence * 10)) + 
                                 '░'.repeat(10 - Math.floor(suggestion.confidence * 10));
             
-            message += `${index + 1}. 📝 **${suggestion.title}** (${Math.round(suggestion.confidence * 100)}% confidence)\n`;
+            message += `${suggestion.index}. 📝 **${suggestion.title}** (${Math.round(suggestion.confidence * 100)}% confidence)\n`;
             message += `   ${confidenceBar} ${Math.round(suggestion.confidence * 100)}/100\n`;
             
             if (suggestion.description) {
@@ -1191,12 +1191,35 @@ export function registerTools(server: any) {
             message += `\n`;
           });
           
+          // Add dependency information
+          if (result.dependencies.length > 0) {
+            message += `🔗 **Suggested Dependencies:**\n\n`;
+            
+            result.dependencies.forEach((dependency, index) => {
+              const dependentAction = result.suggestions.find(s => s.index === dependency.dependent_index);
+              const dependsOnAction = result.suggestions.find(s => s.index === dependency.depends_on_index);
+              
+              if (dependentAction && dependsOnAction) {
+                message += `${index + 1}. **${dependentAction.title}** depends on **${dependsOnAction.title}**\n`;
+                message += `   📩 ${dependency.depends_on_index} → ${dependency.dependent_index}\n`;
+                
+                if (include_reasoning && dependency.reasoning) {
+                  message += `   🤔 Reasoning: ${dependency.reasoning}\n`;
+                }
+                message += `\n`;
+              }
+            });
+          } else {
+            message += `🔗 **Dependencies:** No dependencies suggested (actions can be executed in parallel)\n\n`;
+          }
+          
           // Add usage instructions
           message += `📝 **Usage Instructions:**\n`;
           message += `• Use create_action with family_id=${action_id} to create these child actions\n`;
+          message += `• After creating actions, use add_dependency to set up the dependency relationships\n`;
           message += `• Higher confidence scores indicate better decomposition fit\n`;
-          message += `• Consider the logical order and dependencies between suggested actions\n`;
-          message += `• You can modify the suggested titles and descriptions as needed\n`;
+          message += `• Dependencies ensure proper execution order - complete prerequisite actions first\n`;
+          message += `• You can modify the suggested titles, descriptions, and dependencies as needed\n`;
         }
 
         message += `\n🤖 **Powered by:** AI-driven task decomposition analysis`;

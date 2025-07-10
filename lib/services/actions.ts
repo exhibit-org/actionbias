@@ -2261,6 +2261,12 @@ export class ActionsService {
       description?: string;
       reasoning?: string;
       confidence: number;
+      index: number;
+    }>;
+    dependencies: Array<{
+      dependent_index: number;
+      depends_on_index: number;
+      reasoning?: string;
     }>;
     metadata: {
       processingTimeMs: number;
@@ -2284,8 +2290,8 @@ export class ActionsService {
       throw new Error(`Action ${action_id} has no title - cannot decompose`);
     }
 
-    // Build AI prompt for decomposition
-    let prompt = `You are an expert at breaking down complex tasks into smaller, actionable subtasks. Your goal is to decompose the given action into specific, concrete child actions that would need to be completed to achieve the parent action.\n\n`;
+    // Build AI prompt for decomposition with dependencies
+    let prompt = `You are an expert at breaking down complex tasks into smaller, actionable subtasks with proper sequencing. Your goal is to decompose the given action into specific, concrete child actions AND identify the dependency relationships between them.\n\n`;
     
     prompt += `ACTION TO DECOMPOSE:\n`;
     prompt += `Title: ${title}\n`;
@@ -2296,23 +2302,49 @@ export class ActionsService {
       prompt += `Success Criteria: ${vision}\n`;
     }
     
-    prompt += `\nGENERATE ${max_suggestions} CHILD ACTIONS:\n`;
-    prompt += `For each child action, provide:\n`;
-    prompt += `1. A clear, specific title (what needs to be done)\n`;
-    prompt += `2. A brief description explaining the action\n`;
+    prompt += `\nTASK: Generate ${max_suggestions} child actions with their dependencies.\n\n`;
+    
+    prompt += `RESPONSE FORMAT:\n`;
+    prompt += `Respond with a JSON object containing:\n`;
+    prompt += `1. "actions": Array of child actions with index numbers\n`;
+    prompt += `2. "dependencies": Array of dependency relationships\n\n`;
+    
+    prompt += `For each child action in the "actions" array, provide:\n`;
+    prompt += `- "index": Unique number (0, 1, 2, etc.)\n`;
+    prompt += `- "title": Clear, specific title (what needs to be done)\n`;
+    prompt += `- "description": Brief description explaining the action\n`;
     if (include_reasoning) {
-      prompt += `3. Reasoning for why this is a necessary step\n`;
+      prompt += `- "reasoning": Why this is a necessary step\n`;
     }
-    prompt += `4. A confidence score (0.0-1.0) indicating how essential this is\n\n`;
+    prompt += `- "confidence": Score (0.0-1.0) indicating how essential this is\n\n`;
+    
+    prompt += `For each dependency in the "dependencies" array, provide:\n`;
+    prompt += `- "dependent_index": Index of action that depends on another\n`;
+    prompt += `- "depends_on_index": Index of action that must be completed first\n`;
+    if (include_reasoning) {
+      prompt += `- "reasoning": Why this dependency is necessary\n`;
+    }
+    prompt += `\n`;
     
     prompt += `Guidelines:\n`;
     prompt += `- Each child action should be specific and actionable\n`;
     prompt += `- Avoid vague or generic tasks\n`;
-    prompt += `- Consider logical sequence and dependencies\n`;
+    prompt += `- Consider logical sequence: design before implementation, setup before execution\n`;
     prompt += `- Focus on concrete deliverables or milestones\n`;
-    prompt += `- Each child should contribute directly to completing the parent\n\n`;
+    prompt += `- Each child should contribute directly to completing the parent\n`;
+    prompt += `- Dependencies should reflect real execution constraints\n`;
+    prompt += `- An action can depend on multiple other actions if needed\n\n`;
     
-    prompt += `Respond with a JSON array of objects, each containing: {"title": "...", "description": "...", ${include_reasoning ? '"reasoning": "...", ' : ''}"confidence": 0.X}`;
+    prompt += `Example response format:\n`;
+    prompt += `{\n`;
+    prompt += `  "actions": [\n`;
+    prompt += `    {"index": 0, "title": "...", "description": "...", ${include_reasoning ? '"reasoning": "...", ' : ''}"confidence": 0.9},\n`;
+    prompt += `    {"index": 1, "title": "...", "description": "...", ${include_reasoning ? '"reasoning": "...", ' : ''}"confidence": 0.8}\n`;
+    prompt += `  ],\n`;
+    prompt += `  "dependencies": [\n`;
+    prompt += `    {"dependent_index": 1, "depends_on_index": 0${include_reasoning ? ', "reasoning": "..."' : ''}}\n`;
+    prompt += `  ]\n`;
+    prompt += `}`;
 
     try {
       const { generateText } = await import("ai");
@@ -2322,7 +2354,7 @@ export class ActionsService {
       const result = await generateText({
         model: provider('gpt-4o-mini'),
         prompt,
-        maxTokens: 2000,
+        maxTokens: 3000,
       });
 
       // Parse the AI response
@@ -2331,23 +2363,45 @@ export class ActionsService {
         description?: string;
         reasoning?: string;
         confidence: number;
+        index: number;
+      }> = [];
+      
+      let dependencies: Array<{
+        dependent_index: number;
+        depends_on_index: number;
+        reasoning?: string;
       }> = [];
 
       try {
         // Try to extract JSON from the response
-        const jsonMatch = result.text.match(/\[[\s\S]*\]/);
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const parsedSuggestions = JSON.parse(jsonMatch[0]);
+          const parsedResponse = JSON.parse(jsonMatch[0]);
           
-          if (Array.isArray(parsedSuggestions)) {
-            suggestions = parsedSuggestions
-              .filter(s => s.title && typeof s.confidence === 'number')
+          if (parsedResponse.actions && Array.isArray(parsedResponse.actions)) {
+            suggestions = parsedResponse.actions
+              .filter((s: any) => s.title && typeof s.confidence === 'number' && typeof s.index === 'number')
               .slice(0, max_suggestions)
-              .map(s => ({
+              .map((s: any) => ({
                 title: s.title,
                 description: s.description || undefined,
                 reasoning: include_reasoning ? (s.reasoning || undefined) : undefined,
                 confidence: Math.max(0, Math.min(1, s.confidence)), // Clamp between 0 and 1
+                index: s.index,
+              }));
+          }
+          
+          if (parsedResponse.dependencies && Array.isArray(parsedResponse.dependencies)) {
+            dependencies = parsedResponse.dependencies
+              .filter((d: any) => 
+                typeof d.dependent_index === 'number' && 
+                typeof d.depends_on_index === 'number' &&
+                d.dependent_index !== d.depends_on_index // Avoid self-dependencies
+              )
+              .map((d: any) => ({
+                dependent_index: d.dependent_index,
+                depends_on_index: d.depends_on_index,
+                reasoning: include_reasoning ? (d.reasoning || undefined) : undefined,
               }));
           }
         }
@@ -2355,6 +2409,7 @@ export class ActionsService {
         console.error('[ActionsService] Failed to parse AI response:', parseError);
         // Fallback: return empty suggestions rather than throwing
         suggestions = [];
+        dependencies = [];
       }
 
       const processingTimeMs = Date.now() - startTime;
@@ -2362,6 +2417,7 @@ export class ActionsService {
       return {
         action,
         suggestions,
+        dependencies,
         metadata: {
           processingTimeMs,
         },
