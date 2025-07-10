@@ -98,10 +98,7 @@ export default function QuickActionModal() {
         duplicate: data.data.duplicate,
       });
 
-      // Set error if duplicate detected
-      if (data.data.isDuplicate && data.data.duplicate) {
-        setError(`Similar action already exists: "${data.data.duplicate.title}"`);
-      }
+      // Don't set error for duplicates - the yellow warning box in the right panel is sufficient
 
       console.log('AI Preview generated:', {
         fields: data.data.fields,
