@@ -174,26 +174,62 @@ export default function ActionBreakdownModal({ isOpen, onClose, action, colors, 
         createdActions[suggestion.index] = data.data.id;
       }
 
-      // Create dependencies
+      // Create dependencies with error handling
+      const dependencyErrors: string[] = [];
       for (const dependency of selectedDependencies) {
         const dependentId = createdActions[dependency.dependent_index];
         const dependsOnId = createdActions[dependency.depends_on_index];
 
-        if (!dependentId || !dependsOnId) continue;
+        if (!dependentId || !dependsOnId) {
+          console.warn('Skipping dependency creation: missing action IDs', { 
+            dependency, 
+            dependentId, 
+            dependsOnId 
+          });
+          continue;
+        }
 
-        await fetch('/api/actions/dependencies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action_id: dependentId,
-            depends_on_id: dependsOnId,
-          }),
-        });
+        try {
+          const response = await fetch('/api/actions/dependencies', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action_id: dependentId,
+              depends_on_id: dependsOnId,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            const errorMsg = `Failed to create dependency (${response.status}): ${errorData.error || 'Unknown error'}`;
+            console.error('Dependency creation failed:', errorMsg, { dependency, dependentId, dependsOnId });
+            dependencyErrors.push(errorMsg);
+          } else {
+            const result = await response.json();
+            console.log('Dependency created successfully:', result.data);
+          }
+        } catch (err) {
+          const errorMsg = `Network error creating dependency: ${err instanceof Error ? err.message : 'Unknown error'}`;
+          console.error('Dependency creation network error:', err, { dependency, dependentId, dependsOnId });
+          dependencyErrors.push(errorMsg);
+        }
+      }
+
+      // Show warning if some dependencies failed to create
+      if (dependencyErrors.length > 0) {
+        console.warn(`${dependencyErrors.length} dependency creation(s) failed:`, dependencyErrors);
+        // Optionally, you could show this in the UI as well
       }
 
       // Success - show toast and refresh data
       const createdCount = selectedActions.length;
-      setSuccessMessage(`Successfully created ${createdCount} child action${createdCount !== 1 ? 's' : ''}`);
+      let message = `Successfully created ${createdCount} child action${createdCount !== 1 ? 's' : ''}`;
+      
+      if (dependencyErrors.length > 0) {
+        message += ` (${dependencyErrors.length} dependency creation${dependencyErrors.length !== 1 ? 's' : ''} failed - check console for details)`;
+      }
+      
+      setSuccessMessage(message);
       setShowSuccessToast(true);
       onClose();
       
