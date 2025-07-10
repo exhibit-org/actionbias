@@ -6,7 +6,6 @@ import EditableField from '../../next/components/EditableField';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
 import { ColorScheme } from '../../next/components/types';
-import ActionBreakdownButton from '../../next/components/ActionBreakdownButton';
 import ActionBreakdownModal from '../../next/components/ActionBreakdownModal';
 
 interface TreemapInspectorProps {
@@ -189,13 +188,25 @@ export default function TreemapInspector({
               )}
               {/* Break Down Action Button - styled to match other buttons */}
               {!selectedActionDetail.done && (!selectedActionDetail.children || selectedActionDetail.children.length === 0) && (
-                <div className="flex-shrink-0">
-                  <ActionBreakdownButton 
-                    action={selectedActionDetail}
-                    colors={darkColors}
-                    onBreakdownClick={() => setIsBreakdownModalOpen(true)}
-                  />
-                </div>
+                <button 
+                  onClick={() => setIsBreakdownModalOpen(true)}
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Break down this action into smaller actions"
+                >
+                  <svg 
+                    style={{ width: '14px', height: '14px' }} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z M9 12l2 2 4-4" 
+                    />
+                  </svg>
+                </button>
               )}
             </div>
             
