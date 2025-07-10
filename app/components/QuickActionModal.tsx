@@ -201,11 +201,7 @@ export default function QuickActionModal() {
       return;
     }
 
-    // Don't allow submission if duplicate detected
-    if (aiPreview?.isDuplicate) {
-      setError('Cannot create duplicate action. Please modify your request or use the existing action.');
-      return;
-    }
+    // Allow submission even if duplicate detected - user can create as child or sibling
 
     setIsSubmitting(true);
     
@@ -280,25 +276,91 @@ export default function QuickActionModal() {
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex gap-6 flex-1 min-h-0">
-            {/* Left side - Textarea */}
+            {/* Left side - Textarea and Parent Suggestions */}
             <div className="w-1/2 flex flex-col flex-shrink-0">
-              <textarea
-                ref={textareaRef}
-                value={actionText}
-                onChange={(e) => handleTextChange(e.target.value)}
-                placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
-                className="flex-1 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                disabled={isSubmitting}
-              />
+              {/* Textarea */}
+              <div className="flex-1 flex flex-col">
+                <textarea
+                  ref={textareaRef}
+                  value={actionText}
+                  onChange={(e) => handleTextChange(e.target.value)}
+                  placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
+                  className="flex-1 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  disabled={isSubmitting}
+                />
+                
+                {error && (
+                  <div className="mt-2 text-sm text-red-600">
+                    {error}
+                  </div>
+                )}
+              </div>
               
-              {error && (
-                <div className="mt-2 text-sm text-red-600">
-                  {error}
+              {/* Parent Suggestions */}
+              <div className="mt-4 flex-shrink-0">
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">Parent Suggestions</label>
+                <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 max-h-48 overflow-y-auto">
+                  {aiPreview?.placement.suggestions && aiPreview.placement.suggestions.length > 0 ? (
+                    <div className="space-y-2">
+                      {aiPreview.placement.suggestions.map((suggestion) => (
+                        <div 
+                          key={suggestion.id} 
+                          className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                            selectedParentId === suggestion.id 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedParentId(suggestion.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium truncate">{suggestion.title}</span>
+                                {suggestion.canCreateNewParent && (
+                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">NEW</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                {suggestion.confidence}% confidence • {suggestion.source}
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                              {Math.round(suggestion.confidence)}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
+                      {actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 
+                       aiPreview ? 'No parent suggestions available' : 'Enter action text to analyze'}
+                    </div>
+                  )}
+                  
+                  {/* Root-level option */}
+                  <div 
+                    className={`mt-2 p-2 border rounded-lg cursor-pointer transition-colors ${
+                      selectedParentId === null 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedParentId(null)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-medium">Root Level</span>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Create as a top-level action without a parent
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Right side - Generated fields */}
+            {/* Right side - AI Preview only */}
             <div className="w-1/2 flex-shrink-0">
               <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4 flex flex-col">
                 <div className="flex items-center justify-between mb-3">
@@ -357,65 +419,6 @@ export default function QuickActionModal() {
                     </div>
                   </div>
 
-                  <div className="flex-1">
-                    <label className="text-xs font-medium text-gray-600">Parent Suggestions</label>
-                    <div className="mt-1 max-h-32 overflow-y-auto space-y-2">
-                      {aiPreview?.placement.suggestions && aiPreview.placement.suggestions.length > 0 ? (
-                        aiPreview.placement.suggestions.map((suggestion) => (
-                          <div 
-                            key={suggestion.id} 
-                            className={`p-2 border rounded-lg cursor-pointer transition-colors ${
-                              selectedParentId === suggestion.id 
-                                ? 'border-blue-500 bg-blue-50' 
-                                : 'border-gray-200 bg-white hover:border-gray-300'
-                            }`}
-                            onClick={() => setSelectedParentId(suggestion.id)}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium truncate">{suggestion.title}</span>
-                                  {suggestion.canCreateNewParent && (
-                                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">NEW</span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                  {suggestion.confidence}% confidence • {suggestion.source} • {suggestion.reasoning.substring(0, 80)}...
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                                {Math.round(suggestion.confidence)}%
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
-                          {actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 
-                           aiPreview ? 'No parent suggestions available' : 'Enter action text to analyze'}
-                        </div>
-                      )}
-                      
-                      {/* Root-level option */}
-                      <div 
-                        className={`p-2 border rounded-lg cursor-pointer transition-colors ${
-                          selectedParentId === null 
-                            ? 'border-blue-500 bg-blue-50' 
-                            : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedParentId(null)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm font-medium">Root Level</span>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Create as a top-level action without a parent
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -438,7 +441,7 @@ export default function QuickActionModal() {
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!actionText.trim() || isSubmitting || isGenerating || !aiPreview || aiPreview?.isDuplicate}
+                disabled={!actionText.trim() || isSubmitting || isGenerating || !aiPreview}
               >
                 {isSubmitting ? 'Creating...' : isGenerating ? 'Generating...' : 'Create Action'}
               </button>
