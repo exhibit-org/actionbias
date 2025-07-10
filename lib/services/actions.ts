@@ -2244,6 +2244,133 @@ export class ActionsService {
   ): Promise<string> {
     return buildActionBreadcrumb(actionId, separator, includeCurrentAction);
   }
+
+  /**
+   * Generate AI-powered suggestions for decomposing an action into smaller child actions
+   * @param params - Object containing action_id, max_suggestions, and include_reasoning
+   * @returns Object with suggestions array and metadata
+   */
+  static async decomposeAction(params: {
+    action_id: string;
+    max_suggestions?: number;
+    include_reasoning?: boolean;
+  }): Promise<{
+    action: any;
+    suggestions: Array<{
+      title: string;
+      description?: string;
+      reasoning?: string;
+      confidence: number;
+    }>;
+    metadata: {
+      processingTimeMs: number;
+    };
+  }> {
+    const startTime = Date.now();
+    const { action_id, max_suggestions = 5, include_reasoning = true } = params;
+
+    // Get the action details
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    if (actionResult.length === 0) {
+      throw new Error(`Action with ID ${action_id} not found`);
+    }
+
+    const action = actionResult[0];
+    const title = action.title || (action.data as any)?.title;
+    const description = action.description || (action.data as any)?.description;
+    const vision = action.vision || (action.data as any)?.vision;
+
+    if (!title) {
+      throw new Error(`Action ${action_id} has no title - cannot decompose`);
+    }
+
+    // Build AI prompt for decomposition
+    let prompt = `You are an expert at breaking down complex tasks into smaller, actionable subtasks. Your goal is to decompose the given action into specific, concrete child actions that would need to be completed to achieve the parent action.\n\n`;
+    
+    prompt += `ACTION TO DECOMPOSE:\n`;
+    prompt += `Title: ${title}\n`;
+    if (description) {
+      prompt += `Description: ${description}\n`;
+    }
+    if (vision) {
+      prompt += `Success Criteria: ${vision}\n`;
+    }
+    
+    prompt += `\nGENERATE ${max_suggestions} CHILD ACTIONS:\n`;
+    prompt += `For each child action, provide:\n`;
+    prompt += `1. A clear, specific title (what needs to be done)\n`;
+    prompt += `2. A brief description explaining the action\n`;
+    if (include_reasoning) {
+      prompt += `3. Reasoning for why this is a necessary step\n`;
+    }
+    prompt += `4. A confidence score (0.0-1.0) indicating how essential this is\n\n`;
+    
+    prompt += `Guidelines:\n`;
+    prompt += `- Each child action should be specific and actionable\n`;
+    prompt += `- Avoid vague or generic tasks\n`;
+    prompt += `- Consider logical sequence and dependencies\n`;
+    prompt += `- Focus on concrete deliverables or milestones\n`;
+    prompt += `- Each child should contribute directly to completing the parent\n\n`;
+    
+    prompt += `Respond with a JSON array of objects, each containing: {"title": "...", "description": "...", ${include_reasoning ? '"reasoning": "...", ' : ''}"confidence": 0.X}`;
+
+    try {
+      const { generateText } = await import("ai");
+      const { createOpenAI } = await import("@ai-sdk/openai");
+
+      const provider = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const result = await generateText({
+        model: provider('gpt-4o-mini'),
+        prompt,
+        maxTokens: 2000,
+      });
+
+      // Parse the AI response
+      let suggestions: Array<{
+        title: string;
+        description?: string;
+        reasoning?: string;
+        confidence: number;
+      }> = [];
+
+      try {
+        // Try to extract JSON from the response
+        const jsonMatch = result.text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const parsedSuggestions = JSON.parse(jsonMatch[0]);
+          
+          if (Array.isArray(parsedSuggestions)) {
+            suggestions = parsedSuggestions
+              .filter(s => s.title && typeof s.confidence === 'number')
+              .slice(0, max_suggestions)
+              .map(s => ({
+                title: s.title,
+                description: s.description || undefined,
+                reasoning: include_reasoning ? (s.reasoning || undefined) : undefined,
+                confidence: Math.max(0, Math.min(1, s.confidence)), // Clamp between 0 and 1
+              }));
+          }
+        }
+      } catch (parseError) {
+        console.error('[ActionsService] Failed to parse AI response:', parseError);
+        // Fallback: return empty suggestions rather than throwing
+        suggestions = [];
+      }
+
+      const processingTimeMs = Date.now() - startTime;
+
+      return {
+        action,
+        suggestions,
+        metadata: {
+          processingTimeMs,
+        },
+      };
+    } catch (error) {
+      console.error('[ActionsService] Error in decomposeAction:', error);
+      throw new Error(`Failed to decompose action: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 /**

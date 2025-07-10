@@ -1125,6 +1125,104 @@ export function registerTools(server: any) {
     },
   );
 
+  // decompose_action - Get suggestions for decomposing an action into child actions
+  server.tool(
+    "decompose_action",
+    "Get AI-powered suggestions for decomposing an action into smaller child actions",
+    {
+      action_id: z.string().uuid().describe("The ID of the action to decompose"),
+      max_suggestions: z.number().min(1).max(10).optional().default(5).describe("Maximum number of child action suggestions to return (default: 5)"),
+      include_reasoning: z.boolean().optional().default(true).describe("Whether to include reasoning for each suggestion (default: true)"),
+    },
+    async ({ action_id, max_suggestions = 5, include_reasoning = true }: { 
+      action_id: string; 
+      max_suggestions?: number; 
+      include_reasoning?: boolean; 
+    }, extra: any) => {
+      try {
+        console.log(`[MCP decompose_action] Decomposing action: ${action_id}`);
+        
+        // Validate action exists
+        const db = getDb();
+        const actionResult = await db.select().from(actions).where(eq(actions.id, action_id)).limit(1);
+        
+        if (actionResult.length === 0) {
+          throw new Error(`Action with ID ${action_id} not found. Use search_actions to find a valid action.`);
+        }
+        
+        const action = actionResult[0];
+        
+        // Call ActionsService directly to avoid HTTP authentication issues
+        const result = await ActionsService.decomposeAction({ 
+          action_id,
+          max_suggestions,
+          include_reasoning
+        });
+
+        let message = `🔍 **Decomposition Suggestions for:** "${action.data?.title}"\n`;
+        message += `📋 **Action ID:** ${action_id}\n`;
+        message += `⚡ **Performance:** ${result.metadata.processingTimeMs.toFixed(1)}ms total\n`;
+        message += `📊 **Generated:** ${result.suggestions.length} suggestion${result.suggestions.length !== 1 ? 's' : ''}\n\n`;
+
+        if (result.suggestions.length === 0) {
+          message += `❌ **No decomposition suggestions generated**\n`;
+          message += `   This could mean:\n`;
+          message += `   • The action is already specific enough\n`;
+          message += `   • The action description needs more detail\n`;
+          message += `   • Try providing more context in the action description\n`;
+        } else {
+          message += `✅ **Suggested Child Actions:**\n\n`;
+          
+          result.suggestions.forEach((suggestion, index) => {
+            const confidenceBar = '█'.repeat(Math.floor(suggestion.confidence * 10)) + 
+                                '░'.repeat(10 - Math.floor(suggestion.confidence * 10));
+            
+            message += `${index + 1}. 📝 **${suggestion.title}** (${Math.round(suggestion.confidence * 100)}% confidence)\n`;
+            message += `   ${confidenceBar} ${Math.round(suggestion.confidence * 100)}/100\n`;
+            
+            if (suggestion.description) {
+              message += `   📄 Description: ${suggestion.description}\n`;
+            }
+            
+            if (include_reasoning && suggestion.reasoning) {
+              message += `   🤔 Reasoning: ${suggestion.reasoning}\n`;
+            }
+            
+            message += `\n`;
+          });
+          
+          // Add usage instructions
+          message += `📝 **Usage Instructions:**\n`;
+          message += `• Use create_action with family_id=${action_id} to create these child actions\n`;
+          message += `• Higher confidence scores indicate better decomposition fit\n`;
+          message += `• Consider the logical order and dependencies between suggested actions\n`;
+          message += `• You can modify the suggested titles and descriptions as needed\n`;
+        }
+
+        message += `\n🤖 **Powered by:** AI-driven task decomposition analysis`;
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: message,
+            },
+          ],
+        };
+      } catch (error) {
+        console.error('[MCP decompose_action] Error:', error);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Error decomposing action: ${error instanceof Error ? error.message : "Unknown error"}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
 
 }
 
@@ -1167,5 +1265,8 @@ export const toolCapabilities = {
   },
   suggest_parent: {
     description: "Get multiple parent suggestions with confidence scores for placing a new action in the hierarchy",
+  },
+  decompose_action: {
+    description: "Get AI-powered suggestions for decomposing an action into smaller child actions",
   },
 };
