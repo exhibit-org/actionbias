@@ -266,7 +266,7 @@ export default function QuickActionModal() {
         >
       <div 
         ref={modalRef}
-        className="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 relative"
+        className="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 relative flex flex-col"
         style={{ maxHeight: '80vh' }}
       >
         <button
@@ -281,16 +281,16 @@ export default function QuickActionModal() {
           Quick Add Action
         </h2>
 
-        <form onSubmit={handleSubmit}>
-          <div className="flex gap-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex gap-6 flex-1 min-h-0">
             {/* Left side - Textarea */}
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col">
               <textarea
                 ref={textareaRef}
                 value={actionText}
                 onChange={(e) => handleTextChange(e.target.value)}
                 placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
-                className="w-full h-full min-h-[300px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="flex-1 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 disabled={isSubmitting}
               />
               
@@ -362,7 +362,7 @@ export default function QuickActionModal() {
 
                   <div className="flex-1">
                     <label className="text-xs font-medium text-gray-600">Parent Suggestions</label>
-                    <div className="mt-1 max-h-48 overflow-y-auto space-y-2">
+                    <div className="mt-1 max-h-32 overflow-y-auto space-y-2">
                       {aiPreview?.placement.suggestions && aiPreview.placement.suggestions.length > 0 ? (
                         aiPreview.placement.suggestions.map((suggestion) => (
                           <div 
@@ -424,7 +424,7 @@ export default function QuickActionModal() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex items-center justify-between flex-shrink-0">
             <div className="text-sm text-gray-500">
               <p>Tip: Press <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">ESC</kbd> to close</p>
             </div>
