@@ -16,7 +16,11 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
   const hasFamily = action.parent_chain && action.parent_chain.length > 0;
   const hasFamilyMembers = action.children && action.children.length > 0;
   const hasSiblings = siblings && siblings.length > 0;
-  const hasNavigation = hasFamily || hasFamilyMembers || hasSiblings;
+  
+  // Show breakdown button for incomplete actions without children
+  const showBreakdownButton = !action.done && (!action.children || action.children.length === 0);
+  
+  const hasNavigation = hasFamily || hasFamilyMembers || hasSiblings || showBreakdownButton;
   const [copiedId, setCopiedId] = useState(false);
   const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
