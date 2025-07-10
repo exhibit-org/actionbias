@@ -11,14 +11,27 @@ interface ActionFields {
   vision: string;
 }
 
+interface ParentSuggestion {
+  id: string;
+  title: string;
+  description?: string;
+  confidence: number;
+  source: 'vector' | 'classification' | 'create_new';
+  reasoning: string;
+  hierarchyPath: string[];
+  canCreateNewParent: boolean;
+}
+
 interface AIPreview {
   fields: ActionFields;
   placement: {
-    parent: {
-      id: string;
-      title: string;
-      reasoning: string;
-    } | null;
+    suggestions: ParentSuggestion[];
+    metadata?: {
+      totalProcessingTimeMs: number;
+      vectorTimeMs: number;
+      classificationTimeMs: number;
+      totalCandidates: number;
+    };
     reasoning: string;
   };
   isDuplicate?: boolean;
@@ -36,6 +49,7 @@ export default function QuickActionModal() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiPreview, setAIPreview] = useState<AIPreview | null>(null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +62,7 @@ export default function QuickActionModal() {
       textareaRef.current.focus();
       setError(null);
       setAIPreview(null);
+      setSelectedParentId(null);
     }
   }, [isOpen]);
 
@@ -107,7 +122,7 @@ export default function QuickActionModal() {
           setAIPreview({
             fields: parseData.data,
             placement: {
-              parent: null,
+              suggestions: [],
               reasoning: 'AI analysis unavailable, creating as root action',
             },
           });
@@ -124,6 +139,7 @@ export default function QuickActionModal() {
   const handleTextChange = useCallback((text: string) => {
     setActionText(text);
     setError(null);
+    setSelectedParentId(null); // Reset parent selection when text changes
 
     // Clear existing timer
     if (debounceTimerRef.current) {
@@ -207,7 +223,7 @@ export default function QuickActionModal() {
           title: aiPreview?.fields.title || actionText.trim(),
           description: aiPreview?.fields.description,
           vision: aiPreview?.fields.vision,
-          parent_id: aiPreview?.placement.parent?.id,
+          parent_id: selectedParentId === 'CREATE_NEW_PARENT' ? null : selectedParentId,
         }),
       });
 
@@ -229,6 +245,7 @@ export default function QuickActionModal() {
       // Reset form and close modal
       setActionText('');
       setAIPreview(null);
+      setSelectedParentId(null);
       closeModal();
     } catch (error) {
       console.error('Error creating action:', error);
@@ -286,7 +303,7 @@ export default function QuickActionModal() {
 
             {/* Right side - Generated fields */}
             <div className="flex-1">
-              <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4">
+              <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4 flex flex-col">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-700">AI Preview</h3>
                   {isGenerating && actionText.trim() && (
@@ -309,7 +326,7 @@ export default function QuickActionModal() {
                   </div>
                 )}
 
-                <div className="space-y-3">
+                <div className="flex-1 overflow-y-auto space-y-3">
                   <div>
                     <label className="text-xs font-medium text-gray-600">Title</label>
                     <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
@@ -343,22 +360,63 @@ export default function QuickActionModal() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-xs font-medium text-gray-600">Parent Action</label>
-                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
-                      {aiPreview?.placement.parent ? (
-                        <div>
-                          <span className="font-medium">{aiPreview.placement.parent.title}</span>
-                          <div className="text-xs text-gray-500 mt-1">
-                            {aiPreview.placement.parent.reasoning}
+                  <div className="flex-1">
+                    <label className="text-xs font-medium text-gray-600">Parent Suggestions</label>
+                    <div className="mt-1 max-h-48 overflow-y-auto space-y-2">
+                      {aiPreview?.placement.suggestions && aiPreview.placement.suggestions.length > 0 ? (
+                        aiPreview.placement.suggestions.map((suggestion) => (
+                          <div 
+                            key={suggestion.id} 
+                            className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                              selectedParentId === suggestion.id 
+                                ? 'border-blue-500 bg-blue-50' 
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                            onClick={() => setSelectedParentId(suggestion.id)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium truncate">{suggestion.title}</span>
+                                  {suggestion.canCreateNewParent && (
+                                    <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">NEW</span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                  {suggestion.confidence}% confidence • {suggestion.source} • {suggestion.reasoning.substring(0, 80)}...
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                                {Math.round(suggestion.confidence)}%
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
+                          {actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 
+                           aiPreview ? 'No parent suggestions available' : 'Enter action text to analyze'}
+                        </div>
+                      )}
+                      
+                      {/* Root-level option */}
+                      <div 
+                        className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                          selectedParentId === null 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedParentId(null)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm font-medium">Root Level</span>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Create as a top-level action without a parent
+                            </div>
                           </div>
                         </div>
-                      ) : (
-                        <span className={aiPreview ? "text-gray-500" : "text-gray-300 italic"}>
-                          {aiPreview ? aiPreview.placement.reasoning || 'Root-level action' : 
-                           actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 'Enter action text to analyze'}
-                        </span>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>
