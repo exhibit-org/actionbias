@@ -224,6 +224,7 @@ export class ActionSearchService {
     
     // Exact phrase search (highest priority)
     const escapedQuery = this.escapePostgresPattern(query);
+    console.log(`[ActionSearchService] Original query: "${query}", Escaped query: "${escapedQuery}"`);
     keywordConditions.push(
       or(
         ilike(actions.title, `%${escapedQuery}%`),
@@ -235,6 +236,7 @@ export class ActionSearchService {
     // Individual keyword searches
     for (const keyword of keywords) {
       const escapedKeyword = this.escapePostgresPattern(keyword);
+      console.log(`[ActionSearchService] Original keyword: "${keyword}", Escaped keyword: "${escapedKeyword}"`);
       keywordConditions.push(
         or(
           ilike(actions.title, `%${escapedKeyword}%`),
@@ -288,10 +290,13 @@ export class ActionSearchService {
    * PostgreSQL treats %, _, and \ as special characters in LIKE patterns
    */
   private static escapePostgresPattern(pattern: string): string {
-    return pattern
+    const escaped = pattern
       .replace(/\\/g, '\\\\')  // Escape backslash first
       .replace(/%/g, '\\%')    // Escape percent
       .replace(/_/g, '\\_');   // Escape underscore
+    
+    console.log(`[ActionSearchService.escapePostgresPattern] Input: "${pattern}", Output: "${escaped}"`);
+    return escaped;
   }
 
   /**

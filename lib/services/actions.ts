@@ -2462,6 +2462,8 @@ export class ActionsService {
   }> {
     const startTime = Date.now();
     const { action_id, scope = "action_only", limit = 5, confidence_threshold = 40 } = params;
+    
+    console.log(`[ActionsService.organizeAction] Called with action_id: ${action_id}, scope: ${scope}`);
 
     // Get the action details
     const actionResult = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
@@ -2518,11 +2520,13 @@ export class ActionsService {
     }
 
     // Use vector search to find similar actions for potential merge/move suggestions
+    console.log(`[ActionsService.organizeAction] About to search for similar actions with title: "${title}"`);
     const searchResults = await ActionSearchService.searchActions(title, {
       limit: 10,
       includeCompleted: false,
       excludeIds: [action_id],
     });
+    console.log(`[ActionsService.organizeAction] Search returned ${searchResults.results.length} results`);
 
     // Build AI prompt for organization analysis
     let prompt = `You are an expert at organizing and structuring hierarchical task management systems. Analyze the given action and provide suggestions for better organization.\n\n`;
