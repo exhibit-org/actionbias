@@ -26,10 +26,10 @@ export const classificationSchema = z.object({
   reasoning: z.string().describe(
     'Clear explanation of why this classification was chosen'
   ),
-  newParentTitle: z.string().optional().describe(
+  newParentTitle: z.string().nullable().optional().describe(
     'Title for new parent when decision is CREATE_PARENT'
   ),
-  newParentDescription: z.string().optional().describe(
+  newParentDescription: z.string().nullable().optional().describe(
     'Description for new parent when decision is CREATE_PARENT'
   )
 });
