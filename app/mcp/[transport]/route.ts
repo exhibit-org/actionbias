@@ -4,6 +4,9 @@ import { registerResources, resourceCapabilities } from "../../../lib/mcp/resour
 import { registerTools, toolCapabilities } from "../../../lib/mcp/tools";
 import { registerPrompts, promptCapabilities } from "../../../lib/mcp/prompts";
 
+// Configure Vercel function timeout
+export const maxDuration = 30; // 30 seconds to match MCP handler config
+
 const handler = createMcpHandler(
   (server) => {
     console.log('[MCP HANDLER] Registering MCP server components...');

@@ -2,6 +2,8 @@
 import { ActionDetailResource, ActionMetadata } from '../../../lib/types/resources';
 import { ColorScheme } from './types';
 import { useState } from 'react';
+import ActionBreakdownButton from './ActionBreakdownButton';
+import ActionBreakdownModal from './ActionBreakdownModal';
 
 interface Props {
   action: ActionDetailResource;
@@ -16,6 +18,7 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
   const hasSiblings = siblings && siblings.length > 0;
   const hasNavigation = hasFamily || hasFamilyMembers || hasSiblings;
   const [copiedId, setCopiedId] = useState(false);
+  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
   const copyIdToClipboard = async () => {
     try {
@@ -233,7 +236,12 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
         )}
 
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontWeight: 500, marginRight: '0.5rem' }}>NAVIGATE:</div>
+          <div style={{ fontSize: '0.75rem', color: colors.textMuted, fontWeight: 500, marginRight: '0.5rem' }}>ACTIONS:</div>
+          <ActionBreakdownButton 
+            action={action}
+            colors={colors}
+            onBreakdownClick={() => setIsBreakdownModalOpen(true)}
+          />
           <a
             href="/next"
             style={{
@@ -340,6 +348,13 @@ export default function ActionNavigation({ action, siblings, colors, nextFamilyM
           <span>Created: {new Date(action.created_at).toLocaleDateString()}</span>
         </div>
       </div>
+
+      <ActionBreakdownModal
+        isOpen={isBreakdownModalOpen}
+        onClose={() => setIsBreakdownModalOpen(false)}
+        action={action}
+        colors={colors}
+      />
     </div>
   );
 }
