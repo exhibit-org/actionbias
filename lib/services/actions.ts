@@ -2427,6 +2427,222 @@ export class ActionsService {
       throw new Error(`Failed to decompose action: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+
+  /**
+   * Analyze an action and provide suggestions for better organization
+   * @param params - Object containing action_id, scope, limit, and confidence_threshold
+   * @returns Object with organization suggestions and metadata
+   */
+  static async organizeAction(params: {
+    action_id: string;
+    scope?: "action_only" | "include_siblings" | "include_subtree";
+    limit?: number;
+    confidence_threshold?: number;
+  }): Promise<{
+    action: any;
+    suggestions: Array<{
+      type: 'move' | 'rename' | 'split' | 'merge' | 'reorder';
+      title: string;
+      description: string;
+      confidence: number;
+      reasoning?: string;
+      // Type-specific fields
+      target_parent_id?: string;
+      target_parent_title?: string;
+      new_title?: string;
+      suggested_actions?: Array<{ title: string; description?: string; }>;
+      merge_target_id?: string;
+      merge_target_title?: string;
+      new_position?: number;
+    }>;
+    metadata: {
+      processingTimeMs: number;
+      analyzedCount: number;
+    };
+  }> {
+    const startTime = Date.now();
+    const { action_id, scope = "action_only", limit = 5, confidence_threshold = 40 } = params;
+
+    // Get the action details
+    const actionResult = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
+    if (actionResult.length === 0) {
+      throw new Error(`Action with ID ${action_id} not found`);
+    }
+
+    const action = actionResult[0];
+    const title = action.title || (action.data as any)?.title;
+    const description = action.description || (action.data as any)?.description;
+    const vision = action.vision || (action.data as any)?.vision;
+
+    if (!title) {
+      throw new Error(`Action ${action_id} has no title - cannot analyze organization`);
+    }
+
+    // Get context based on scope
+    let contextActions: any[] = [];
+    let currentParent: any = null;
+
+    // Get current parent
+    const parentEdge = await getDb()
+      .select()
+      .from(edges)
+      .where(and(eq(edges.dst, action_id), eq(edges.kind, "family")))
+      .limit(1);
+    
+    if (parentEdge.length > 0 && parentEdge[0].src) {
+      const parentResult = await getDb().select().from(actions).where(eq(actions.id, parentEdge[0].src)).limit(1);
+      if (parentResult.length > 0) {
+        currentParent = parentResult[0];
+      }
+    }
+
+    if (scope === "include_siblings" && currentParent) {
+      // Get siblings (other children of the same parent)
+      const siblingEdges = await getDb()
+        .select()
+        .from(edges)
+        .where(and(eq(edges.src, currentParent.id), eq(edges.kind, "family")));
+      
+      const siblingIds = siblingEdges.map((e: any) => e.dst).filter((id: string | null) => id && id !== action_id);
+      if (siblingIds.length > 0) {
+        const siblings = await getDb().select().from(actions).where(inArray(actions.id, siblingIds));
+        contextActions.push(...siblings);
+      }
+    } else if (scope === "include_subtree") {
+      // Get all descendants
+      const descendants = await getAllDescendants([action_id]);
+      if (descendants.length > 1) { // More than just the action itself
+        const subtreeActions = await getDb().select().from(actions).where(inArray(actions.id, descendants));
+        contextActions.push(...subtreeActions.filter((a: any) => a.id !== action_id));
+      }
+    }
+
+    // Use vector search to find similar actions for potential merge/move suggestions
+    const searchResults = await ActionSearchService.searchActions(title, {
+      limit: 10,
+      includeCompleted: false,
+      excludeIds: [action_id],
+    });
+
+    // Build AI prompt for organization analysis
+    let prompt = `You are an expert at organizing and structuring hierarchical task management systems. Analyze the given action and provide suggestions for better organization.\n\n`;
+    
+    prompt += `CURRENT ACTION:\n`;
+    prompt += `Title: ${title}\n`;
+    prompt += `ID: ${action_id}\n`;
+    if (description) {
+      prompt += `Description: ${description}\n`;
+    }
+    if (vision) {
+      prompt += `Success Criteria: ${vision}\n`;
+    }
+    if (currentParent) {
+      const parentTitle = currentParent.title || (currentParent.data as any)?.title;
+      prompt += `Current Parent: ${parentTitle} (ID: ${currentParent.id})\n`;
+    }
+    prompt += `\n`;
+
+    if (contextActions.length > 0) {
+      prompt += `CONTEXT (${scope.replace('_', ' ')}):\n`;
+      contextActions.slice(0, 10).forEach((ctx: any) => {
+        const ctxTitle = ctx.title || (ctx.data as any)?.title;
+        const ctxDesc = ctx.description || (ctx.data as any)?.description;
+        prompt += `- ${ctxTitle}${ctxDesc ? `: ${ctxDesc.substring(0, 100)}...` : ''}\n`;
+      });
+      prompt += `\n`;
+    }
+
+    if (searchResults.results.length > 0) {
+      prompt += `SIMILAR ACTIONS FOUND:\n`;
+      searchResults.results.slice(0, 5).forEach((result: any) => {
+        prompt += `- ${result.title} (${Math.round(result.similarity * 100)}% similar, ID: ${result.id})\n`;
+        if (result.path && result.path.length > 1) {
+          prompt += `  Path: ${result.path.slice(0, -1).join(' → ')}\n`;
+        }
+      });
+      prompt += `\n`;
+    }
+
+    prompt += `Generate up to ${limit} organization suggestions. Consider:\n`;
+    prompt += `1. Moving to a more appropriate parent (if current location seems wrong)\n`;
+    prompt += `2. Renaming for clarity (if title is vague or misleading)\n`;
+    prompt += `3. Splitting into multiple actions (if it's doing too much)\n`;
+    prompt += `4. Merging with similar actions (if duplicates exist)\n`;
+    prompt += `5. Reordering among siblings (if sequence matters)\n\n`;
+
+    prompt += `Only suggest changes that would significantly improve organization (confidence > ${confidence_threshold / 100}).\n\n`;
+
+    prompt += `RESPONSE FORMAT (JSON):\n`;
+    prompt += `{\n`;
+    prompt += `  "suggestions": [\n`;
+    prompt += `    {\n`;
+    prompt += `      "type": "move|rename|split|merge|reorder",\n`;
+    prompt += `      "title": "Brief title of the suggestion",\n`;
+    prompt += `      "description": "Detailed explanation of what to do and why",\n`;
+    prompt += `      "confidence": 0.0-1.0,\n`;
+    prompt += `      "reasoning": "Why this improves organization",\n`;
+    prompt += `      // Include relevant fields based on type:\n`;
+    prompt += `      // For "move": "target_parent_id", "target_parent_title"\n`;
+    prompt += `      // For "rename": "new_title"\n`;
+    prompt += `      // For "split": "suggested_actions" array with title/description\n`;
+    prompt += `      // For "merge": "merge_target_id", "merge_target_title"\n`;
+    prompt += `      // For "reorder": "new_position"\n`;
+    prompt += `    }\n`;
+    prompt += `  ]\n`;
+    prompt += `}`;
+
+    try {
+      const { generateText } = await import("ai");
+      const { createOpenAI } = await import("@ai-sdk/openai");
+
+      const provider = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const result = await generateText({
+        model: provider('gpt-4o-mini'),
+        prompt,
+        maxTokens: 2000,
+      });
+
+      // Parse the AI response
+      let suggestions: any[] = [];
+      
+      try {
+        // Extract JSON from the response
+        const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.suggestions && Array.isArray(parsed.suggestions)) {
+            suggestions = parsed.suggestions
+              .filter((s: any) => 
+                s.type && 
+                s.title && 
+                s.description && 
+                typeof s.confidence === 'number' &&
+                s.confidence >= confidence_threshold / 100
+              )
+              .slice(0, limit);
+          }
+        }
+      } catch (parseError) {
+        console.error('[ActionsService] Failed to parse AI response:', parseError);
+        suggestions = [];
+      }
+
+      const processingTimeMs = Date.now() - startTime;
+      const analyzedCount = 1 + contextActions.length + searchResults.results.length;
+
+      return {
+        action,
+        suggestions,
+        metadata: {
+          processingTimeMs,
+          analyzedCount,
+        },
+      };
+    } catch (error) {
+      console.error('[ActionsService] Error in organizeAction:', error);
+      throw new Error(`Failed to analyze organization: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 /**

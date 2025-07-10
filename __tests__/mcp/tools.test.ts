@@ -54,7 +54,7 @@ describe("MCP Tools", () => {
 
   it("registers all tools", () => {
     registerTools(server);
-    expect(server.tool).toHaveBeenCalledTimes(9);
+    expect(server.tool).toHaveBeenCalledTimes(15);
     expect(Object.keys(toolCapabilities)).toEqual([
       "create_action",
       "add_dependency",
@@ -65,6 +65,12 @@ describe("MCP Tools", () => {
       "uncomplete_action",
       "join_family",
       "search_actions",
+      "log_work",
+      "get_work_log",
+      "get_action_work_log",
+      "suggest_parent",
+      "decompose_action",
+      "organize_action",
     ]);
   });
 
