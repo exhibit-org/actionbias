@@ -223,21 +223,23 @@ export class ActionSearchService {
     const keywordConditions = [];
     
     // Exact phrase search (highest priority)
+    const escapedQuery = this.escapePostgresPattern(query);
     keywordConditions.push(
       or(
-        ilike(actions.title, `%${query}%`),
-        ilike(actions.description, `%${query}%`),
-        ilike(actions.vision, `%${query}%`)
+        ilike(actions.title, `%${escapedQuery}%`),
+        ilike(actions.description, `%${escapedQuery}%`),
+        ilike(actions.vision, `%${escapedQuery}%`)
       )
     );
 
     // Individual keyword searches
     for (const keyword of keywords) {
+      const escapedKeyword = this.escapePostgresPattern(keyword);
       keywordConditions.push(
         or(
-          ilike(actions.title, `%${keyword}%`),
-          ilike(actions.description, `%${keyword}%`),
-          ilike(actions.vision, `%${keyword}%`)
+          ilike(actions.title, `%${escapedKeyword}%`),
+          ilike(actions.description, `%${escapedKeyword}%`),
+          ilike(actions.vision, `%${escapedKeyword}%`)
         )
       );
     }
@@ -279,6 +281,17 @@ export class ActionSearchService {
         updatedAt: action.updatedAt?.toISOString()
       };
     });
+  }
+
+  /**
+   * Escape special characters for PostgreSQL LIKE/ILIKE patterns
+   * PostgreSQL treats %, _, and \ as special characters in LIKE patterns
+   */
+  private static escapePostgresPattern(pattern: string): string {
+    return pattern
+      .replace(/\\/g, '\\\\')  // Escape backslash first
+      .replace(/%/g, '\\%')    // Escape percent
+      .replace(/_/g, '\\_');   // Escape underscore
   }
 
   /**
