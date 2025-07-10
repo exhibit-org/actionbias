@@ -26,6 +26,7 @@ interface TreemapInspectorProps {
   onDelete?: (actionId: string, childHandling: 'reparent' | 'delete_recursive') => void;
   deleting?: boolean;
   onActionUpdate?: (actionId: string, field: string, value: string) => void;
+  onDataRefresh?: () => void;
 }
 
 // Dark theme colors for the inspector
@@ -57,7 +58,8 @@ export default function TreemapInspector({
   setIsDragging,
   onDelete,
   deleting = false,
-  onActionUpdate
+  onActionUpdate,
+  onDataRefresh
 }: TreemapInspectorProps) {
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -413,6 +415,7 @@ export default function TreemapInspector({
           onClose={() => setIsBreakdownModalOpen(false)}
           action={selectedActionDetail}
           colors={darkColors}
+          onSuccess={onDataRefresh}
         />
       )}
     </>

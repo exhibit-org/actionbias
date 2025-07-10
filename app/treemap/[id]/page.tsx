@@ -958,6 +958,7 @@ function TreemapIdPageContent() {
           onDelete={handleDelete}
           deleting={deleting}
           onActionUpdate={handleActionUpdate}
+          onDataRefresh={refreshTreeData}
         />
       </div>
     </div>

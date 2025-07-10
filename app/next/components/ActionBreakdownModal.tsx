@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Loader } from 'react-feather';
 import { ColorScheme } from './types';
 import { ActionDetailResource } from '../../../lib/types/resources';
+import SuccessToast from '../../components/SuccessToast';
 
 interface ChildActionSuggestion {
   index: number;
@@ -41,14 +42,17 @@ interface Props {
   onClose: () => void;
   action: ActionDetailResource;
   colors: ColorScheme;
+  onSuccess?: () => void; // Callback to refresh data without page reload
 }
 
-export default function ActionBreakdownModal({ isOpen, onClose, action, colors }: Props) {
+export default function ActionBreakdownModal({ isOpen, onClose, action, colors, onSuccess }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [breakdown, setBreakdown] = useState<BreakdownResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Reset state when modal opens
@@ -156,7 +160,7 @@ export default function ActionBreakdownModal({ isOpen, onClose, action, colors }
           body: JSON.stringify({
             title: suggestion.title,
             description: suggestion.description,
-            vision: undefined, // TODO: Could add vision generation
+            vision: action.vision, // Inherit parent's vision
             parent_id: action.id,
           }),
         });
@@ -187,9 +191,16 @@ export default function ActionBreakdownModal({ isOpen, onClose, action, colors }
         });
       }
 
-      // Success - close modal and refresh page
+      // Success - show toast and refresh data
+      const createdCount = selectedActions.length;
+      setSuccessMessage(`Successfully created ${createdCount} child action${createdCount !== 1 ? 's' : ''}`);
+      setShowSuccessToast(true);
       onClose();
-      window.location.reload(); // Refresh to show new child actions
+      
+      // Call the refresh callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
       console.error('Error creating actions:', err);
       setError(err instanceof Error ? err.message : 'Failed to create actions');
@@ -512,6 +523,14 @@ export default function ActionBreakdownModal({ isOpen, onClose, action, colors }
           </div>
         )}
       </div>
+      
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <SuccessToast
+          message={successMessage}
+          onClose={() => setShowSuccessToast(false)}
+        />
+      )}
     </div>
   );
 }
