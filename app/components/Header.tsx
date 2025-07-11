@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Terminal, GitBranch, FileText, Search } from 'lucide-react';
+import { Terminal, GitBranch } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -11,27 +11,6 @@ export default function Header() {
             <span className="font-mono text-sm">done.engineering</span>
           </Link>
           <nav className="flex items-center space-x-6">
-            <Link 
-              href="/search"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 font-mono text-sm"
-            >
-              <Search size={16} />
-              <span>search</span>
-            </Link>
-            <Link 
-              href="/tree"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 font-mono text-sm"
-            >
-              <FileText size={16} />
-              <span>tree</span>
-            </Link>
-            <Link 
-              href="/log"
-              className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 font-mono text-sm"
-            >
-              <FileText size={16} />
-              <span>log</span>
-            </Link>
             <a 
               href="https://github.com/exhibit-org/actionbias" 
               target="_blank" 

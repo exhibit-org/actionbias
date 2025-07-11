@@ -36,12 +36,11 @@ export default function Footer({ colors }: FooterProps) {
             fontWeight: '600',
             margin: '0 0 0.5rem 0'
           }}>
-            <a href="/tree" style={{
-              color: colors.text,
-              textDecoration: 'none'
+            <span style={{
+              color: colors.text
             }}>
               done.engineering
-            </a>
+            </span>
           </h3>
           <p style={{
             fontSize: '0.875rem',

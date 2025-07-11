@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, Terminal, GitBranch, FileText, Clock, Search } from 'react-feather';
+import { ArrowRight, Terminal, GitBranch, FileText, Clock } from 'react-feather';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -59,20 +59,6 @@ export default function HomePage() {
               <span className="font-mono text-sm text-gray-300">done.engineering</span>
             </div>
             <nav className="flex items-center space-x-6">
-              <Link 
-                href="/search"
-                className="text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 font-mono text-sm"
-              >
-                <Search size={16} />
-                <span>search</span>
-              </Link>
-              <Link 
-                href="/tree"
-                className="text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1 font-mono text-sm"
-              >
-                <FileText size={16} />
-                <span>tree</span>
-              </Link>
               <a 
                 href="https://github.com/exhibit-org/actionbias" 
                 target="_blank" 
