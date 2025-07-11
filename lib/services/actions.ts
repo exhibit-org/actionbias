@@ -1970,6 +1970,7 @@ export class ActionsService {
     action_id: string;
     max_suggestions?: number;
     include_reasoning?: boolean;
+    custom_context?: string;
   }): Promise<{
     action: any;
     suggestions: Array<{
@@ -1989,7 +1990,7 @@ export class ActionsService {
     };
   }> {
     const startTime = Date.now();
-    const { action_id, max_suggestions = 5, include_reasoning = true } = params;
+    const { action_id, max_suggestions = 5, include_reasoning = true, custom_context } = params;
 
     // Get the action details
     const actionResult = await getDb().select().from(actions).where(eq(actions.id, action_id)).limit(1);
@@ -2016,6 +2017,9 @@ export class ActionsService {
     }
     if (vision) {
       prompt += `Success Criteria: ${vision}\n`;
+    }
+    if (custom_context) {
+      prompt += `Additional Context: ${custom_context}\n`;
     }
     
     prompt += `\nTASK: Generate ${max_suggestions} child actions with their dependencies.\n\n`;

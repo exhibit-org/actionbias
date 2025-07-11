@@ -1,7 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import { QuickActionProvider } from "./contexts/QuickActionContext";
+import { ActionCompletionProvider } from "./contexts/ActionCompletionContext";
 import QuickActionModal from "./components/QuickActionModal";
+import ActionCompletionModal from "./components/ActionCompletionModal";
 import GlobalKeyboardListener from "./components/GlobalKeyboardListener";
 
 // Ensure migrations on app startup
@@ -53,9 +55,12 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className="h-full antialiased">
         <QuickActionProvider>
-          <GlobalKeyboardListener />
-          {children}
-          <QuickActionModal />
+          <ActionCompletionProvider>
+            <GlobalKeyboardListener />
+            {children}
+            <QuickActionModal />
+            <ActionCompletionModal />
+          </ActionCompletionProvider>
         </QuickActionProvider>
       </body>
     </html>

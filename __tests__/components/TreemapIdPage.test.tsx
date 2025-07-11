@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import TreemapIdPage from '../../app/treemap/[id]/page';
 import { ActionTreeResource } from '../../lib/types/resources';
+import { ActionCompletionProvider } from '../../app/contexts/ActionCompletionContext';
 
 // Mock Next.js navigation
 const mockPush = jest.fn();
@@ -48,6 +49,13 @@ jest.mock('@nivo/treemap', () => ({
 
 // Mock the fetch function
 global.fetch = jest.fn();
+
+// Test wrapper component that provides all necessary contexts
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <ActionCompletionProvider>
+    {children}
+  </ActionCompletionProvider>
+);
 
 // Mock tree data
 const mockTreeData: ActionTreeResource = {
@@ -102,7 +110,7 @@ describe('TreemapIdPage', () => {
       new Promise(resolve => setTimeout(resolve, 1000))
     );
     
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
     expect(screen.getByText('Loading action subtree...')).toBeInTheDocument();
   });
 
@@ -138,7 +146,7 @@ describe('TreemapIdPage', () => {
       return Promise.reject(new Error('Unexpected fetch call'));
     });
 
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(screen.getByTestId('treemap-container')).toBeInTheDocument();
@@ -164,7 +172,7 @@ describe('TreemapIdPage', () => {
     });
 
     mockGet.mockReturnValue(null); // No depth parameter
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/treemap/1?');
@@ -184,7 +192,7 @@ describe('TreemapIdPage', () => {
     });
 
     mockGet.mockReturnValue(null); // No depth parameter
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/treemap/root?');
@@ -204,7 +212,7 @@ describe('TreemapIdPage', () => {
     });
 
     mockGet.mockReturnValue(null); // No depth parameter
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(screen.getByText('Error: Action with ID nonexistent not found')).toBeInTheDocument();
@@ -222,7 +230,7 @@ describe('TreemapIdPage', () => {
       })
     });
 
-    render(<TreemapIdPage />);
+    render(<TreemapIdPage />, { wrapper: TestWrapper });
 
     await waitFor(() => {
       expect(screen.getByText('← Back')).toBeInTheDocument();

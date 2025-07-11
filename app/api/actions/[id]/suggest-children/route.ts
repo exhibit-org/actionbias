@@ -7,6 +7,7 @@ const suggestChildrenSchema = z.object({
   max_suggestions: z.number().min(1).max(10).default(5).optional(),
   include_reasoning: z.boolean().default(true).optional(),
   complexity_level: z.enum(['simple', 'detailed', 'comprehensive']).default('detailed').optional(),
+  custom_context: z.string().optional(),
 });
 
 // Response types matching the API specification
@@ -102,7 +103,8 @@ export async function POST(
     const result = await ActionsService.decomposeAction({
       action_id: actionId,
       max_suggestions: validatedInput.max_suggestions,
-      include_reasoning: validatedInput.include_reasoning
+      include_reasoning: validatedInput.include_reasoning,
+      custom_context: validatedInput.custom_context
     });
 
     // Map the service response to API response format

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Copy, Link, Square, CheckSquare, Trash2 } from 'react-feather';
+import { Check, Copy, Link, Square, CheckSquare, Trash2, Plus } from 'react-feather';
 import EditableField, { ColorScheme } from '../../components/EditableField';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
@@ -62,6 +62,14 @@ export default function TreemapInspector({
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [childHandling, setChildHandling] = useState<'reparent' | 'delete_recursive'>('reparent');
+  const [showGenerateChildrenModal, setShowGenerateChildrenModal] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [childSuggestions, setChildSuggestions] = useState<any[]>([]);
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<number>>(new Set());
+  const [creatingChildren, setCreatingChildren] = useState(false);
+  const [maxSuggestions, setMaxSuggestions] = useState(5);
+  const [complexityLevel, setComplexityLevel] = useState<'simple' | 'detailed' | 'comprehensive'>('detailed');
+  const [customContext, setCustomContext] = useState('');
 
   const handleUpdateField = async (field: 'title' | 'description' | 'vision', value: string) => {
     if (!selectedActionDetail) return;
@@ -87,6 +95,94 @@ export default function TreemapInspector({
       throw error;
     } finally {
       setSavingField(null);
+    }
+  };
+
+  const handleGenerateChildren = async () => {
+    if (!selectedActionDetail) return;
+    
+    // Show modal immediately with loading state
+    setShowGenerateChildrenModal(true);
+    setGenerating(true);
+    setChildSuggestions([]);
+    
+    await generateSuggestions();
+  };
+
+  const generateSuggestions = async () => {
+    if (!selectedActionDetail) return;
+    
+    try {
+      setGenerating(true);
+      const response = await fetch(`/api/actions/${selectedActionDetail.id}/suggest-children`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          max_suggestions: maxSuggestions,
+          include_reasoning: true,
+          complexity_level: complexityLevel,
+          custom_context: customContext.trim() || undefined
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate child suggestions');
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setChildSuggestions(data.data.suggestions);
+        setSelectedSuggestions(new Set(data.data.suggestions.map((_: any, index: number) => index)));
+      } else {
+        throw new Error(data.error || 'Failed to generate suggestions');
+      }
+    } catch (error) {
+      console.error('Error generating children:', error);
+      // TODO: Show user-friendly error message
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCreateSelectedChildren = async () => {
+    if (!selectedActionDetail || childSuggestions.length === 0) return;
+    
+    try {
+      setCreatingChildren(true);
+      const selectedSuggestionsArray = Array.from(selectedSuggestions);
+      
+      // Create children sequentially to maintain order
+      for (const index of selectedSuggestionsArray.sort((a, b) => a - b)) {
+        const suggestion = childSuggestions[index];
+        const response = await fetch('/api/actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: suggestion.title,
+            description: suggestion.description,
+            family_id: selectedActionDetail.id
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to create child action: ${suggestion.title}`);
+        }
+      }
+      
+      // Close modal and refresh data
+      setShowGenerateChildrenModal(false);
+      setChildSuggestions([]);
+      setSelectedSuggestions(new Set());
+      
+      // Refresh the tree data
+      if (onDataRefresh) {
+        onDataRefresh();
+      }
+    } catch (error) {
+      console.error('Error creating children:', error);
+      // TODO: Show user-friendly error message
+    } finally {
+      setCreatingChildren(false);
     }
   };
 
@@ -171,6 +267,16 @@ export default function TreemapInspector({
               >
                 {selectedActionDetail.done ? <CheckSquare size={14} /> : <Square size={14} />}
               </button>
+              {selectedActionDetail.children.length === 0 && !selectedActionDetail.done && (
+                <button 
+                  onClick={handleGenerateChildren}
+                  disabled={generating}
+                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-green-400 hover:bg-gray-700 border border-gray-600 rounded transition-all"
+                  title="Generate child actions"
+                >
+                  <Plus size={14} />
+                </button>
+              )}
               {onDelete && (
                 <button 
                   onClick={() => {
@@ -377,6 +483,147 @@ export default function TreemapInspector({
                 className="px-4 py-2 text-sm bg-red-600 text-white hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed rounded transition-colors"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generate Children Modal */}
+      {showGenerateChildrenModal && selectedActionDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col">
+            <h2 className="text-lg font-semibold text-gray-100 mb-4">Generate Child Actions</h2>
+            <p className="text-sm text-gray-300 mb-4">
+              AI-generated suggestions for breaking down "{selectedActionDetail.title}" into child actions:
+            </p>
+            
+            {/* Context Controls */}
+            <div className="bg-gray-700 border border-gray-600 rounded p-4 mb-4 space-y-3">
+              <div className="text-sm font-medium text-gray-200 mb-2">Generation Settings</div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Max Suggestions</label>
+                  <select
+                    value={maxSuggestions}
+                    onChange={(e) => setMaxSuggestions(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-200 focus:border-green-500 focus:outline-none"
+                  >
+                    <option value={3}>3</option>
+                    <option value={5}>5</option>
+                    <option value={7}>7</option>
+                    <option value={10}>10</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Complexity Level</label>
+                  <select
+                    value={complexityLevel}
+                    onChange={(e) => setComplexityLevel(e.target.value as 'simple' | 'detailed' | 'comprehensive')}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-200 focus:border-green-500 focus:outline-none"
+                  >
+                    <option value="simple">Simple</option>
+                    <option value="detailed">Detailed</option>
+                    <option value="comprehensive">Comprehensive</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Additional Context (optional)</label>
+                <textarea
+                  value={customContext}
+                  onChange={(e) => setCustomContext(e.target.value)}
+                  placeholder="Add specific context, constraints, or direction for better suggestions..."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-200 focus:border-green-500 focus:outline-none resize-none"
+                />
+              </div>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={generateSuggestions}
+                  disabled={generating}
+                  className="px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded transition-colors"
+                >
+                  {generating ? 'Generating...' : 'Generate Suggestions'}
+                </button>
+              </div>
+            </div>
+            
+            {/* Suggestions List */}
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+              {generating ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+                    <div className="text-sm text-gray-400">Generating suggestions...</div>
+                  </div>
+                </div>
+              ) : childSuggestions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-sm text-gray-400">Click "Generate Suggestions" to get AI-powered child action ideas</div>
+                </div>
+              ) : (
+                childSuggestions.map((suggestion, index) => (
+                  <div key={index} className="bg-gray-700 border border-gray-600 rounded p-4">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedSuggestions.has(index)}
+                        onChange={(e) => {
+                          const newSelection = new Set(selectedSuggestions);
+                          if (e.target.checked) {
+                            newSelection.add(index);
+                          } else {
+                            newSelection.delete(index);
+                          }
+                          setSelectedSuggestions(newSelection);
+                        }}
+                        className="mt-1 text-green-500 bg-gray-800 border-gray-600 focus:ring-green-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-100 mb-1">
+                          {suggestion.title}
+                        </div>
+                        <div className="text-xs text-gray-300 mb-2">
+                          {suggestion.description}
+                        </div>
+                        {suggestion.reasoning && (
+                          <div className="text-xs text-gray-400 italic">
+                            {suggestion.reasoning}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500 mt-2">
+                          Confidence: {Math.round(suggestion.confidence * 100)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowGenerateChildrenModal(false);
+                  setChildSuggestions([]);
+                  setSelectedSuggestions(new Set());
+                  setCustomContext('');
+                }}
+                className="px-4 py-2 text-sm bg-gray-700 text-gray-200 hover:bg-gray-600 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateSelectedChildren}
+                disabled={creatingChildren || selectedSuggestions.size === 0 || childSuggestions.length === 0}
+                className="px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed rounded transition-colors"
+              >
+                {creatingChildren ? 'Creating...' : `Create ${selectedSuggestions.size} Action${selectedSuggestions.size !== 1 ? 's' : ''}`}
               </button>
             </div>
           </div>

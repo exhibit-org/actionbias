@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo, memo } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useActionCompletion } from '../../contexts/ActionCompletionContext';
 import { ResponsiveTreeMapHtml } from '@nivo/treemap';
 import { ActionTreeResource, ActionNode, ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
@@ -210,6 +211,7 @@ function TreemapIdPageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const actionId = params.id as string;
+  const { openModal: openCompletionModal } = useActionCompletion();
   
   const [treeData, setTreeData] = useState<ActionTreeResource | null>(null);
   const [targetAction, setTargetAction] = useState<ActionNode | null>(null);
@@ -514,27 +516,49 @@ function TreemapIdPageContent() {
   const handleToggleComplete = async () => {
     if (!selectedActionDetail) return;
     
-    try {
-      const endpoint = selectedActionDetail.done 
-        ? `/api/actions/${selectedActionDetail.id}/uncomplete`
-        : `/api/actions/${selectedActionDetail.id}/complete`;
-      
-      const response = await fetch(endpoint, { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to toggle completion');
-      
-      // Refetch action details
-      const detailResponse = await fetch(`/api/actions/${selectedActionDetail.id}`);
-      if (detailResponse.ok) {
-        const data = await detailResponse.json();
-        if (data.success) {
-          setSelectedActionDetail(data.data);
+    if (selectedActionDetail.done) {
+      // If uncompleting, call the API directly
+      try {
+        const response = await fetch(`/api/actions/${selectedActionDetail.id}/uncomplete`, {
+          method: 'POST'
+        });
+        
+        if (!response.ok) throw new Error('Failed to uncomplete action');
+        
+        // Refetch action details
+        const detailResponse = await fetch(`/api/actions/${selectedActionDetail.id}`);
+        if (detailResponse.ok) {
+          const data = await detailResponse.json();
+          if (data.success) {
+            setSelectedActionDetail(data.data);
+          }
         }
+        
+        // Refresh tree data to update treemap
+        await refreshTreeData();
+      } catch (err) {
+        console.error('Failed to uncomplete action:', err);
       }
+    } else {
+      // If completing, open the completion modal
+      openCompletionModal(selectedActionDetail.id, selectedActionDetail.title);
       
-      // Refresh tree data to update treemap
-      await refreshTreeData();
-    } catch (err) {
-      console.error('Failed to toggle completion:', err);
+      // Set up a callback to refresh data when completion is done
+      (window as any).setActionCompletionCallback = (setCallbackFn: (callback: () => void) => void) => {
+        setCallbackFn(async () => {
+          // Refetch action details
+          const detailResponse = await fetch(`/api/actions/${selectedActionDetail.id}`);
+          if (detailResponse.ok) {
+            const data = await detailResponse.json();
+            if (data.success) {
+              setSelectedActionDetail(data.data);
+            }
+          }
+          
+          // Refresh tree data to update treemap
+          await refreshTreeData();
+        });
+      };
     }
   };
 
