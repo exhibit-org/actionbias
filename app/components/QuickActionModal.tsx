@@ -206,6 +206,41 @@ export default function QuickActionModal() {
     setIsSubmitting(true);
     
     try {
+      let parentId = selectedParentId;
+      
+      // Handle CREATE_NEW_PARENT case
+      if (selectedParentId === 'CREATE_NEW_PARENT') {
+        // Find the CREATE_NEW_PARENT suggestion to get its details
+        const createNewSuggestion = aiPreview?.placement.suggestions.find(s => s.id === 'CREATE_NEW_PARENT');
+        if (createNewSuggestion) {
+          // Create the parent action first
+          const parentResponse = await fetch('/api/actions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: createNewSuggestion.title,
+              description: createNewSuggestion.description,
+            }),
+          });
+
+          if (!parentResponse.ok) {
+            const errorData = await parentResponse.json();
+            console.error('Failed to create parent action:', errorData);
+            setError(errorData.error || 'Failed to create parent action');
+            return;
+          }
+
+          const parentData = await parentResponse.json();
+          parentId = parentData.data.action.id;
+          console.log('Parent action created:', parentData);
+        } else {
+          setError('CREATE_NEW_PARENT suggestion not found');
+          return;
+        }
+      }
+
       // Create the action with AI-determined placement
       const createResponse = await fetch('/api/actions', {
         method: 'POST',
@@ -216,7 +251,7 @@ export default function QuickActionModal() {
           title: aiPreview?.fields.title || actionText.trim(),
           description: aiPreview?.fields.description,
           vision: aiPreview?.fields.vision,
-          ...(selectedParentId && selectedParentId !== 'CREATE_NEW_PARENT' && { parent_id: selectedParentId }),
+          ...(parentId && { parent_id: parentId }),
         }),
       });
 
@@ -232,7 +267,8 @@ export default function QuickActionModal() {
       
       // Show success message
       const actionTitle = aiPreview?.fields.title || actionText.trim();
-      setSuccessMessage(`Action "${actionTitle}" created successfully!`);
+      const parentMessage = selectedParentId === 'CREATE_NEW_PARENT' ? ' with new parent' : '';
+      setSuccessMessage(`Action "${actionTitle}" created successfully${parentMessage}!`);
       setShowSuccess(true);
       
       // Reset form and close modal
