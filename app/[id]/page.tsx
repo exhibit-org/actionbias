@@ -1,4 +1,3 @@
-import NextActionDisplay from '../next/components/NextActionDisplay';
 import TreeSidebarLayout from '../components/TreeSidebarLayout';
 
 interface Props {
@@ -17,21 +16,21 @@ export async function generateMetadata({ params }: Props) {
 export default async function ActionPage({ params }: Props) {
   const resolvedParams = await params;
   
-  // Full grayscale color scheme with enhanced visual hierarchy (no colors)
-  const colors = {
-    bg: '#f9fafb',           // Very light gray background
-    surface: '#f3f4f6',      // Light gray surface  
-    border: '#e5e7eb',       // Medium gray border
-    borderAccent: '#1f2937', // Very dark gray accent (no color, maximum contrast)
-    text: '#111827',         // Very dark gray (black) for primary text
-    textMuted: '#4b5563',    // Medium dark gray for secondary text
-    textSubtle: '#6b7280',   // Medium gray for tertiary text
-    textFaint: '#9ca3af'     // Light gray for faint text/metadata
-  };
-
+  // Redirect to the action detail view in treemap
   return (
-    <TreeSidebarLayout colors={colors}>
-      <NextActionDisplay colors={colors} actionId={resolvedParams.id} />
-    </TreeSidebarLayout>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-xl font-semibold text-gray-900 mb-4">Action Detail</h1>
+        <p className="text-gray-600 mb-6">
+          The next action functionality has been removed. 
+        </p>
+        <a 
+          href={`/treemap/${resolvedParams.id}`}
+          className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          View Action in Treemap
+        </a>
+      </div>
+    </div>
   );
 }

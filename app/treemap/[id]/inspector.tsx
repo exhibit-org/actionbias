@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { Check, Copy, Link, Square, CheckSquare, Trash2 } from 'react-feather';
-import EditableField from '../../next/components/EditableField';
+import EditableField, { ColorScheme } from '../../components/EditableField';
 import { ActionDetailResource } from '../../../lib/types/resources';
 import { buildActionPrompt } from '../../../lib/utils/action-prompt-builder';
-import { ColorScheme } from '../../next/components/types';
-import ActionBreakdownModal from '../../next/components/ActionBreakdownModal';
 
 interface TreemapInspectorProps {
   selectedActionDetail: ActionDetailResource | null;
@@ -64,7 +62,6 @@ export default function TreemapInspector({
   const [savingField, setSavingField] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [childHandling, setChildHandling] = useState<'reparent' | 'delete_recursive'>('reparent');
-  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
   const handleUpdateField = async (field: 'title' | 'description' | 'vision', value: string) => {
     if (!selectedActionDetail) return;
@@ -186,28 +183,6 @@ export default function TreemapInspector({
                   title="Delete action"
                 >
                   <Trash2 size={14} />
-                </button>
-              )}
-              {/* Break Down Action Button - styled to match other buttons */}
-              {!selectedActionDetail.done && (!selectedActionDetail.children || selectedActionDetail.children.length === 0) && (
-                <button 
-                  onClick={() => setIsBreakdownModalOpen(true)}
-                  className="flex items-center justify-center w-8 h-8 bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-gray-600 rounded transition-all"
-                  title="Break down this action into smaller actions"
-                >
-                  <svg 
-                    style={{ width: '14px', height: '14px' }} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z M9 12l2 2 4-4" 
-                    />
-                  </svg>
                 </button>
               )}
             </div>
@@ -406,17 +381,6 @@ export default function TreemapInspector({
             </div>
           </div>
         </div>
-      )}
-      
-      {/* Action Breakdown Modal */}
-      {selectedActionDetail && (
-        <ActionBreakdownModal
-          isOpen={isBreakdownModalOpen}
-          onClose={() => setIsBreakdownModalOpen(false)}
-          action={selectedActionDetail}
-          colors={darkColors}
-          onSuccess={onDataRefresh}
-        />
       )}
     </>
   );
