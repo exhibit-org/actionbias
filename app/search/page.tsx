@@ -20,17 +20,24 @@ interface SearchResult {
   };
 }
 
-interface SearchResponse {
-  results: SearchResult[];
-  metadata: {
-    search_mode: string;
-    total_results: number;
-    performance: {
-      total_time_ms: number;
-      embedding_time_ms?: number;
-      search_time_ms: number;
+interface ApiResponse {
+  success: boolean;
+  data: {
+    results: SearchResult[];
+    totalMatches: number;
+    searchQuery: string;
+    searchMode: string;
+    metadata: {
+      vectorMatches: number;
+      keywordMatches: number;
+      hybridMatches: number;
+      processingTimeMs: number;
+      embeddingTimeMs?: number;
+      searchTimeMs: number;
+      queryEmbeddingLength?: number;
     };
   };
+  error?: string;
 }
 
 export default function SearchPage() {
@@ -68,7 +75,7 @@ export default function SearchPage() {
 
       if (!response.ok) throw new Error('Search failed');
       
-      const apiResponse = await response.json();
+      const apiResponse: ApiResponse = await response.json();
       if (apiResponse.success && apiResponse.data) {
         setResults(apiResponse.data.results || []);
       } else {
@@ -82,7 +89,7 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  }, [abortController]);
+  }, []);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
