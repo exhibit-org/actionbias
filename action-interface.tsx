@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ActionHierarchy } from "./components/action-hierarchy"
 import { ActionDetails } from "./components/action-details"
 import { useActions } from "./lib/hooks/useActions"
@@ -12,6 +13,8 @@ import { Search } from "lucide-react"
 
 export default function ActionInterface() {
   const { actions, loading, error, updateAction, deleteAction, createAction, moveAction } = useActions()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   
   // Debug logging
   console.log('Actions in interface:', actions, 'Loading:', loading, 'Error:', error)
@@ -58,6 +61,29 @@ export default function ActionInterface() {
     },
     [actions],
   )
+
+  // Initialize state from URL parameters
+  useEffect(() => {
+    const rootId = searchParams.get('root')
+    const selectedId = searchParams.get('selected')
+    
+    if (rootId && actions.length > 0) {
+      setRootActionId(rootId)
+      // Build breadcrumbs for the root action
+      const actionPath = buildBreadcrumbPath(rootId)
+      if (actionPath.length === 0) {
+        setBreadcrumbs([{ id: rootId, text: '' }])
+      } else {
+        setBreadcrumbs(actionPath)
+      }
+      // Auto-expand the root item if it has children
+      setExpandedIds((prev) => new Set([...prev, rootId]))
+    }
+    
+    if (selectedId) {
+      setSelectedActionId(selectedId)
+    }
+  }, [searchParams, actions, buildBreadcrumbPath])
 
   // Find action by ID recursively
   const findActionById = useCallback((actions: Action[], id: string): Action | null => {
@@ -141,8 +167,18 @@ export default function ActionInterface() {
   const selectedAction = selectedActionId ? findActionById(actions, selectedActionId) : null
 
   const handleSelect = useCallback((actionId: string) => {
-    setSelectedActionId((prev) => (prev === actionId ? null : actionId))
-  }, [])
+    const newSelectedId = selectedActionId === actionId ? null : actionId
+    setSelectedActionId(newSelectedId)
+    
+    // Update URL to include selected action
+    const params = new URLSearchParams(searchParams.toString())
+    if (newSelectedId) {
+      params.set('selected', newSelectedId)
+    } else {
+      params.delete('selected')
+    }
+    router.push(`?${params.toString()}`)
+  }, [selectedActionId, searchParams, router])
 
   const handleToggleExpand = useCallback((actionId: string) => {
     setExpandedIds((prev) => {
@@ -171,8 +207,14 @@ export default function ActionInterface() {
       setSelectedActionId(actionId)
       // Auto-expand the root item if it has children
       setExpandedIds((prev) => new Set([...prev, actionId]))
+      
+      // Update URL to reflect the navigation
+      const params = new URLSearchParams()
+      params.set('root', actionId)
+      params.set('selected', actionId)
+      router.push(`?${params.toString()}`)
     },
-    [buildBreadcrumbPath],
+    [buildBreadcrumbPath, router],
   )
 
   const handleUpdateAction = useCallback(async (actionId: string, updates: Partial<Action>) => {
@@ -314,6 +356,8 @@ export default function ActionInterface() {
         // Navigate back to root (all actions view)
         setRootActionId(null)
         setBreadcrumbs([])
+        // Clear URL parameters
+        router.push(window.location.pathname)
       } else {
         // Navigate to specific breadcrumb level
         setRootActionId(actionId)
@@ -324,10 +368,14 @@ export default function ActionInterface() {
         } else {
           setBreadcrumbs(actionPath)
         }
+        // Update URL
+        const params = new URLSearchParams()
+        params.set('root', actionId)
+        router.push(`?${params.toString()}`)
       }
       setSelectedActionId(null)
     },
-    [buildBreadcrumbPath],
+    [buildBreadcrumbPath, router],
   )
 
   if (loading) {
