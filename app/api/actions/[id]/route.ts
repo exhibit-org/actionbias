@@ -8,12 +8,14 @@ const deleteActionSchema = z.object({
   new_parent_id: z.string().uuid().optional(),
 });
 
-// Schema only allows updating title, description, and vision
+// Schema allows updating title, description, vision, and family
 // Use /complete or /uncomplete endpoints to change completion status
-const updateActionSchema = actionDataSchema.partial().refine(
-  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined,
+const updateActionSchema = actionDataSchema.partial().extend({
+  new_family_id: z.string().uuid().optional().nullable(),
+}).refine(
+  (data) => data.title !== undefined || data.description !== undefined || data.vision !== undefined || data.new_family_id !== undefined,
   {
-    message: "At least one field (title, description, or vision) must be provided",
+    message: "At least one field (title, description, vision, or new_family_id) must be provided",
   }
 );
 
@@ -81,10 +83,31 @@ export async function PUT(
       );
     }
     
-    const result = await ActionsService.updateAction({
-      action_id: actionId,
-      ...updateParams
-    });
+    let result;
+    
+    // Handle family updates separately
+    if ('new_family_id' in updateParams) {
+      result = await ActionsService.updateFamily({
+        action_id: actionId,
+        new_family_id: updateParams.new_family_id || undefined,
+      });
+      
+      // Remove new_family_id from updateParams for regular update
+      const { new_family_id, ...otherParams } = updateParams;
+      
+      // If there are other fields to update, do them separately
+      if (Object.keys(otherParams).length > 0) {
+        await ActionsService.updateAction({
+          action_id: actionId,
+          ...otherParams
+        });
+      }
+    } else {
+      result = await ActionsService.updateAction({
+        action_id: actionId,
+        ...updateParams
+      });
+    }
     
     return NextResponse.json({
       success: true,
