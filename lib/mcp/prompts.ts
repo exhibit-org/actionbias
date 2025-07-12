@@ -37,8 +37,8 @@ export function registerPrompts(server: any) {
 
 1. First, read the project vision using the context://vision MCP resource
 2. Check recent momentum using the context://momentum MCP resource  
-3. Get all workable actions using the work://unblocked MCP resource
-4. Get a count of total incomplete actions using work://count
+3. Get all workable actions using the actions://unblocked MCP resource
+4. Get a count of total incomplete actions using actions://count
 
 Then analyze the workable actions and recommend the top 5 to work on based on:
 - Strategic alignment with the actions.engineering vision
@@ -47,7 +47,7 @@ Then analyze the workable actions and recommend the top 5 to work on based on:
 - Effort vs impact ratio
 - Addressing technical debt or critical issues
 
-CRITICAL: Only recommend actions from the work://unblocked resource. 
+CRITICAL: Only recommend actions from the actions://unblocked resource. 
 - Use the momentum data ONLY to understand context and recent progress
 - NEVER recommend any action that appears in the recent completions list
 - Before finalizing recommendations, verify each action has "done": false status
@@ -60,7 +60,7 @@ For each recommendation, provide:
 - Estimated effort (low, medium, high)
 
 VALIDATION: Before submitting your top 5, double-check that:
-1. Each recommended action appears in work://unblocked
+1. Each recommended action appears in actions://unblocked
 2. None appear in context://momentum recent completions
 3. All have incomplete status
 
@@ -86,7 +86,7 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
     'Simple prompt to find the most important next action',
     {},
     async () => {
-      const prompt = `What's the most important thing I should work on next? Use the work://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).
+      const prompt = `What's the most important thing I should work on next? Use the actions://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).
 
 IMPORTANT: Once you start working on a task, you must complete it fully before moving to anything else. This includes:
 - Running pnpm build and ensuring it succeeds
@@ -118,9 +118,9 @@ No task switching until current work is fully complete and verified.`;
     {},
     async () => {
       const prompt = `Give me an overview of the current work state:
-1. Use work://tree to show the hierarchical structure of incomplete work
+1. Use actions://tree to show the hierarchical structure of incomplete work
 2. Use context://momentum to show what's been recently completed
-3. Use work://unblocked to show what's ready to work on
+3. Use actions://unblocked to show what's ready to work on
 4. Summarize the key insights`;
 
       return {
@@ -144,8 +144,8 @@ No task switching until current work is fully complete and verified.`;
     {},
     async () => {
       const prompt = `I want to understand what's blocking progress. Please:
-1. Use work://dependencies to see the dependency graph
-2. Use work://unblocked to see what's actually workable
+1. Use actions://dependencies to see the dependency graph
+2. Use actions://unblocked to see what's actually workable
 3. Identify the key blockers that would unlock the most work if completed`;
 
       return {
@@ -169,10 +169,10 @@ No task switching until current work is fully complete and verified.`;
     { action_id: z.string().uuid().describe('ID of the action to analyze') },
     async ({ action_id }: { action_id: string }) => {
       const prompt = `I need full context on action ${action_id}. Please:
-1. Use work://${action_id} to get the action details
+1. Use actions://${action_id} to get the action details
 2. Show me the full parent chain and context
 3. List all dependencies and dependents
-4. Check if it appears in work://unblocked
+4. Check if it appears in actions://unblocked
 5. Give me your assessment of whether this is ready to work on`;
 
       return {
@@ -196,7 +196,7 @@ No task switching until current work is fully complete and verified.`;
     {},
     async () => {
       const prompt = `Analyze our completed work patterns:
-1. Use work://done to get recent completion logs
+1. Use actions://done to get recent completion logs
 2. Use context://momentum to see recent activity
 3. Identify patterns in:
    - What types of work we complete successfully
@@ -225,9 +225,9 @@ No task switching until current work is fully complete and verified.`;
     {},
     async () => {
       const prompt = `I'm starting my work session. Please quickly check:
-- work://next for the recommended next action
+- actions://next for the recommended next action
 - context://momentum for recent activity  
-- work://unblocked to see all options
+- actions://unblocked to see all options
 
 Give me a 3-line summary of what I should focus on.
 
@@ -260,7 +260,7 @@ This disciplined approach ensures quality and prevents half-finished work.`;
     { topic: z.string().describe('Topic to search for (e.g., "UI", "frontend", "API")') },
     async ({ topic }: { topic: string }) => {
       const prompt = `I want to find all actions related to "${topic}". Please:
-1. Get all workable actions from work://unblocked
+1. Get all workable actions from actions://unblocked
 2. Filter for ones that mention ${topic} or related terms in their title/description
 3. Check context://vision to see if ${topic} work aligns with current priorities
 4. Rank them by importance`;
@@ -299,7 +299,7 @@ Please help me:
    - If very similar actions exist (>70% match), suggest using those instead
 
 2. If creating new action, find the best placement:
-   - Use work://tree to understand the current hierarchy
+   - Use actions://tree to understand the current hierarchy
    - Search for related actions to understand where similar work lives
    - Identify the most logical parent action
 
@@ -357,7 +357,7 @@ Help me connect this completed work to our action tracking system:
      - Appropriate editorial content (headline, deck, pull_quotes)
 
 3. **If no existing action matches well:**
-   - Find the best placement in the hierarchy using work://tree
+   - Find the best placement in the hierarchy using actions://tree
    - Create a new action using create_action tool
    - Immediately complete it with the completion context
 

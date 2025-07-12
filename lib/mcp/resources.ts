@@ -13,10 +13,10 @@ import { getUnblockedActionsOptimized } from "../services/actions-optimized";
 import { getBlockingDependencies, getActionsWithNoDependencies } from "../services/blocking-dependencies";
 
 export function registerResources(server: any) {
-  // work://list - List all work items with pagination support
+  // actions://list - List all work items with pagination support
   server.resource(
     "List all work items with pagination support (excludes completed items by default)", 
-    "work://list",
+    "actions://list",
     async (uri: any) => {
       try {
         // Parse URI parameters if present - default to reasonable limits
@@ -78,10 +78,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://tree - Hierarchical view of work items
+  // actions://tree - Hierarchical view of work items
   server.resource(
     "Hierarchical view of work items showing family relationships (excludes completed items by default)",
-    "work://tree",
+    "actions://tree",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -150,10 +150,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://dependencies - Dependency graph view
+  // actions://dependencies - Dependency graph view
   server.resource(
     "Dependency graph view showing all work item dependencies and dependents (excludes completed items by default)",
-    "work://dependencies",
+    "actions://dependencies",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -209,17 +209,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://{id} - Individual work item core data
+  // actions://{id} - Individual work item core data
   server.resource(
     "Individual work item core data",
-    new ResourceTemplate("work://{id}", { list: undefined }),
+    new ResourceTemplate("actions://{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Work item ID is required - URI should be like 'work://123'");
+          throw new Error("Work item ID is required - URI should be like 'actions://123'");
         }
         
         // Check if database is available
@@ -264,17 +264,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://context/{id} - Rich context for agents to begin work
+  // actions://context/{id} - Rich context for agents to begin work
   server.resource(
     "Rich relationship context for agents to begin work on a specific item",
-    new ResourceTemplate("work://context/{id}", { list: undefined }),
+    new ResourceTemplate("actions://context/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Work item ID is required - URI should be like 'work://context/123'");
+          throw new Error("Work item ID is required - URI should be like 'actions://context/123'");
         }
         
         // Check if database is available
@@ -314,17 +314,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://tree/{id} - Hierarchical view of work items scoped to a specific subtree
+  // actions://tree/{id} - Hierarchical view of work items scoped to a specific subtree
   server.resource(
     "Hierarchical view of work items showing family relationships within a specific subtree (excludes completed items by default)",
-    new ResourceTemplate("work://tree/{id}", { list: undefined }),
+    new ResourceTemplate("actions://tree/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const rootActionId = Array.isArray(id) ? id[0] : id;
         
         if (!rootActionId || rootActionId === '{id}') {
-          throw new Error("Root work item ID is required - URI should be like 'work://tree/123'");
+          throw new Error("Root work item ID is required - URI should be like 'actions://tree/123'");
         }
         
         // Parse URI parameters
@@ -394,10 +394,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://done - Recent completion logs with pagination
+  // actions://done - Recent completion logs with pagination
   server.resource(
     "Recent completion logs showing how work items were implemented, their impact, and learnings",
-    "work://done",
+    "actions://done",
     async (uri: any) => {
       try {
         // Parse URI parameters
@@ -493,17 +493,17 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://done/{id} - Individual work item's completion log
+  // actions://done/{id} - Individual work item's completion log
   server.resource(
     "Completion log for a specific work item showing implementation details, impact, and learnings",
-    new ResourceTemplate("work://done/{id}", { list: undefined }),
+    new ResourceTemplate("actions://done/{id}", { list: undefined }),
     async (uri: any, { id }: { id: string | string[] }) => {
       try {
         // Handle id parameter which can be string or string[]
         const actionId = Array.isArray(id) ? id[0] : id;
         
         if (!actionId || actionId === '{id}') {
-          throw new Error("Work item ID is required - URI should be like 'work://done/123'");
+          throw new Error("Work item ID is required - URI should be like 'actions://done/123'");
         }
         
         // Check if database is available
@@ -684,10 +684,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://count - Get counts of work items by status
+  // actions://count - Get counts of work items by status
   server.resource(
     "Get counts of work items by status (total, incomplete, completed)",
-    "work://count",
+    "actions://count",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -727,10 +727,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://unblocked - Get all unblocked work items (leaf nodes with dependencies met)
+  // actions://unblocked - Get all unblocked work items (leaf nodes with dependencies met)
   server.resource(
     "Get all unblocked work items (leaf nodes with all dependencies completed)",
-    "work://unblocked",
+    "actions://unblocked",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -781,10 +781,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://blockers - Get blocking dependencies
+  // actions://blockers - Get blocking dependencies
   server.resource(
     "Get incomplete dependencies that are blocking other work",
-    "work://blockers",
+    "actions://blockers",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -831,10 +831,10 @@ export function registerResources(server: any) {
     }
   );
 
-  // work://no-dependencies - Get work items with no dependencies
+  // actions://no-dependencies - Get work items with no dependencies
   server.resource(
     "Get incomplete work items that have no dependencies blocking them",
-    "work://no-dependencies",
+    "actions://no-dependencies",
     async (uri: any) => {
       try {
         // Check if database is available
@@ -892,40 +892,40 @@ export function registerResources(server: any) {
 }
 
 export const resourceCapabilities = {
-  "work://list": {
+  "actions://list": {
     description: "List all work items with pagination support (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "work://count": {
+  "actions://count": {
     description: "Get counts of work items by status (total, incomplete, completed)",
   },
-  "work://unblocked": {
+  "actions://unblocked": {
     description: "Get all unblocked work items (leaf nodes with all dependencies completed)",
   },
-  "work://blockers": {
+  "actions://blockers": {
     description: "Get incomplete dependencies that are blocking other work",
   },
-  "work://no-dependencies": {
+  "actions://no-dependencies": {
     description: "Get incomplete work items that have no dependencies blocking them",
   },
-  "work://tree": {
+  "actions://tree": {
     description: "Hierarchical view of work items showing family relationships (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "work://tree/{id}": {
+  "actions://tree/{id}": {
     description: "Hierarchical view of work items within a specific subtree, scoped to the given work item ID and its descendants (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "work://dependencies": {
+  "actions://dependencies": {
     description: "Dependency graph view showing all work item dependencies and dependents (excludes completed items by default, use ?includeCompleted=true to include them)",
   },
-  "work://{id}": {
+  "actions://{id}": {
     description: "Individual work item core data",
   },
-  "work://context/{id}": {
+  "actions://context/{id}": {
     description: "Rich relationship context for agents to begin work on a specific item",
   },
-  "work://done": {
+  "actions://done": {
     description: "Recent completion logs showing how work items were implemented, their impact, and learnings. Supports pagination (?limit=20&offset=0) and visibility filtering (?visibility=public|team|private)",
   },
-  "work://done/{id}": {
+  "actions://done/{id}": {
     description: "Completion log for a specific work item showing implementation details, impact, and learnings",
   },
   "context://vision": {
@@ -934,10 +934,10 @@ export const resourceCapabilities = {
   "context://momentum": {
     description: "Recent activity including git commits, completed actions, and work patterns to understand current development momentum",
   },
-  "work://next": {
+  "actions://next": {
     description: "Get the next recommended action to work on based on dependencies and priority",
   },
-  "work://next/{id}": {
+  "actions://next/{id}": {
     description: "Get the next recommended action to work on within a specific subtree or project scope",
   },
 };

@@ -526,9 +526,9 @@ describe('NextActionDisplay Error Handling', () => {
 
     const copiedText = writeTextSpy.mock.calls[0][0];
     expect(copiedText).toContain('# Resource URLs');
-    expect(copiedText).toContain('- work://tree (full action hierarchy)');
-    expect(copiedText).toContain('- work://next (current priority action)');
-    expect(copiedText).toContain(`- work://${mockNextActionData.id} (this action's details)`);
+    expect(copiedText).toContain('- actions://tree (full action hierarchy)');
+    expect(copiedText).toContain('- actions://next (current priority action)');
+    expect(copiedText).toContain(`- actions://${mockNextActionData.id} (this action's details)`);
   });
 
   it('should display dependency completion context when available', async () => {

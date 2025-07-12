@@ -74,8 +74,8 @@ I need help prioritizing what to work on next in the ActionBias project. Please:
 
 1. First, read the project vision using the context://vision MCP resource
 2. Check recent momentum using the context://momentum MCP resource  
-3. Get all workable actions using the work://unblocked MCP resource
-4. Get a count of total incomplete actions using work://list with limit=1
+3. Get all workable actions using the actions://unblocked MCP resource
+4. Get a count of total incomplete actions using actions://list with limit=1
 
 Then analyze the workable actions and recommend the top 5 to work on based on:
 - Strategic alignment with the DONE magazine vision
@@ -99,7 +99,7 @@ Be selective with scoring - most actions should score 20-80, with 80+ reserved f
 For a simpler "what should I work on next" query:
 
 ```
-What's the most important thing I should work on next? Use the work://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).
+What's the most important thing I should work on next? Use the actions://unblocked resource to find available tasks and pick the top priority based on the project vision (context://vision).
 ```
 
 ## Understanding Current Work State
@@ -108,9 +108,9 @@ To get an overview of the current state:
 
 ```
 Give me an overview of the current work state:
-1. Use work://tree to show the hierarchical structure of incomplete work
+1. Use actions://tree to show the hierarchical structure of incomplete work
 2. Use context://momentum to show what's been recently completed
-3. Use work://unblocked to show what's ready to work on
+3. Use actions://unblocked to show what's ready to work on
 4. Summarize the key insights
 ```
 
@@ -120,8 +120,8 @@ To understand what's blocking progress:
 
 ```
 I want to understand what's blocking progress. Please:
-1. Use work://dependencies to see the dependency graph
-2. Use work://unblocked to see what's actually workable
+1. Use actions://dependencies to see the dependency graph
+2. Use actions://unblocked to see what's actually workable
 3. Identify the key blockers that would unlock the most work if completed
 ```
 
@@ -131,10 +131,10 @@ To get full context on a specific action:
 
 ```
 I need full context on action [ACTION_ID]. Please:
-1. Use work://{id} to get the action details
+1. Use actions://{id} to get the action details
 2. Show me the full parent chain and context
 3. List all dependencies and dependents
-4. Check if it appears in work://unblocked
+4. Check if it appears in actions://unblocked
 5. Give me your assessment of whether this is ready to work on
 ```
 
@@ -144,7 +144,7 @@ To analyze completed work patterns:
 
 ```
 Analyze our completed work patterns:
-1. Use work://done to get recent completion logs
+1. Use actions://done to get recent completion logs
 2. Use context://momentum to see recent activity
 3. Identify patterns in:
    - What types of work we complete successfully
@@ -159,9 +159,9 @@ Remember that you can access multiple resources in parallel for better performan
 
 ```
 I'm starting my work session. Please quickly check:
-- work://next for the recommended next action
+- actions://next for the recommended next action
 - context://momentum for recent activity  
-- work://unblocked to see all options
+- actions://unblocked to see all options
 
 Give me a 3-line summary of what I should focus on.
 ```
@@ -172,7 +172,7 @@ The power of this approach is that you can create custom analyses by combining r
 
 ```
 I want to find all actions related to "UI" or "frontend". Please:
-1. Get all workable actions from work://unblocked
+1. Get all workable actions from actions://unblocked
 2. Filter for ones that mention UI, frontend, or component in their title/description
 3. Check context://vision to see if UI work aligns with current priorities
 4. Rank them by importance
@@ -180,7 +180,7 @@ I want to find all actions related to "UI" or "frontend". Please:
 
 ## Notes on Performance
 
-- The `work://unblocked` resource returns all workable actions without filtering
+- The `actions://unblocked` resource returns all workable actions without filtering
 - Client-side analysis in Claude Code is more flexible than server-side LLM calls
 - Resources can be fetched in parallel for better performance
 - Combine multiple resources for comprehensive analysis

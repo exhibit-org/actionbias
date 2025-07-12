@@ -83,25 +83,25 @@ actions.engineering exposes these tools via Model Context Protocol:
 actions.engineering exposes these resources via Model Context Protocol:
 
 ### Action Management
-- **`work://list`** - List all actions
+- **`actions://list`** - List all actions
   - Query params: `?includeCompleted=true` (default: false)
-- **`work://tree`** - Hierarchical view of actions showing family relationships
+- **`actions://tree`** - Hierarchical view of actions showing family relationships
   - Query params: `?includeCompleted=true` (default: false)
-- **`work://tree/{id}`** - Hierarchical view scoped to a specific subtree
+- **`actions://tree/{id}`** - Hierarchical view scoped to a specific subtree
   - Query params: `?includeCompleted=true` (default: false)
-- **`work://{id}`** - Individual action core data
-- **`work://context/{id}`** - Rich relationship context for agents
+- **`actions://{id}`** - Individual action core data
+- **`actions://context/{id}`** - Rich relationship context for agents
 
 ### Execution & Planning
-- **`work://next`** - Get the next action to work on based on dependencies
-- **`work://next/{id}`** - Get the next action within a specific subtree
-- **`work://dependencies`** - Dependency graph view
+- **`actions://next`** - Get the next action to work on based on dependencies
+- **`actions://next/{id}`** - Get the next action within a specific subtree
+- **`actions://dependencies`** - Dependency graph view
   - Query params: `?includeCompleted=true` (default: false)
 
 ### Completion Logs
-- **`work://done`** - Recent completion logs with pagination
+- **`actions://done`** - Recent completion logs with pagination
   - Query params: `?limit=20&offset=0&visibility=public|team|private`
-- **`work://done/{id}`** - Completion log for a specific action
+- **`actions://done/{id}`** - Completion log for a specific action
 
 ## Architecture
 

@@ -88,7 +88,7 @@ export function registerTools(server: any) {
         const familyAction = await db.select().from(actions).where(eq(actions.id, family_id)).limit(1);
         
         if (familyAction.length === 0) {
-          throw new Error(`Family action with ID ${family_id} not found. Use search_actions or work://tree to find a valid family.`);
+          throw new Error(`Family action with ID ${family_id} not found. Use mcp__actions__search_actions or actions://tree to find a valid family.`);
         }
         
         // Call ActionsService directly to avoid HTTP authentication issues

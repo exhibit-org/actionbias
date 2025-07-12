@@ -64,21 +64,22 @@ describe("MCP Resources", () => {
     registerResources(server);
     expect(server.resource).toHaveBeenCalledTimes(15);
     expect(Object.keys(resourceCapabilities)).toEqual([
-      "work://list",
-      "work://unblocked",
-      "work://blockers",
-      "work://no-dependencies",
-      "work://tree",
-      "work://tree/{id}",
-      "work://dependencies",
-      "work://{id}",
-      "work://context/{id}",
-      "work://done",
-      "work://done/{id}",
+      "actions://list",
+      "actions://count",
+      "actions://unblocked",
+      "actions://blockers",
+      "actions://no-dependencies",
+      "actions://tree",
+      "actions://tree/{id}",
+      "actions://dependencies",
+      "actions://{id}",
+      "actions://context/{id}",
+      "actions://done",
+      "actions://done/{id}",
       "context://vision",
       "context://momentum",
-      "work://next",
-      "work://next/{id}",
+      "actions://next",
+      "actions://next/{id}",
     ]);
   });
 
@@ -87,7 +88,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[0][2];
     const expected = { total: 1, limit: 5, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://list?limit=5"));
+    const result = await handler(new URL("actions://list?limit=5"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 5, offset: 0, includeCompleted: false });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -96,7 +97,7 @@ describe("MCP Resources", () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
     const handler = server.resource.mock.calls[0][2];
-    const result = await handler(new URL("work://list"));
+    const result = await handler(new URL("actions://list"));
     const data = JSON.parse(result.contents[0].text);
     expect(data.error).toBe("Database not configured");
     expect(data.actions).toEqual([]);
@@ -107,7 +108,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[0][2];
     const expected = { total: 5, limit: 10, offset: 20, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://list?limit=10&offset=20&includeCompleted=true"));
+    const result = await handler(new URL("actions://list?limit=10&offset=20&includeCompleted=true"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 10, offset: 20, includeCompleted: true });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -117,7 +118,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[0][2];
     const expected = { total: 3, limit: 20, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://list?includeCompleted=true"));
+    const result = await handler(new URL("actions://list?includeCompleted=true"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ limit: 20, offset: 0, includeCompleted: true });
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -128,7 +129,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[1][2];
     const expected = { rootActions: [] } as any;
     mockedService.getActionTreeResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://tree"));
+    const result = await handler(new URL("actions://tree"));
     expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(false);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -138,7 +139,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[1][2];
     const expected = { rootActions: [] } as any;
     mockedService.getActionTreeResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://tree?includeCompleted=true"));
+    const result = await handler(new URL("actions://tree?includeCompleted=true"));
     expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(true);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -148,7 +149,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[2][2];
     const expected = { dependencies: [] } as any;
     mockedService.getActionDependenciesResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://dependencies"));
+    const result = await handler(new URL("actions://dependencies"));
     expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -158,7 +159,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[2][2];
     const expected = { dependencies: [] } as any;
     mockedService.getActionDependenciesResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://dependencies?includeCompleted=true"));
+    const result = await handler(new URL("actions://dependencies?includeCompleted=true"));
     expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(true);
     expect(JSON.parse(result.contents[0].text)).toEqual(expected);
   });
@@ -166,19 +167,19 @@ describe("MCP Resources", () => {
 
   it("core work item resource returns basic data only", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
     const expected = { id: "123", title: "Test", description: "Test description", vision: "Test vision", done: false, version: 1, created_at: "now", updated_at: "now" } as any;
     mockedService.getWorkItemCoreData.mockResolvedValue(expected);
-    const result = await handler(new URL("work://123"), { id: "123" });
+    const result = await handler(new URL("actions://123"), { id: "123" });
     expect(mockedService.getWorkItemCoreData).toHaveBeenCalledWith("123");
     expect(result.contents[0].mimeType).toBe("application/json");
   });
 
   it("context resource displays completion context prominently", async () => {
     registerResources(server);
-    // work://context/{id} is at index 4
+    // actions://context/{id} is at index 4
     const contextCall = server.resource.mock.calls[4];
     const handler = contextCall[2];
     const expected = { 
@@ -203,7 +204,7 @@ describe("MCP Resources", () => {
       ]
     } as any;
     mockedService.getActionDetailResource.mockResolvedValue(expected);
-    const result = await handler(new URL("work://context/123"), { id: "123" });
+    const result = await handler(new URL("actions://context/123"), { id: "123" });
     
     expect(result.contents[0].mimeType).toBe("application/json");
     const data = JSON.parse(result.contents[0].text);
@@ -218,19 +219,19 @@ describe("MCP Resources", () => {
 
   it("core work item resource rejects missing id", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
-    await expect(handler(new URL("work://{id}"), { id: "{id}" })).rejects.toThrow();
+    await expect(handler(new URL("actions://{id}"), { id: "{id}" })).rejects.toThrow();
   });
 
   it("core work item resource handles missing database url", async () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
-    const result = await handler(new URL("work://123"), { id: "123" });
+    const result = await handler(new URL("actions://123"), { id: "123" });
     const data = JSON.parse(result.contents[0].text);
     expect(data.error).toBe("Database not configured");
     expect(data.id).toBe("123");
@@ -238,18 +239,18 @@ describe("MCP Resources", () => {
 
   it("core work item resource handles database errors", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
     mockedService.getWorkItemCoreData.mockRejectedValue(new Error("Database error"));
-    await expect(handler(new URL("work://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Database error");
+    await expect(handler(new URL("actions://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Database error");
   });
 
   it("tree resource handles missing database url", async () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
     const handler = server.resource.mock.calls[1][2];
-    const result = await handler(new URL("work://tree"));
+    const result = await handler(new URL("actions://tree"));
     const data = JSON.parse(result.contents[0].text);
     expect(data.error).toBe("Database not configured");
     expect(data.rootActions).toEqual([]);
@@ -259,14 +260,14 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[1][2];
     mockedService.getActionTreeResource.mockRejectedValue(new Error("Tree error"));
-    await expect(handler(new URL("work://tree"))).rejects.toThrow("Failed to fetch action tree: Tree error");
+    await expect(handler(new URL("actions://tree"))).rejects.toThrow("Failed to fetch action tree: Tree error");
   });
 
   it("dependencies resource handles missing database url", async () => {
     process.env.DATABASE_URL = "";
     registerResources(server);
     const handler = server.resource.mock.calls[2][2];
-    const result = await handler(new URL("work://dependencies"));
+    const result = await handler(new URL("actions://dependencies"));
     const data = JSON.parse(result.contents[0].text);
     expect(data.error).toBe("Database not configured");
     expect(data.dependencies).toEqual([]);
@@ -276,7 +277,7 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[2][2];
     mockedService.getActionDependenciesResource.mockRejectedValue(new Error("Dependencies error"));
-    await expect(handler(new URL("work://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Dependencies error");
+    await expect(handler(new URL("actions://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Dependencies error");
   });
 
   // Test URL parsing error branches
@@ -361,7 +362,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[0][2];
     mockedService.getActionListResource.mockRejectedValue("String error");
     
-    await expect(handler(new URL("work://list"))).rejects.toThrow("Failed to fetch actions: Unknown error");
+    await expect(handler(new URL("actions://list"))).rejects.toThrow("Failed to fetch actions: Unknown error");
   });
 
   it("tree resource handles non-Error exceptions", async () => {
@@ -369,7 +370,7 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[1][2];
     mockedService.getActionTreeResource.mockRejectedValue("String error");
     
-    await expect(handler(new URL("work://tree"))).rejects.toThrow("Failed to fetch action tree: Unknown error");
+    await expect(handler(new URL("actions://tree"))).rejects.toThrow("Failed to fetch action tree: Unknown error");
   });
 
   it("dependencies resource handles non-Error exceptions", async () => {
@@ -377,39 +378,39 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[2][2];
     mockedService.getActionDependenciesResource.mockRejectedValue("String error");
     
-    await expect(handler(new URL("work://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Unknown error");
+    await expect(handler(new URL("actions://dependencies"))).rejects.toThrow("Failed to fetch action dependencies: Unknown error");
   });
 
   it("core work item resource handles non-Error exceptions", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
     mockedService.getWorkItemCoreData.mockRejectedValue("String error");
     
-    await expect(handler(new URL("work://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Unknown error");
+    await expect(handler(new URL("actions://123"), { id: "123" })).rejects.toThrow("Failed to fetch action details: Unknown error");
   });
 
 
   it("core work item resource handles array id parameter", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
     const expected = { id: "first", title: "Test", description: "Test desc", vision: "Test vision", done: false, version: 1, created_at: "now", updated_at: "now" } as any;
     mockedService.getWorkItemCoreData.mockResolvedValue(expected);
     
-    const result = await handler(new URL("work://first"), { id: ["first", "second"] });
+    const result = await handler(new URL("actions://first"), { id: ["first", "second"] });
     expect(mockedService.getWorkItemCoreData).toHaveBeenCalledWith("first");
   });
 
   it("core work item resource handles empty id parameter", async () => {
     registerResources(server);
-    // work://{id} is at index 3
+    // actions://{id} is at index 3
     const coreCall = server.resource.mock.calls[3];
     const handler = coreCall[2];
     
-    await expect(handler(new URL("work://"), { id: "" })).rejects.toThrow("Work item ID is required");
+    await expect(handler(new URL("actions://"), { id: "" })).rejects.toThrow("Work item ID is required");
   });
 
   it("list resource parses includeCompleted=false parameter correctly", async () => {
@@ -418,7 +419,7 @@ describe("MCP Resources", () => {
     const expected = { total: 2, limit: 20, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     
-    const result = await handler(new URL("work://list?includeCompleted=false"));
+    const result = await handler(new URL("actions://list?includeCompleted=false"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
       limit: 20, 
       offset: 0, 
@@ -432,7 +433,7 @@ describe("MCP Resources", () => {
     const expected = { total: 3, limit: 20, offset: 0, actions: [] } as any;
     mockedService.getActionListResource.mockResolvedValue(expected);
     
-    const result = await handler(new URL("work://list?other=value"));
+    const result = await handler(new URL("actions://list?other=value"));
     expect(mockedService.getActionListResource).toHaveBeenCalledWith({ 
       limit: 20, 
       offset: 0, 
@@ -447,7 +448,7 @@ describe("MCP Resources", () => {
     const expected = { rootActions: [] } as any;
     mockedService.getActionTreeResource.mockResolvedValue(expected);
     
-    const result = await handler(new URL("work://tree?includeCompleted=false"));
+    const result = await handler(new URL("actions://tree?includeCompleted=false"));
     expect(mockedService.getActionTreeResource).toHaveBeenCalledWith(false);
   });
 
@@ -457,7 +458,7 @@ describe("MCP Resources", () => {
     const expected = { dependencies: [] } as any;
     mockedService.getActionDependenciesResource.mockResolvedValue(expected);
     
-    const result = await handler(new URL("work://dependencies?includeCompleted=false"));
+    const result = await handler(new URL("actions://dependencies?includeCompleted=false"));
     expect(mockedService.getActionDependenciesResource).toHaveBeenCalledWith(false);
   });
 
@@ -466,13 +467,13 @@ describe("MCP Resources", () => {
     const handler = server.resource.mock.calls[0][2];
     mockedService.getActionListResource.mockRejectedValue(new Error("Service error"));
     
-    await expect(handler(new URL("work://list"))).rejects.toThrow("Failed to fetch actions: Service error");
+    await expect(handler(new URL("actions://list"))).rejects.toThrow("Failed to fetch actions: Service error");
   });
 
   // Log resource tests
   it("log feed resource returns recent logs", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[6][2]; // work://done is at index 6
+    const handler = server.resource.mock.calls[6][2]; // actions://done is at index 6
     
     const testLog = {
       id: "log1",
@@ -511,7 +512,7 @@ describe("MCP Resources", () => {
       })
     } as any));
     
-    const result = await handler(new URL("work://done"));
+    const result = await handler(new URL("actions://done"));
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.logs).toHaveLength(1);
@@ -524,7 +525,7 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[6][2];
     
-    const result = await handler(new URL("work://done"));
+    const result = await handler(new URL("actions://done"));
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.error).toBe("Database not configured");
@@ -533,7 +534,7 @@ describe("MCP Resources", () => {
 
   it("log item resource returns specific action log", async () => {
     registerResources(server);
-    const handler = server.resource.mock.calls[7][2]; // work://done/{id} is at index 7
+    const handler = server.resource.mock.calls[7][2]; // actions://done/{id} is at index 7
     
     // Mock the database response
     mockGetDb.mockReturnValue({
@@ -559,7 +560,7 @@ describe("MCP Resources", () => {
       })
     } as any);
     
-    const result = await handler(new URL("work://done/action1"), { id: "action1" });
+    const result = await handler(new URL("actions://done/action1"), { id: "action1" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.log).toBeDefined();
@@ -584,7 +585,7 @@ describe("MCP Resources", () => {
       })
     } as any);
     
-    const result = await handler(new URL("work://done/nonexistent"), { id: "nonexistent" });
+    const result = await handler(new URL("actions://done/nonexistent"), { id: "nonexistent" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.log).toBeNull();
@@ -596,7 +597,7 @@ describe("MCP Resources", () => {
     registerResources(server);
     const handler = server.resource.mock.calls[7][2];
     
-    const result = await handler(new URL("work://done/action1"), { id: "action1" });
+    const result = await handler(new URL("actions://done/action1"), { id: "action1" });
     const data = JSON.parse(result.contents[0].text);
     
     expect(data.error).toBe("Database not configured");
