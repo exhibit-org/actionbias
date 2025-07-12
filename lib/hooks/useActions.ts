@@ -184,9 +184,72 @@ export function useActions() {
 
   // Move action (join family) - this might need a separate endpoint
   const moveAction = useCallback(async (actionId: string, newParentId?: string) => {
+    // Capture current state BEFORE any modifications for potential rollback
+    const previousActions = actions
+    
     try {
-      // For now, we'll use the PUT endpoint to update the family
-      // You might want to create a dedicated move endpoint later
+      // OPTIMISTIC UPDATE: Update UI immediately
+      setActions(prevActions => {
+        
+        // Find and capture the action to move (with all its children)
+        let movedAction: Action | null = null
+        
+        // Remove the action from its current location and capture it
+        const removeAction = (actionsArray: Action[]): Action[] => {
+          return actionsArray.reduce<Action[]>((acc, action) => {
+            if (action.id === actionId) {
+              // Found the action to move - capture it with ALL its data including children
+              movedAction = { ...action }
+              return acc // Don't include in result (effectively removes it)
+            }
+            
+            // For other actions, recursively process children
+            if (action.children && action.children.length > 0) {
+              const updatedChildren = removeAction(action.children)
+              acc.push({
+                ...action,
+                children: updatedChildren
+              })
+            } else {
+              acc.push(action)
+            }
+            
+            return acc
+          }, [])
+        }
+        
+        const updatedActions = removeAction([...prevActions])
+        
+        if (!movedAction) return prevActions // Action not found, return original
+        
+        if (!newParentId) {
+          // Move to root level
+          return [...updatedActions, movedAction]
+        }
+        
+        // Add to new parent
+        const addToParent = (actionsArray: Action[]): Action[] => {
+          return actionsArray.map(action => {
+            if (action.id === newParentId) {
+              return {
+                ...action,
+                children: [...(action.children || []), movedAction]
+              }
+            }
+            if (action.children) {
+              return {
+                ...action,
+                children: addToParent(action.children)
+              }
+            }
+            return action
+          })
+        }
+        
+        return addToParent(updatedActions)
+      })
+      
+      // BACKGROUND API CALL: Make the API call after UI update
       const response = await fetch(`/api/actions/${actionId}`, {
         method: 'PUT',
         headers: {
@@ -205,76 +268,15 @@ export function useActions() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to move action')
       }
-
-      // Optimistically update local state instead of refetching
-      setActions(prevActions => {
-        // Find and remove the action from its current location
-        let movedAction: Action | null = null
-        const removeAction = (actionsArray: Action[]): Action[] => {
-          return actionsArray.filter(action => {
-            if (action.id === actionId) {
-              movedAction = action
-              return false
-            }
-            if (action.children) {
-              action.children = removeAction(action.children)
-            }
-            return true
-          })
-        }
-        
-        const updatedActions = removeAction([...prevActions])
-        
-        if (!movedAction) return prevActions // Action not found, return original
-        
-        // Create a copy without children to avoid duplication when moving
-        const cleanedMovedAction: Action = {
-          id: (movedAction as Action).id,
-          title: (movedAction as Action).title,
-          description: (movedAction as Action).description,
-          vision: (movedAction as Action).vision,
-          done: (movedAction as Action).done,
-          dependencies: (movedAction as Action).dependencies,
-          isExpanded: (movedAction as Action).isExpanded,
-          level: (movedAction as Action).level,
-          created_at: (movedAction as Action).created_at,
-          updated_at: (movedAction as Action).updated_at,
-          children: []
-        }
-        
-        if (!newParentId) {
-          // Move to root level
-          return [...updatedActions, cleanedMovedAction]
-        }
-        
-        // Add to new parent
-        const addToParent = (actionsArray: Action[]): Action[] => {
-          return actionsArray.map(action => {
-            if (action.id === newParentId) {
-              return {
-                ...action,
-                children: [...(action.children || []), cleanedMovedAction]
-              }
-            }
-            if (action.children) {
-              return {
-                ...action,
-                children: addToParent(action.children)
-              }
-            }
-            return action
-          })
-        }
-        
-        return addToParent(updatedActions)
-      })
       
       return result
     } catch (err) {
+      // ROLLBACK: Restore previous state on API failure
+      setActions(previousActions)
       setError(err instanceof Error ? err.message : 'Failed to move action')
       throw err
     }
-  }, [fetchActions])
+  }, [actions])
 
   // Initial load
   useEffect(() => {
