@@ -197,8 +197,60 @@ export function useActions() {
         throw new Error(result.error || 'Failed to move action')
       }
 
-      // Refresh the actions tree to reflect the new structure
-      await fetchActions()
+      // Optimistically update local state instead of refetching
+      setActions(prevActions => {
+        const moveActionInTree = (actions: Action[], actionId: string, newParentId?: string): Action[] => {
+          // First, remove the action from its current location
+          let movedAction: Action | null = null
+          const removeAction = (actionsArray: Action[]): Action[] => {
+            return actionsArray.filter(action => {
+              if (action.id === actionId) {
+                movedAction = action
+                return false
+              }
+              if (action.children) {
+                action.children = removeAction(action.children)
+              }
+              return true
+            })
+          }
+          
+          let updatedActions = removeAction([...actions])
+          
+          if (!movedAction) return actions // Action not found, return original
+          
+          // Remove children from moved action to avoid duplication
+          const cleanedMovedAction = { ...movedAction, children: [] }
+          
+          if (!newParentId) {
+            // Move to root level
+            return [...updatedActions, cleanedMovedAction]
+          }
+          
+          // Add to new parent
+          const addToParent = (actionsArray: Action[]): Action[] => {
+            return actionsArray.map(action => {
+              if (action.id === newParentId) {
+                return {
+                  ...action,
+                  children: [...(action.children || []), cleanedMovedAction]
+                }
+              }
+              if (action.children) {
+                return {
+                  ...action,
+                  children: addToParent(action.children)
+                }
+              }
+              return action
+            })
+          }
+          
+          return addToParent(updatedActions)
+        }
+        
+        return moveActionInTree(prevActions, actionId, newParentId)
+      })
       
       return result
     } catch (err) {
