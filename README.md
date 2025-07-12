@@ -64,6 +64,18 @@ actions.engineering is optimized for **Vercel deployment**:
    - `OPENAI_API_KEY` - For AI-powered features
 4. Deploy!
 
+### Claude Code Integration
+
+Connect to actions.engineering MCP server in Claude Code:
+
+```bash
+# Add the production MCP server
+claude mcp add --transport sse actions https://www.actions.engineering/mcp/sse
+
+# Or for local development
+claude mcp add --transport sse actions http://localhost:3000/mcp/sse
+```
+
 ## MCP Tools Available
 
 actions.engineering exposes these tools via Model Context Protocol:

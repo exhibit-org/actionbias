@@ -84,22 +84,22 @@ export default function HomePage() {
           </div>
           
           <h1 className="font-mono text-3xl md:text-4xl text-white mb-6 leading-tight">
-            Ship code. Tell the story.<br />
-            <span className="text-green-500">Actions are the engine of more.</span>
+            Actions = Code + Context in one loop<br />
+            <span className="text-green-500">Ship work with built-in memory, live metrics, and story-ready changelogs.</span>
           </h1>
           
           <div className="space-y-4 text-gray-400 mb-12 font-mono text-sm md:text-base">
             <p className="flex items-start">
-              <span className="text-green-500 mr-2">&gt;</span>
-              <span>Your AI agents complete work with perfect memory. Capture every decision, error, and insight.</span>
+              <span className="text-green-500 mr-2">⬤</span>
+              <span>Your AI agents <strong className="text-white">execute</strong>.</span>
             </p>
             <p className="flex items-start">
-              <span className="text-green-500 mr-2">&gt;</span>
-              <span>Transform verbose logs into beautiful changelogs that showcase your progress.</span>
+              <span className="text-green-500 mr-2">⬤</span>
+              <span>Actions automatically <strong className="text-white">capture every step</strong>.</span>
             </p>
             <p className="flex items-start">
-              <span className="text-green-500 mr-2">&gt;</span>
-              <span>Build institutional memory. Future you (and your team) will thank you.</span>
+              <span className="text-green-500 mr-2">⬤</span>
+              <span>You (and future teammates) <strong className="text-white">see the full story</strong>—no hunting through logs.</span>
             </p>
           </div>
 
@@ -124,7 +124,7 @@ export default function HomePage() {
                     'submitting...'
                   ) : (
                     <>
-                      join waitlist
+                      Join the Early-Access Waitlist
                       <ArrowRight size={16} />
                     </>
                   )}
@@ -142,126 +142,83 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* The Problem */}
+      {/* Problem → Solution */}
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="font-mono text-2xl text-white mb-8">
-            <span className="text-green-500">## </span>The Problem
-          </h2>
-          
           <div className="grid md:grid-cols-2 gap-12 font-mono text-sm">
             <div>
-              <h3 className="text-green-500 mb-4">When AI agents complete work:</h3>
+              <h3 className="text-orange-500 mb-4 text-lg">Old Way</h3>
+              <blockquote className="text-gray-400 mb-4 italic border-l-2 border-orange-500 pl-4">
+                "Ship code now, bolt analytics on later, pray the context still matches."
+              </blockquote>
               <div className="bg-gray-900 border border-gray-800 rounded p-4 space-y-2">
-                <div className="text-gray-500">// They remember everything</div>
-                <div>- Complete conversation history</div>
-                <div>- Every file examined</div>
-                <div>- Every error encountered</div>
-                <div>- Every decision's rationale</div>
+                <div>• Context lost in chat threads</div>
+                <div>• Metrics drift from the code that generated them</div>
+                <div>• New hires ask, "Why did we do that…?"</div>
               </div>
             </div>
             
             <div>
-              <h3 className="text-orange-500 mb-4">When humans complete work:</h3>
+              <h3 className="text-green-500 mb-4 text-lg">Actions Way</h3>
+              <blockquote className="text-gray-400 mb-4 italic border-l-2 border-green-500 pl-4">
+                <strong className="text-white">Instrumented work items</strong> from the moment they're created.
+              </blockquote>
               <div className="bg-gray-900 border border-gray-800 rounded p-4 space-y-2">
-                <div className="text-gray-500">// We forget the details</div>
-                <div>- Context switching erases memory</div>
-                <div>- "What did I change again?"</div>
-                <div>- "Why did we decide that?"</div>
-                <div>- Knowledge walks out the door</div>
+                <div><span className="text-green-500">1.</span> <strong className="text-white">Plan</strong> → plain-language intent</div>
+                <div><span className="text-green-500">2.</span> <strong className="text-white">Execute</strong> → AI agents run & log everything</div>
+                <div><span className="text-green-500">3.</span> <strong className="text-white">Capture</strong> → code, rationale, metrics stitched together</div>
+                <div><span className="text-green-500">4.</span> <strong className="text-white">Learn</strong> → next task starts with richer context</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* The Solution */}
+      {/* Quick Demo */}
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="font-mono text-2xl text-white mb-8">
-            <span className="text-green-500">## </span>Work Historiography
+          <h2 className="font-mono text-2xl text-white mb-8 text-center">
+            <span className="text-green-500">## </span>One Command Demo
           </h2>
           
-          <div className="space-y-8">
-            <div className="flex items-start space-x-4">
-              <div className="text-green-500 mt-1">
-                <FileText size={20} />
-              </div>
-              <div>
-                <h3 className="font-mono text-white mb-2">Capture Everything</h3>
-                <p className="font-mono text-sm text-gray-400">
-                  From natural language plans → structured tasks → agent execution logs → completion stories.
-                  Never lose the "why" behind the "what".
-                </p>
-              </div>
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-gray-900 border border-gray-800 rounded p-6 font-mono text-sm">
+              <div className="text-gray-500 mb-2"># one command demo</div>
+              <div className="text-green-500">$ curl -L https://install.actions.engineering | bash</div>
+              <div className="text-green-500">$ mcp action create "Add dark-mode toggle"</div>
             </div>
             
-            <div className="flex items-start space-x-4">
-              <div className="text-green-500 mt-1">
-                <Terminal size={20} />
-              </div>
-              <div>
-                <h3 className="font-mono text-white mb-2">Transform Logs into Stories</h3>
-                <p className="font-mono text-sm text-gray-400">
-                  Verbose agent logs become magazine-quality articles. Share your wins. 
-                  Build your portfolio. Show, don't tell.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-4">
-              <div className="text-green-500 mt-1">
-                <Clock size={20} />
-              </div>
-              <div>
-                <h3 className="font-mono text-white mb-2">Actions → More</h3>
-                <p className="font-mono text-sm text-gray-400">
-                  Every completion enriches context for the next task. Your AI agents get smarter.
-                  Your team learns from history. Progress compounds.
-                </p>
-              </div>
+            <div className="mt-6 text-center">
+              <p className="font-mono text-sm text-gray-400">
+                <strong className="text-white">Result:</strong> PR opened, test run, metric link created, changelog drafted.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Core Features (3-pack) */}
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <h2 className="font-mono text-2xl text-white mb-8">
-            <span className="text-green-500">## </span>Built for Real Work
-          </h2>
-          
-          <div className="grid md:grid-cols-2 gap-6 font-mono text-sm">
+          <div className="grid md:grid-cols-3 gap-8 font-mono text-sm">
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3">Cross-Agent Memory</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Live Memory</h3>
               <p className="text-gray-400">
-                Start with Claude Code, continue with Gemini CLI, debug with ChatGPT.
-                Your project context travels everywhere via MCP.
+                Actions carries convo history, file diffs & errors from one agent to the next—across Claude → Gemini → ChatGPT.
               </p>
             </div>
             
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3">Differentiated UX</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Magazine-quality Changelogs</h3>
               <p className="text-gray-400">
-                Agents dump logs. Humans need conversation. Voice input, guided prompts,
-                and GitHub integration for human-friendly capture.
+                Raw logs become readable stories that impress stakeholders & future you.
               </p>
             </div>
             
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3">Beautiful Output</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Plug-in, Don't Patch</h3>
               <p className="text-gray-400">
-                Your work deserves better than a git log. Generate magazine-quality
-                changelogs that stakeholders actually want to read.
-              </p>
-            </div>
-            
-            <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3">Open Source</h3>
-              <p className="text-gray-400">
-                Self-host for control. Extend for your workflow. Built by an indie
-                developer who gets it. MIT licensed.
+                No extra SDKs; Actions binds directly into your build + deploy pipeline, so metrics stay coherent.
               </p>
             </div>
           </div>
@@ -271,26 +228,16 @@ export default function HomePage() {
       {/* Philosophy */}
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
-          <div className="max-w-3xl">
-            <h2 className="font-mono text-2xl text-white mb-8">
-              <span className="text-green-500">## </span>The Philosophy
-            </h2>
-            
-            <div className="space-y-6 font-mono text-sm text-gray-400">
-              <p>
-                <span className="text-white">The future isn't human OR AI—it's human AND AI.</span> 
-                {' '}We dream and direct. They execute and log. The system captures and transforms.
-                The organization learns and evolves.
-              </p>
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="space-y-6 font-mono text-lg text-gray-400">
+              <blockquote className="text-white text-2xl leading-relaxed">
+                Humans imagine.<br />
+                Agents execute.<br />
+                <span className="text-green-500">Actions remembers.</span>
+              </blockquote>
               
-              <p>
-                Every line of code has a story. Every bug fix teaches a lesson. Every feature 
-                ships with context. <span className="text-green-500">Actions becomes the universal 
-                magazine of meaningful work</span>—where every completion is a story worth telling.
-              </p>
-              
-              <p className="text-white">
-                Because actions are the engine of more.
+              <p className="text-base">
+                Software improves fastest when every loop leaves a breadcrumb for the next.
               </p>
             </div>
           </div>
@@ -301,7 +248,7 @@ export default function HomePage() {
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16 text-center">
           <h2 className="font-mono text-2xl text-white mb-6">
-            Ready to ship more and remember why?
+            Join the Early-Access Waitlist
           </h2>
           
           {!isSubmitted ? (
@@ -324,14 +271,14 @@ export default function HomePage() {
                     'submitting...'
                   ) : (
                     <>
-                      get early access
+                      Join Waitlist
                       <ArrowRight size={16} />
                     </>
                   )}
                 </button>
               </form>
               <p className="text-xs text-gray-600 mt-3 font-mono">
-                For developers who ship with AI agents. No spam.
+                Early access for developers building with AI agents.
               </p>
             </div>
           ) : (
@@ -347,38 +294,32 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs">
             <div className="flex items-center text-gray-600">
-              <span>© 2025 actions.engineering</span>
+              <span>© 2025 Actions Engineering</span>
               <span className="mx-2">•</span>
-              <span>built by</span>
-              <a 
-                href="https://twitter.com/saoul" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-gray-400 transition-colors ml-1"
-              >
-                @saoul
-              </a>
+              <span>MIT License</span>
+              <span className="mx-2">•</span>
+              <span>Open Source</span>
             </div>
             <div className="flex items-center space-x-6">
-              <a 
-                href="https://github.com/bbn" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-600 hover:text-gray-400 transition-colors"
-              >
-                @bbn
-              </a>
               <a 
                 href="https://github.com/exhibit-org/actionbias" 
                 className="text-gray-600 hover:text-gray-400 transition-colors"
               >
-                project
+                GitHub
               </a>
               <a 
                 href="https://github.com/exhibit-org/actionbias/blob/main/README.md" 
                 className="text-gray-600 hover:text-gray-400 transition-colors"
               >
-                docs
+                Docs
+              </a>
+              <a 
+                href="https://twitter.com/saoul" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                X/Twitter
               </a>
             </div>
           </div>
