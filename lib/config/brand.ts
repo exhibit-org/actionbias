@@ -5,22 +5,22 @@
 
 export const BRAND = {
   // Main brand name used throughout the app
-  name: 'done.engineering',
+  name: 'actions.engineering',
   
   // Short brand name
-  shortName: 'done',
+  shortName: 'actions',
   
   // Full brand name for formal contexts
-  fullName: 'done.engineering Intelligence Unit',
+  fullName: 'actions.engineering Intelligence Unit',
   
   // MCP server name (what appears in Claude's MCP server list)
-  mcpServerName: 'done',
+  mcpServerName: 'actions',
   
   // Brand name for technical contexts (e.g., server names, API references)
-  technicalName: 'done',
+  technicalName: 'actions',
   
   // Legacy name (for backwards compatibility if needed)
-  legacyName: 'ActionBias',
+  legacyName: 'done.engineering',
 } as const;
 
 // Type-safe brand name getter

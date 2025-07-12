@@ -15,31 +15,31 @@ if (typeof window === 'undefined') {
 }
 
 export const metadata: Metadata = {
-  title: "done.engineering - Your context, everywhere. Never start over again.",
-  description: "The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Done is the engine of more.",
+  title: "actions.engineering - Your context, everywhere. Never start over again.",
+  description: "The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Actions are the engine of more.",
   keywords: ["Claude Code", "Gemini CLI", "AI context", "MCP", "Model Context Protocol", "AI development", "context persistence", "AI agents"],
-  authors: [{ name: "done.engineering" }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'),
+  authors: [{ name: "actions.engineering" }],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://actions.engineering'),
   openGraph: {
-    title: "done.engineering - Your context, everywhere. Never start over again.",
+    title: "actions.engineering - Your context, everywhere. Never start over again.",
     description: "Stop losing context when switching between Claude Code, Gemini CLI, and other AI tools. Keep your entire project history alive across every conversation.",
     type: "website",
-    siteName: "done.engineering",
+    siteName: "actions.engineering",
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'}/api/og`,
+        url: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://actions.engineering'}/api/og`,
         width: 1200,
         height: 630,
-        alt: "done.engineering - The context layer for AI development",
+        alt: "actions.engineering - The context layer for AI development",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "done.engineering - Your context, everywhere. Never start over again.",
+    title: "actions.engineering - Your context, everywhere. Never start over again.",
     description: "Stop losing context when switching between Claude Code, Gemini CLI, and other AI tools. Keep your entire project history alive.",
-    images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://done.engineering'}/api/og`],
-    creator: "@doneengineering",
+    images: [`${process.env.NEXT_PUBLIC_BASE_URL || 'https://actions.engineering'}/api/og`],
+    creator: "@actionsengineering",
   },
   icons: {
     icon: "/icon.svg",

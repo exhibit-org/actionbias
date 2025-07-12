@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Next.js MCP (Model Context Protocol) server implementing done.engineering - an AI-forward planning platform for persistent task management. Uses `@vercel/mcp-adapter` to expose action management tools via HTTP endpoints with hierarchical task organization and dependency tracking.
+Next.js MCP (Model Context Protocol) server implementing actions.engineering - an AI-forward planning platform for persistent task management. Uses `@vercel/mcp-adapter` to expose action management tools via HTTP endpoints with hierarchical task organization and dependency tracking.
 
 ## Architecture
 

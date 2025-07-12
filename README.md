@@ -1,15 +1,15 @@
-# done.engineering
+# actions.engineering
 
 **Your context, everywhere. Never start over again.**
 
-The context layer for AI development that keeps your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Stop losing context when switching between AI conversations. Done is the engine of more.
+The context layer for AI development that keeps your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Stop losing context when switching between AI conversations. Actions are the engine of more.
 
 ## Core Value Propositions
 
 - **Your context, everywhere** - Never lose progress between AI conversations
 - **Works seamlessly** - Native integration with Claude Code, Gemini CLI, and all MCP-enabled tools
 - **AI-powered intelligence** - Automatic task organization and dependency tracking
-- **Done is the engine of more** - Track completions, build momentum, share your journey
+- **Actions are the engine of more** - Track completions, build momentum, share your journey
 
 ## Key Features
 
@@ -54,7 +54,7 @@ The automated setup uses **PGlite** - PostgreSQL compiled to WebAssembly:
 
 ### Production Deployment
 
-done.engineering is optimized for **Vercel deployment**:
+actions.engineering is optimized for **Vercel deployment**:
 
 1. Fork the repository
 2. Connect to Vercel
@@ -66,7 +66,7 @@ done.engineering is optimized for **Vercel deployment**:
 
 ## MCP Tools Available
 
-done.engineering exposes these tools via Model Context Protocol:
+actions.engineering exposes these tools via Model Context Protocol:
 
 - **`create_action`** - Create actions with AI-suggested family placement
 - **`update_action`** - Update action properties
@@ -80,7 +80,7 @@ done.engineering exposes these tools via Model Context Protocol:
 
 ## MCP Resources
 
-done.engineering exposes these resources via Model Context Protocol:
+actions.engineering exposes these resources via Model Context Protocol:
 
 ### Action Management
 - **`work://list`** - List all actions
@@ -170,7 +170,7 @@ MIT - see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- [Homepage](https://done.engineering)
+- [Homepage](https://actions.engineering)
 - [GitHub](https://github.com/exhibit-org/actionbias)
 - [Documentation](https://github.com/exhibit-org/actionbias/blob/main/README.md)
 

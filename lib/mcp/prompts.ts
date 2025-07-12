@@ -41,7 +41,7 @@ export function registerPrompts(server: any) {
 4. Get a count of total incomplete actions using work://count
 
 Then analyze the workable actions and recommend the top 5 to work on based on:
-- Strategic alignment with the DONE magazine vision
+- Strategic alignment with the actions.engineering vision
 - Building on recent momentum and completed work
 - Unlocking future work through dependencies
 - Effort vs impact ratio

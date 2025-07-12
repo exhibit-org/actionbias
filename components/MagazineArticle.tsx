@@ -151,7 +151,7 @@ export default function MagazineArticle({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="text-2xl font-serif tracking-tight text-gray-900">done.engineering</div>
+              <div className="text-2xl font-serif tracking-tight text-gray-900">actions.engineering</div>
               <div className="w-px h-6 bg-gray-400"></div>
               <div className="text-sm font-medium text-red-600 uppercase tracking-wider">Engineering Intelligence</div>
             </div>
@@ -409,7 +409,7 @@ export default function MagazineArticle({
         <div className="flex justify-between items-center text-xs text-gray-600">
           <div>
             <p className="font-medium">Reference: {item.actionId}</p>
-            <p className="mt-1">© {new Date().getFullYear()} done.engineering Intelligence Unit</p>
+            <p className="mt-1">© {new Date().getFullYear()} actions.engineering Intelligence Unit</p>
           </div>
           <div className="text-right">
             <p className="font-medium uppercase tracking-wider">Engineering Analysis</p>

@@ -229,14 +229,14 @@ export function useActions() {
         
         // Add to new parent
         const addToParent = (actionsArray: Action[]): Action[] => {
-          return actionsArray.map(action => {
+          return actionsArray.map((action): Action => {
             if (action.id === newParentId) {
               return {
                 ...action,
-                children: [...(action.children || []), movedAction]
+                children: [...(action.children || []), movedAction as Action]
               }
             }
-            if (action.children) {
+            if (action.children && action.children.length > 0) {
               return {
                 ...action,
                 children: addToParent(action.children)

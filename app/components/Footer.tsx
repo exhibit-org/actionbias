@@ -39,7 +39,7 @@ export default function Footer({ colors }: FooterProps) {
             <span style={{
               color: colors.text
             }}>
-              done.engineering
+              actions.engineering
             </span>
           </h3>
           <p style={{
@@ -48,7 +48,7 @@ export default function Footer({ colors }: FooterProps) {
             margin: '0 0 0.75rem 0',
             lineHeight: '1.5'
           }}>
-            The context layer for AI development. Done is the engine of more.
+            The context layer for AI development. Actions are the engine of more.
           </p>
           <p style={{
             fontSize: '0.75rem',

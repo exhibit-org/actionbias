@@ -176,7 +176,7 @@ export default function EngineeringTemplate({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Terminal size={20} className="text-green-500" />
-              <span className="font-mono text-sm text-gray-300">done.engineering</span>
+              <span className="font-mono text-sm text-gray-300">actions.engineering</span>
             </div>
             <div className="flex items-center space-x-4">
               <span className="font-mono text-xs text-gray-500 uppercase tracking-wider">
@@ -211,7 +211,7 @@ export default function EngineeringTemplate({
         {/* Terminal prompt style */}
         <div className="mb-6">
           <span className="font-mono text-green-500">$</span>
-          <span className="font-mono text-gray-500 ml-2">done</span>
+          <span className="font-mono text-gray-500 ml-2">actions</span>
           <span className="font-mono text-gray-600 ml-2">show</span>
           <span className="font-mono text-gray-600 ml-2">"{item.actionTitle}"</span>
         </div>
@@ -463,7 +463,7 @@ export default function EngineeringTemplate({
         <div className="flex justify-between items-center font-mono text-xs text-gray-600">
           <div>
             <p className="break-all">ref: {item.actionId}</p>
-            <p className="mt-1">© {new Date().getFullYear()} done.engineering</p>
+            <p className="mt-1">© {new Date().getFullYear()} actions.engineering</p>
           </div>
           <div className="text-right">
             <p className="text-green-500">engineering completion</p>

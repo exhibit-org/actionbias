@@ -56,7 +56,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Terminal size={20} className="text-green-500" />
-              <span className="font-mono text-sm text-gray-300">done.engineering</span>
+              <span className="font-mono text-sm text-gray-300">actions.engineering</span>
             </div>
             <nav className="flex items-center space-x-6">
               <a 
@@ -85,7 +85,7 @@ export default function HomePage() {
           
           <h1 className="font-mono text-3xl md:text-4xl text-white mb-6 leading-tight">
             Ship code. Tell the story.<br />
-            <span className="text-green-500">Done is the engine of more.</span>
+            <span className="text-green-500">Actions are the engine of more.</span>
           </h1>
           
           <div className="space-y-4 text-gray-400 mb-12 font-mono text-sm md:text-base">
@@ -214,7 +214,7 @@ export default function HomePage() {
                 <Clock size={20} />
               </div>
               <div>
-                <h3 className="font-mono text-white mb-2">Done → More</h3>
+                <h3 className="font-mono text-white mb-2">Actions → More</h3>
                 <p className="font-mono text-sm text-gray-400">
                   Every completion enriches context for the next task. Your AI agents get smarter.
                   Your team learns from history. Progress compounds.
@@ -285,12 +285,12 @@ export default function HomePage() {
               
               <p>
                 Every line of code has a story. Every bug fix teaches a lesson. Every feature 
-                ships with context. <span className="text-green-500">Done becomes the universal 
+                ships with context. <span className="text-green-500">Actions becomes the universal 
                 magazine of meaningful work</span>—where every completion is a story worth telling.
               </p>
               
               <p className="text-white">
-                Because done is the engine of more.
+                Because actions are the engine of more.
               </p>
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs">
             <div className="flex items-center text-gray-600">
-              <span>© 2025 done.engineering</span>
+              <span>© 2025 actions.engineering</span>
               <span className="mx-2">•</span>
               <span>built by</span>
               <a 

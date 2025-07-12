@@ -134,7 +134,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                     fontSize: '1rem',
                     fontWeight: '600',
                     color: colors.text
-                  }}>done.engineering</span>
+                  }}>actions.engineering</span>
                 </div>
                 <Link 
                   href="/" 
@@ -184,7 +184,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
                   fontSize: '1rem',
                   fontWeight: '600',
                   color: colors.text
-                }}>done.engineering</span>
+                }}>actions.engineering</span>
               </div>
               
               {/* Centered text with arc effect */}
@@ -272,7 +272,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               gap: '0.5rem'
             }}>
               <Zap size={20} style={{ color: '#3b82f6' }} />
-              done.engineering
+              actions.engineering
             </h3>
             <p style={{
               fontSize: '0.9375rem',
@@ -280,7 +280,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 1rem 0',
               lineHeight: '1.6'
             }}>
-              The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Done is the engine of more.
+              The context layer for AI development. Keep your entire project history alive across Claude Code, Gemini CLI, and every AI tool. Actions are the engine of more.
             </p>
             <Link 
               href="/" 
@@ -319,7 +319,7 @@ export default function ViralFooter({ colors }: ViralFooterProps) {
               margin: '0 0 0.75rem 0',
               color: colors.text
             }}>
-              Why people love done.engineering
+              Why people love actions.engineering
             </h4>
             <ul style={{
               margin: 0,

@@ -201,7 +201,7 @@ export default function CustomerTemplate({ item, showShare = false }: CustomerTe
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="text-2xl font-bold">done.engineering</div>
+              <div className="text-2xl font-bold">actions.engineering</div>
               <div className="w-px h-6 bg-white/30"></div>
               <div className="text-sm font-medium uppercase tracking-wider">What's New</div>
             </div>
@@ -431,7 +431,7 @@ export default function CustomerTemplate({ item, showShare = false }: CustomerTe
         <div className="flex justify-between items-center text-xs text-gray-600">
           <div>
             <p className="font-medium">Update ID: {item.actionId}</p>
-            <p className="mt-1">© {new Date().getFullYear()} done.engineering</p>
+            <p className="mt-1">© {new Date().getFullYear()} actions.engineering</p>
           </div>
           <div className="text-right">
             <p className="font-medium uppercase tracking-wider">Feature Update</p>

@@ -48,10 +48,10 @@ describe('Remove exposed data links', () => {
         textFaint: '#ccc'
       };
       render(<Footer colors={colors} />);
-      // Check that done.engineering is not a link anymore
-      const doneEngineering = screen.getByText('done.engineering');
-      expect(doneEngineering.tagName).toBe('SPAN');
-      expect(doneEngineering.tagName).not.toBe('A');
+      // Check that actions.engineering is not a link anymore
+      const actionsEngineering = screen.getByText('actions.engineering');
+      expect(actionsEngineering.tagName).toBe('SPAN');
+      expect(actionsEngineering.tagName).not.toBe('A');
     });
   });
 });

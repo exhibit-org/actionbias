@@ -1,6 +1,6 @@
-# Claude Code Hooks Setup for DONE Magazine
+# Claude Code Hooks Setup for Actions Magazine
 
-This configuration captures **all** Claude Code development activity for DONE magazine content generation.
+This configuration captures **all** Claude Code development activity for Actions magazine content generation.
 
 ## Quick Setup
 
@@ -98,7 +98,7 @@ http://localhost:3000/api/hooks/capture-all
 
 ## Privacy
 
-- All data is stored in your DONE magazine database
+- All data is stored in your Actions magazine database
 - No external services contacted except your deployment
 - Raw payloads include file paths and code changes
 - Consider data sensitivity before enabling
