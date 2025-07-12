@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Copy, ExternalLink, Trash2, Check, GitBranch } from "lucide-react"
 import type { Action } from "../types/action"
+import { useActionCompletion } from "../app/contexts/ActionCompletionContext"
 
 interface ActionDetailsProps {
   action: Action | null
@@ -15,6 +16,7 @@ interface ActionDetailsProps {
   onDeleteAction?: (actionId: string) => void
   onCompleteAction?: (actionId: string) => void
   onDecomposeAction?: (actionId: string) => void
+  onRefresh?: () => void
 }
 
 interface ExtendedAction extends Action {
@@ -33,8 +35,10 @@ export function ActionDetails({
   onDeleteAction,
   onCompleteAction,
   onDecomposeAction,
+  onRefresh,
 }: ActionDetailsProps) {
   const extendedAction = action as ExtendedAction
+  const { openModal } = useActionCompletion()
 
   const [localTitle, setLocalTitle] = useState(extendedAction?.title || "")
   const [localDescription, setLocalDescription] = useState(extendedAction?.description || "")
@@ -108,6 +112,18 @@ Please help me execute this task with attention to the vision and context provid
     }
   }, [generateFullPrompt])
 
+  const handleCompleteButtonClick = useCallback(() => {
+    if (!extendedAction) return
+    
+    if (extendedAction.done) {
+      // If already completed, directly uncomplete it
+      onCompleteAction?.(extendedAction.id)
+    } else {
+      // If not completed, open the completion modal with refresh callback
+      openModal(extendedAction.id, extendedAction.title, onRefresh)
+    }
+  }, [extendedAction, onCompleteAction, openModal, onRefresh])
+
   if (!action) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -137,8 +153,8 @@ Please help me execute this task with attention to the vision and context provid
                 ? "bg-primary/20 border-primary text-primary"
                 : "bg-transparent hover:bg-primary/10 hover:border-primary hover:text-primary"
             }`}
-            onClick={() => onCompleteAction?.(extendedAction.id)}
-            title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
+            onClick={handleCompleteButtonClick}
+            title={isCompleted ? "Mark as incomplete" : "Complete with story"}
           >
             <Check className="w-4 h-4" />
           </Button>

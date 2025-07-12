@@ -39,11 +39,20 @@ export function useActions() {
       // Handle completion separately since it uses a different endpoint
       if ('done' in updates) {
         const endpoint = updates.done ? `/api/actions/${actionId}/complete` : `/api/actions/${actionId}/uncomplete`
+        const requestBody = updates.done ? {
+          // Provide minimal structured completion data to satisfy schema
+          technical_changes: {},
+          outcomes: {},
+          challenges: {},
+          changelog_visibility: 'team' as const
+        } : undefined
+        
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          ...(requestBody && { body: JSON.stringify(requestBody) })
         })
 
         if (!response.ok) {

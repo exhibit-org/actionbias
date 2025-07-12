@@ -6,7 +6,8 @@ interface ActionCompletionContextType {
   isOpen: boolean;
   actionId: string | null;
   actionTitle: string | null;
-  openModal: (actionId: string, actionTitle: string) => void;
+  onComplete: (() => void) | null;
+  openModal: (actionId: string, actionTitle: string, onComplete?: () => void) => void;
   closeModal: () => void;
 }
 
@@ -16,10 +17,12 @@ export function ActionCompletionProvider({ children }: { children: ReactNode }) 
   const [isOpen, setIsOpen] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionTitle, setActionTitle] = useState<string | null>(null);
+  const [onComplete, setOnComplete] = useState<(() => void) | null>(null);
 
-  const openModal = useCallback((actionId: string, actionTitle: string) => {
+  const openModal = useCallback((actionId: string, actionTitle: string, onComplete?: () => void) => {
     setActionId(actionId);
     setActionTitle(actionTitle);
+    setOnComplete(() => onComplete || null);
     setIsOpen(true);
   }, []);
 
@@ -27,6 +30,7 @@ export function ActionCompletionProvider({ children }: { children: ReactNode }) 
     setIsOpen(false);
     setActionId(null);
     setActionTitle(null);
+    setOnComplete(null);
   }, []);
 
   return (
@@ -35,7 +39,8 @@ export function ActionCompletionProvider({ children }: { children: ReactNode }) 
       actionId, 
       actionTitle, 
       openModal, 
-      closeModal 
+      closeModal,
+      onComplete
     }}>
       {children}
     </ActionCompletionContext.Provider>

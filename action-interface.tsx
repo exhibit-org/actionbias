@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
 export default function ActionInterface() {
-  const { actions, loading, error, updateAction, deleteAction, createAction, moveAction } = useActions()
+  const { actions, loading, error, updateAction, deleteAction, createAction, moveAction, refetch } = useActions()
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -438,6 +438,7 @@ export default function ActionInterface() {
               onDeleteAction={handleDeleteAction}
               onCompleteAction={handleCompleteAction}
               onDecomposeAction={handleDecomposeAction}
+              onRefresh={refetch}
             />
           }
         />
