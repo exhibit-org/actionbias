@@ -84,22 +84,22 @@ export default function HomePage() {
           </div>
           
           <h1 className="font-mono text-3xl md:text-4xl text-white mb-6 leading-tight">
-            Actions = Code + Context in one loop<br />
-            <span className="text-green-500">Ship work with built-in memory, live metrics, and story-ready changelogs.</span>
+            Close the loop on product development<br />
+            <span className="text-green-500">AI agents build measurement directly into your code as they implement features.</span>
           </h1>
           
           <div className="space-y-4 text-gray-400 mb-12 font-mono text-sm md:text-base">
             <p className="flex items-start">
               <span className="text-green-500 mr-2">⬤</span>
-              <span>Your AI agents <strong className="text-white">execute</strong>.</span>
+              <span>Set goals in natural language: <strong className="text-white">"Increase user onboarding completion by 30%"</strong></span>
             </p>
             <p className="flex items-start">
               <span className="text-green-500 mr-2">⬤</span>
-              <span>Actions automatically <strong className="text-white">capture every step</strong>.</span>
+              <span>AI agents <strong className="text-white">build features with measurement baked in</strong>—no external analytics needed.</span>
             </p>
             <p className="flex items-start">
               <span className="text-green-500 mr-2">⬤</span>
-              <span>You (and future teammates) <strong className="text-white">see the full story</strong>—no hunting through logs.</span>
+              <span>See <strong className="text-white">real-time impact dashboards</strong>. Know immediately if your changes work.</span>
             </p>
           </div>
 
@@ -147,27 +147,28 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid md:grid-cols-2 gap-12 font-mono text-sm">
             <div>
-              <h3 className="text-orange-500 mb-4 text-lg">Old Way</h3>
+              <h3 className="text-orange-500 mb-4 text-lg">The Broken Loop</h3>
               <blockquote className="text-gray-400 mb-4 italic border-l-2 border-orange-500 pl-4">
                 "Ship code now, bolt analytics on later, pray the context still matches."
               </blockquote>
               <div className="bg-gray-900 border border-gray-800 rounded p-4 space-y-2">
-                <div>• Context lost in chat threads</div>
-                <div>• Metrics drift from the code that generated them</div>
-                <div>• New hires ask, "Why did we do that…?"</div>
+                <div>• Deploy features without knowing if they work</div>
+                <div>• Manually track metrics in separate tools</div>
+                <div>• Forget to follow up on whether changes achieved goals</div>
+                <div>• Lose months to features that don't move the needle</div>
               </div>
             </div>
             
             <div>
-              <h3 className="text-green-500 mb-4 text-lg">Actions Way</h3>
+              <h3 className="text-green-500 mb-4 text-lg">The Closed Loop</h3>
               <blockquote className="text-gray-400 mb-4 italic border-l-2 border-green-500 pl-4">
-                <strong className="text-white">Instrumented work items</strong> from the moment they're created.
+                <strong className="text-white">Metric-native development</strong> where measurement is automatic.
               </blockquote>
               <div className="bg-gray-900 border border-gray-800 rounded p-4 space-y-2">
-                <div><span className="text-green-500">1.</span> <strong className="text-white">Plan</strong> → plain-language intent</div>
-                <div><span className="text-green-500">2.</span> <strong className="text-white">Execute</strong> → AI agents run & log everything</div>
-                <div><span className="text-green-500">3.</span> <strong className="text-white">Capture</strong> → code, rationale, metrics stitched together</div>
-                <div><span className="text-green-500">4.</span> <strong className="text-white">Learn</strong> → next task starts with richer context</div>
+                <div><span className="text-green-500">1.</span> <strong className="text-white">Plan</strong> → goals with built-in success metrics</div>
+                <div><span className="text-green-500">2.</span> <strong className="text-white">Build</strong> → AI agents create features + measurement endpoints</div>
+                <div><span className="text-green-500">3.</span> <strong className="text-white">Monitor</strong> → real-time dashboards show impact</div>
+                <div><span className="text-green-500">4.</span> <strong className="text-white">Optimize</strong> → data-driven decisions on what to build next</div>
               </div>
             </div>
           </div>
@@ -178,19 +179,19 @@ export default function HomePage() {
       <section className="border-t border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <h2 className="font-mono text-2xl text-white mb-8 text-center">
-            <span className="text-green-500">## </span>One Command Demo
+            <span className="text-green-500">## </span>Metric-Native Demo
           </h2>
           
           <div className="max-w-3xl mx-auto">
             <div className="bg-gray-900 border border-gray-800 rounded p-6 font-mono text-sm">
-              <div className="text-gray-500 mb-2"># one command demo</div>
-              <div className="text-green-500">$ curl -L https://install.actions.engineering | bash</div>
-              <div className="text-green-500">$ mcp action create "Add dark-mode toggle"</div>
+              <div className="text-gray-500 mb-2"># Set a measurable goal</div>
+              <div className="text-green-500">$ mcp action create "Increase Phin's onboarding completion by 30%"</div>
+              <div className="text-gray-600 mt-2"># AI agent builds feature + tracking automatically</div>
             </div>
             
             <div className="mt-6 text-center">
               <p className="font-mono text-sm text-gray-400">
-                <strong className="text-white">Result:</strong> PR opened, test run, metric link created, changelog drafted.
+                <strong className="text-white">Result:</strong> Feature implemented + analytics endpoint created + real-time dashboard live + success criteria tracked.
               </p>
             </div>
           </div>
@@ -202,23 +203,23 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="grid md:grid-cols-3 gap-8 font-mono text-sm">
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3 text-lg">Live Memory</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Metric-Native Development</h3>
               <p className="text-gray-400">
-                Actions carries convo history, file diffs & errors from one agent to the next—across Claude → Gemini → ChatGPT.
+                AI agents automatically build measurement endpoints and analytics events directly into your code as they implement features. No external tools needed.
               </p>
             </div>
             
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3 text-lg">Magazine-quality Changelogs</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Real-time Impact Feedback</h3>
               <p className="text-gray-400">
-                Raw logs become readable stories that impress stakeholders & future you.
+                Live dashboards show whether your changes are working. No more deploying and forgetting—know immediately if your goals are being achieved.
               </p>
             </div>
             
             <div className="bg-gray-900 border border-gray-800 rounded p-6">
-              <h3 className="text-green-500 mb-3 text-lg">Plug-in, Don't Patch</h3>
+              <h3 className="text-green-500 mb-3 text-lg">Closed-Loop Intelligence</h3>
               <p className="text-gray-400">
-                No extra SDKs; Actions binds directly into your build + deploy pipeline, so metrics stay coherent.
+                Complete stories that include not just what was built and why, but whether it worked and what the data showed. Institutional memory with measurable impact.
               </p>
             </div>
           </div>
@@ -233,11 +234,11 @@ export default function HomePage() {
               <blockquote className="text-white text-2xl leading-relaxed">
                 Humans imagine.<br />
                 Agents execute.<br />
-                <span className="text-green-500">Actions remembers.</span>
+                <span className="text-green-500">Actions measures.</span>
               </blockquote>
               
               <p className="text-base">
-                Software improves fastest when every loop leaves a breadcrumb for the next.
+                <strong className="text-white">The gap between shipping and knowing closes completely.</strong>
               </p>
             </div>
           </div>
