@@ -4,6 +4,7 @@ import type React from "react"
 import { ChevronRight, ChevronDown, GripVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { highlightMatches } from "@/lib/utils/highlight"
 import type { Action, DropIndicator } from "../types/action"
 
 interface ActionItemProps {
@@ -14,6 +15,7 @@ interface ActionItemProps {
   selectedActionId: string | null
   expandedIds: Set<string>
   dropIndicator: DropIndicator | null
+  searchQuery?: string
   onSelect: (actionId: string) => void
   onToggleExpand: (actionId: string) => void
   onSetRoot: (actionId: string) => void
@@ -31,6 +33,7 @@ export function ActionItem({
   selectedActionId,
   expandedIds,
   dropIndicator,
+  searchQuery,
   onSelect,
   onToggleExpand,
   onSetRoot,
@@ -119,7 +122,7 @@ export function ActionItem({
           </Button>
 
           <span className="text-sm leading-relaxed">
-            {action.title}
+            {highlightMatches(action.title, searchQuery || '')}
           </span>
         </div>
 
@@ -150,6 +153,7 @@ export function ActionItem({
               selectedActionId={selectedActionId}
               expandedIds={expandedIds}
               dropIndicator={dropIndicator}
+              searchQuery={searchQuery}
               onSelect={onSelect}
               onToggleExpand={onToggleExpand}
               onSetRoot={onSetRoot}

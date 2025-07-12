@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuickAction } from '../contexts/QuickActionContext';
 import { X, Loader } from 'react-feather';
 import SuccessToast from './SuccessToast';
+import { componentClasses } from '@/lib/utils/design-system';
+import { cn } from '@/lib/utils';
 
 interface ActionFields {
   title: string;
@@ -289,26 +291,22 @@ export default function QuickActionModal() {
   return (
     <>
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          style={{ backdropFilter: 'blur(4px)' }}
-        >
-      <div 
-        ref={modalRef}
-        className="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 relative flex flex-col"
-        style={{ maxHeight: '80vh' }}
-      >
-        <button
-          onClick={closeModal}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label="Close modal"
-        >
-          <X size={20} />
-        </button>
+        <div className={componentClasses.modalOverlay}>
+          <div 
+            ref={modalRef}
+            className={cn(componentClasses.modalContainer, 'max-h-[80vh] text-foreground bg-background')}
+          >
+            <button
+              onClick={closeModal}
+              className={componentClasses.modalCloseButton}
+              aria-label="Close modal"
+            >
+              <X size={20} />
+            </button>
 
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
-          Quick Add Action
-        </h2>
+            <h2 className={componentClasses.modalHeader}>
+              Quick Add Action
+            </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex gap-6 flex-1 min-h-0">
@@ -321,12 +319,12 @@ export default function QuickActionModal() {
                   value={actionText}
                   onChange={(e) => handleTextChange(e.target.value)}
                   placeholder="What needs to be done? (e.g., 'Refactor authentication system to use JWT tokens')"
-                  className="flex-1 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className={cn(componentClasses.input, 'flex-1')}
                   disabled={isSubmitting}
                 />
                 
                 {error && (
-                  <div className="mt-2 text-sm text-red-600">
+                  <div className={cn('mt-2', componentClasses.textSmall)} style={{ color: 'rgb(239 68 68)' }}>
                     {error}
                   </div>
                 )}
@@ -334,33 +332,34 @@ export default function QuickActionModal() {
               
               {/* Parent Suggestions */}
               <div className="mt-4 flex-shrink-0">
-                <label className="text-sm font-semibold text-gray-700 mb-2 block">Parent Suggestions</label>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 max-h-48 overflow-y-auto">
+                <label className={cn(componentClasses.textSmall, 'font-semibold text-foreground mb-2 block')}>Parent Suggestions</label>
+                <div className={cn(componentClasses.card, 'max-h-48 overflow-y-auto')}>
                   {aiPreview?.placement.suggestions && aiPreview.placement.suggestions.length > 0 ? (
                     <div className="space-y-2">
                       {aiPreview.placement.suggestions.map((suggestion) => (
                         <div 
                           key={suggestion.id} 
-                          className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                          className={cn(
+                            'p-2 border rounded-lg cursor-pointer transition-colors',
                             selectedParentId === suggestion.id 
-                              ? 'border-blue-500 bg-blue-50' 
-                              : 'border-gray-200 bg-white hover:border-gray-300'
-                          }`}
+                              ? componentClasses.cardSelected
+                              : cn(componentClasses.card, componentClasses.cardHover)
+                          )}
                           onClick={() => setSelectedParentId(suggestion.id)}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">{suggestion.title}</span>
+                                <span className={cn(componentClasses.textSmall, 'font-medium truncate text-foreground')}>{suggestion.title}</span>
                                 {suggestion.canCreateNewParent && (
-                                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">NEW</span>
+                                  <span className={cn(componentClasses.textExtraSmall, 'bg-primary/20 text-primary px-1.5 py-0.5 rounded flex-shrink-0')}>NEW</span>
                                 )}
                               </div>
-                              <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              <div className={cn(componentClasses.textExtraSmall, componentClasses.textSecondary, 'mt-1 line-clamp-2')}>
                                 {suggestion.confidence}% confidence • {suggestion.source}
                               </div>
                             </div>
-                            <div className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                            <div className={cn(componentClasses.textExtraSmall, componentClasses.textSecondary, 'ml-2 flex-shrink-0')}>
                               {Math.round(suggestion.confidence)}%
                             </div>
                           </div>
@@ -368,7 +367,7 @@ export default function QuickActionModal() {
                       ))}
                     </div>
                   ) : (
-                    <div className="p-2 bg-white rounded border border-gray-200 text-sm text-gray-500">
+                    <div className={cn(componentClasses.card, componentClasses.textSmall, componentClasses.textSecondary)}>
                       {actionText.trim() && isGenerating ? 'Analyzing hierarchy...' : 
                        aiPreview ? 'No parent suggestions available' : 'Enter action text to analyze'}
                     </div>
@@ -376,17 +375,18 @@ export default function QuickActionModal() {
                   
                   {/* Root-level option */}
                   <div 
-                    className={`mt-2 p-2 border rounded-lg cursor-pointer transition-colors ${
+                    className={cn(
+                      'mt-2 p-2 border rounded-lg cursor-pointer transition-colors',
                       selectedParentId === null 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
+                        ? componentClasses.cardSelected
+                        : cn(componentClasses.card, componentClasses.cardHover)
+                    )}
                     onClick={() => setSelectedParentId(null)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-sm font-medium">Root Level</span>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <span className={cn(componentClasses.textSmall, 'font-medium text-foreground')}>Root Level</span>
+                        <div className={cn(componentClasses.textExtraSmall, componentClasses.textSecondary, 'mt-1')}>
                           Create as a top-level action without a parent
                         </div>
                       </div>
@@ -398,11 +398,11 @@ export default function QuickActionModal() {
 
             {/* Right side - AI Preview only */}
             <div className="w-1/2 flex-shrink-0">
-              <div className="h-full bg-gray-50 rounded-lg border border-gray-200 p-4 flex flex-col">
+              <div className={cn(componentClasses.card, 'h-full flex flex-col')}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-gray-700">AI Preview</h3>
+                  <h3 className={cn(componentClasses.textSmall, 'font-semibold text-foreground')}>AI Preview</h3>
                   {isGenerating && actionText.trim() && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className={cn('flex items-center gap-2', componentClasses.textSmall, componentClasses.textSecondary)}>
                       <Loader size={14} className="animate-spin" />
                       <span>Generating...</span>
                     </div>
@@ -410,11 +410,11 @@ export default function QuickActionModal() {
                 </div>
 
                 {aiPreview?.isDuplicate && aiPreview.duplicate && (
-                  <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="mb-3 p-3 bg-warning/10 border border-warning/30 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <span className="text-yellow-600 text-sm font-medium">⚠️ Duplicate Detected</span>
+                      <span className={cn(componentClasses.textSmall, 'font-medium')} style={{ color: 'rgb(234 179 8)' }}>⚠️ Duplicate Detected</span>
                     </div>
-                    <p className="text-sm text-yellow-700 mt-1">
+                    <p className={cn(componentClasses.textSmall, 'mt-1')} style={{ color: 'rgb(217 119 6)' }}>
                       Similar action exists: "{aiPreview.duplicate.title}" 
                       ({Math.round(aiPreview.duplicate.similarity * 100)}% match)
                     </p>
@@ -423,34 +423,34 @@ export default function QuickActionModal() {
 
                 <div className="flex-1 overflow-y-auto space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Title</label>
-                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[2rem]">
+                    <label className={cn(componentClasses.textExtraSmall, 'font-medium text-foreground')}>Title</label>
+                    <div className={cn('mt-1 p-2 bg-muted/20 rounded border border-border', componentClasses.textSmall, 'min-h-[2rem]')}>
                       {aiPreview?.fields.title || (
                         actionText.trim() && isGenerating ? 
-                        <span className="text-gray-400 italic">Generating...</span> : 
-                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                        <span className={cn(componentClasses.textSecondary, 'italic')}>Generating...</span> : 
+                        <span className={cn(componentClasses.textSecondary, 'italic opacity-60')}>Enter action text to generate</span>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Description</label>
-                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[4rem] max-h-24 overflow-y-auto">
+                    <label className={cn(componentClasses.textExtraSmall, 'font-medium text-foreground')}>Description</label>
+                    <div className={cn('mt-1 p-2 bg-muted/20 rounded border border-border', componentClasses.textSmall, 'min-h-[4rem] max-h-24 overflow-y-auto')}>
                       {aiPreview?.fields.description || (
                         actionText.trim() && isGenerating ? 
-                        <span className="text-gray-400 italic">Generating...</span> : 
-                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                        <span className={cn(componentClasses.textSecondary, 'italic')}>Generating...</span> : 
+                        <span className={cn(componentClasses.textSecondary, 'italic opacity-60')}>Enter action text to generate</span>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-gray-600">Vision</label>
-                    <div className="mt-1 p-2 bg-white rounded border border-gray-200 text-sm min-h-[3rem] max-h-20 overflow-y-auto">
+                    <label className={cn(componentClasses.textExtraSmall, 'font-medium text-foreground')}>Vision</label>
+                    <div className={cn('mt-1 p-2 bg-muted/20 rounded border border-border', componentClasses.textSmall, 'min-h-[3rem] max-h-20 overflow-y-auto')}>
                       {aiPreview?.fields.vision || (
                         actionText.trim() && isGenerating ? 
-                        <span className="text-gray-400 italic">Generating...</span> : 
-                        <span className="text-gray-300 italic">Enter action text to generate</span>
+                        <span className={cn(componentClasses.textSecondary, 'italic')}>Generating...</span> : 
+                        <span className={cn(componentClasses.textSecondary, 'italic opacity-60')}>Enter action text to generate</span>
                       )}
                     </div>
                   </div>
@@ -461,22 +461,22 @@ export default function QuickActionModal() {
           </div>
 
           <div className="mt-6 flex items-center justify-between flex-shrink-0">
-            <div className="text-sm text-gray-500">
-              <p>Tip: Press <kbd className="px-1.5 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded">ESC</kbd> to close</p>
+            <div className={cn(componentClasses.textSmall, componentClasses.textSecondary)}>
+              <p>Tip: Press <kbd className={cn('px-1.5 py-0.5', componentClasses.textExtraSmall, 'font-semibold text-foreground bg-muted border border-border rounded')}>ESC</kbd> to close</p>
             </div>
             
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className={cn(componentClasses.button, componentClasses.buttonSecondary)}
                 disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={cn(componentClasses.button, componentClasses.buttonPrimary)}
                 disabled={!actionText.trim() || isSubmitting || isGenerating || !aiPreview}
               >
                 {isSubmitting ? 'Creating...' : isGenerating ? 'Generating...' : 'Create Action'}

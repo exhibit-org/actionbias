@@ -376,6 +376,7 @@ export default function ActionInterface() {
                   actions={currentActions}
                   selectedActionId={selectedActionId}
                   expandedIds={expandedIds}
+                  searchQuery={debouncedSearchQuery}
                   onSelect={handleSelect}
                   onToggleExpand={handleToggleExpand}
                   onSetRoot={handleSetRoot}

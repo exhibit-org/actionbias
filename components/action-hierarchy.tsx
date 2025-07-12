@@ -9,6 +9,7 @@ interface ActionHierarchyProps {
   actions: Action[]
   selectedActionId: string | null
   expandedIds: Set<string>
+  searchQuery?: string
   onSelect: (actionId: string) => void
   onToggleExpand: (actionId: string) => void
   onSetRoot: (actionId: string) => void
@@ -19,6 +20,7 @@ export function ActionHierarchy({
   actions,
   selectedActionId,
   expandedIds,
+  searchQuery,
   onSelect,
   onToggleExpand,
   onSetRoot,
@@ -94,6 +96,7 @@ export function ActionHierarchy({
         selectedActionId={selectedActionId}
         expandedIds={expandedIds}
         dropIndicator={dropIndicator}
+        searchQuery={searchQuery}
         onSelect={onSelect}
         onToggleExpand={onToggleExpand}
         onSetRoot={onSetRoot}
