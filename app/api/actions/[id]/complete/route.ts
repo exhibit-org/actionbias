@@ -101,7 +101,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const completeParams = completeActionSchema.parse(body);
     const resolvedParams = await params;
     const actionId = resolvedParams.id;

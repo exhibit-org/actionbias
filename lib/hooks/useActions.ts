@@ -199,57 +199,65 @@ export function useActions() {
 
       // Optimistically update local state instead of refetching
       setActions(prevActions => {
-        const moveActionInTree = (actions: Action[], actionId: string, newParentId?: string): Action[] => {
-          // First, remove the action from its current location
-          let movedAction: Action | null = null
-          const removeAction = (actionsArray: Action[]): Action[] => {
-            return actionsArray.filter(action => {
-              if (action.id === actionId) {
-                movedAction = action
-                return false
-              }
-              if (action.children) {
-                action.children = removeAction(action.children)
-              }
-              return true
-            })
-          }
-          
-          let updatedActions = removeAction([...actions])
-          
-          if (!movedAction) return actions // Action not found, return original
-          
-          // Remove children from moved action to avoid duplication
-          const cleanedMovedAction = { ...movedAction, children: [] }
-          
-          if (!newParentId) {
-            // Move to root level
-            return [...updatedActions, cleanedMovedAction]
-          }
-          
-          // Add to new parent
-          const addToParent = (actionsArray: Action[]): Action[] => {
-            return actionsArray.map(action => {
-              if (action.id === newParentId) {
-                return {
-                  ...action,
-                  children: [...(action.children || []), cleanedMovedAction]
-                }
-              }
-              if (action.children) {
-                return {
-                  ...action,
-                  children: addToParent(action.children)
-                }
-              }
-              return action
-            })
-          }
-          
-          return addToParent(updatedActions)
+        // Find and remove the action from its current location
+        let movedAction: Action | null = null
+        const removeAction = (actionsArray: Action[]): Action[] => {
+          return actionsArray.filter(action => {
+            if (action.id === actionId) {
+              movedAction = action
+              return false
+            }
+            if (action.children) {
+              action.children = removeAction(action.children)
+            }
+            return true
+          })
         }
         
-        return moveActionInTree(prevActions, actionId, newParentId)
+        const updatedActions = removeAction([...prevActions])
+        
+        if (!movedAction) return prevActions // Action not found, return original
+        
+        // Create a copy without children to avoid duplication when moving
+        const cleanedMovedAction: Action = {
+          id: (movedAction as Action).id,
+          title: (movedAction as Action).title,
+          description: (movedAction as Action).description,
+          vision: (movedAction as Action).vision,
+          done: (movedAction as Action).done,
+          dependencies: (movedAction as Action).dependencies,
+          isExpanded: (movedAction as Action).isExpanded,
+          level: (movedAction as Action).level,
+          created_at: (movedAction as Action).created_at,
+          updated_at: (movedAction as Action).updated_at,
+          children: []
+        }
+        
+        if (!newParentId) {
+          // Move to root level
+          return [...updatedActions, cleanedMovedAction]
+        }
+        
+        // Add to new parent
+        const addToParent = (actionsArray: Action[]): Action[] => {
+          return actionsArray.map(action => {
+            if (action.id === newParentId) {
+              return {
+                ...action,
+                children: [...(action.children || []), cleanedMovedAction]
+              }
+            }
+            if (action.children) {
+              return {
+                ...action,
+                children: addToParent(action.children)
+              }
+            }
+            return action
+          })
+        }
+        
+        return addToParent(updatedActions)
       })
       
       return result
