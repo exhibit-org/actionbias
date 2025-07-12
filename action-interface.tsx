@@ -252,8 +252,6 @@ export default function ActionInterface() {
         if (position === "inside") {
           // Move as child - use moveAction to set new parent
           await moveAction(draggedId, targetId)
-          // Auto-expand the target to show the new child
-          setExpandedIds((prev) => new Set([...prev, targetId]))
         } else {
           // For above/below positioning, we need to find the target's parent
           // and move the dragged action to the same parent
